@@ -1,0 +1,210 @@
+# Colloquium
+
+Markdown-based slide creation tool for research talks. Git-friendly, AI-drivable, single-file HTML output.
+
+## Install
+
+```bash
+pip install git+https://github.com/Interconnects-AI/colloquium.git
+```
+
+Or for development:
+
+```bash
+git clone https://github.com/Interconnects-AI/colloquium.git
+cd colloquium
+uv pip install -e .
+```
+
+## Quick Start
+
+Create a markdown file:
+
+```markdown
+---
+title: "My Talk"
+author: "Jane Doe"
+date: "2026-02-22"
+---
+
+# My Talk
+
+Jane Doe
+
+---
+
+## Key Results
+
+- Finding one
+- Finding two
+
+---
+
+## Conclusion
+
+Thanks for listening!
+```
+
+Build it:
+
+```bash
+colloquium build slides.md        # → slides.html
+colloquium serve slides.md        # dev server with live reload
+colloquium export slides.md       # PDF via headless Chrome
+```
+
+## CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `colloquium build <file.md>` | Build to self-contained HTML |
+| `colloquium serve <file.md>` | Dev server with live reload |
+| `colloquium export <file.md>` | PDF export (requires Chrome) |
+
+## Frontmatter Reference
+
+All configuration goes in the YAML frontmatter block at the top of the file.
+
+```yaml
+---
+title: "Talk Title"
+author: "Author Name"
+date: "2026-02-22"
+theme: default
+aspect_ratio: "16:9"
+
+fonts:
+  heading: "Playfair Display"    # Google Font for h1/h2/h3
+  body: "Source Sans 3"          # Google Font for body text
+
+footer:
+  left: "https://example.com/logo.png"   # image URL → logo, plain text → text
+  center: "My Talk Title"
+  right: "auto"                           # "auto" → slide numbers "3 / 12"
+
+custom_css: ".slide h2 { color: red; }"   # inline CSS overrides
+---
+```
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `title` | `"Untitled"` | Presentation title (used in `<title>` and title slides) |
+| `author` | `""` | Author name |
+| `date` | `""` | Date string |
+| `theme` | `"default"` | Theme name |
+| `aspect_ratio` | `"16:9"` | Slide aspect ratio |
+| `fonts.heading` | Inter | Google Font for headings |
+| `fonts.body` | Inter | Google Font for body text |
+| `footer.left` | `""` | Left footer zone (text or image URL) |
+| `footer.center` | `""` | Center footer zone |
+| `footer.right` | `"auto"` | Right footer zone (`"auto"` = slide numbers) |
+| `custom_css` | `""` | Additional CSS injected into the page |
+
+When `footer:` is omitted entirely, a minimal footer with just the slide counter in the right zone is used.
+
+## Slide Directives
+
+Per-slide configuration via HTML comments. Place them anywhere in the slide.
+
+```markdown
+## My Slide
+
+<!-- layout: section-break -->
+<!-- class: highlight special -->
+<!-- style: background: #1a1a2e -->
+<!-- notes: Remember to mention X -->
+<!-- align: center -->
+<!-- valign: bottom -->
+<!-- columns: 2 -->
+<!-- padding: compact -->
+<!-- size: large -->
+<!-- title: hidden -->
+```
+
+### Layouts
+
+| Directive | Effect |
+|-----------|--------|
+| `<!-- layout: title -->` | Centered title slide (used with `# Heading`) |
+| `<!-- layout: content -->` | Default content layout (used with `## Heading`) |
+| `<!-- layout: section-break -->` | Dark accent background, centered text |
+| `<!-- layout: two-column -->` | Two-column grid |
+| `<!-- layout: image-left -->` | Image on left, text on right |
+| `<!-- layout: image-right -->` | Text on left, image on right |
+| `<!-- layout: code -->` | Optimized for large code blocks |
+
+### Columns
+
+Split content with `---` (horizontal rule) between columns:
+
+```markdown
+<!-- columns: 2 -->
+## Results
+
+Left column content
+
+---
+
+Right column content
+```
+
+| Value | Effect |
+|-------|--------|
+| `2` | Two equal columns |
+| `3` | Three equal columns |
+| `60/40` | 60%/40% split |
+| `40/60` | 40%/60% split |
+| `70/30` | 70%/30% split |
+| `30/70` | 30%/70% split |
+
+### Text & Spacing
+
+| Directive | Values |
+|-----------|--------|
+| `<!-- align: ... -->` | `left`, `center`, `right` |
+| `<!-- valign: ... -->` | `top`, `center`, `bottom` |
+| `<!-- size: ... -->` | `small` (20px), `normal` (24px), `large` (28px) |
+| `<!-- padding: ... -->` | `compact` (30px), `normal` (60px), `wide` (90px) |
+| `<!-- title: ... -->` | `top`, `center`, `hidden` |
+
+### Other
+
+| Directive | Description |
+|-----------|-------------|
+| `<!-- class: name1 name2 -->` | Add CSS classes to the slide |
+| `<!-- style: css-here -->` | Inline CSS on the slide element |
+| `<!-- notes: text -->` | Speaker notes (hidden in presentation) |
+
+## Content Features
+
+**Math** (KaTeX) — inline `$E=mc^2$` and display `$$\sum_{i=1}^n x_i$$`
+
+**Code** (highlight.js) — fenced code blocks with language syntax highlighting
+
+**Tables** — standard markdown tables
+
+**Images** — `![alt](url)` with automatic sizing
+
+## Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| Right / Down / Space / PgDn | Next slide |
+| Left / Up / PgUp | Previous slide |
+| Home | First slide |
+| End | Last slide |
+| F | Toggle fullscreen |
+| Escape | Close picker / exit fullscreen |
+
+Click the slide counter to open the slide picker. Click left 1/3 of screen to go back, right 2/3 to go forward.
+
+## PDF Export
+
+Two options:
+
+1. **Browser**: Open the HTML file and `Cmd+P` / `Ctrl+P` — print CSS makes all slides visible with page breaks, footers with slide numbers included
+2. **CLI**: `colloquium export slides.md` uses headless Chrome
+
+## Output
+
+Everything builds to a single self-contained HTML file. CSS and JS are inlined; math (KaTeX) and code highlighting (highlight.js) load from CDN.

@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "colloquium"
 version = "0.1.0"
 description = "Agent-native slide creation tool for research talks"
-readme = "CLAUDE.md"
+readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
 authors = [
