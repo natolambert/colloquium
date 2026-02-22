@@ -1,0 +1,116 @@
+"""CLI entry point for colloquium."""
+
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+
+def _build(args):
+    """Build a markdown file into an HTML presentation."""
+    from colloquium.build import build_file
+
+    input_path = args.file
+    if not Path(input_path).exists():
+        print(f"Error: {input_path} not found", file=sys.stderr)
+        sys.exit(1)
+
+    if args.output:
+        output_dir = args.output
+        stem = Path(input_path).stem
+        output_path = str(Path(output_dir) / f"{stem}.html")
+    else:
+        output_path = None  # build_file will default to same dir as input
+
+    result = build_file(input_path, output_path)
+    print(f"Built: {result}")
+
+
+def _serve(args):
+    """Serve a presentation with live reload."""
+    from colloquium.serve import serve
+
+    input_path = args.file
+    if not Path(input_path).exists():
+        print(f"Error: {input_path} not found", file=sys.stderr)
+        sys.exit(1)
+
+    serve(input_path, port=args.port)
+
+
+def _export(args):
+    """Export a presentation to PDF."""
+    from colloquium.export import export_pdf
+
+    input_path = args.file
+    if not Path(input_path).exists():
+        print(f"Error: {input_path} not found", file=sys.stderr)
+        sys.exit(1)
+
+    output_path = args.output
+    result = export_pdf(input_path, output_path)
+
+    if result:
+        print(f"Exported: {result}")
+    else:
+        # Build HTML and give instructions
+        from colloquium.build import build_file
+
+        html_path = build_file(input_path)
+        print("No compatible browser found for headless PDF export.")
+        print(f"HTML built at: {html_path}")
+        print(f"Open it in a browser and use Cmd+P / Ctrl+P to print to PDF.")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="colloquium",
+        description="Agent-native slide creation tool for research talks",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {_get_version()}",
+    )
+
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    # build
+    build_parser = subparsers.add_parser("build", help="Build markdown to HTML")
+    build_parser.add_argument("file", help="Input markdown file")
+    build_parser.add_argument("-o", "--output", help="Output directory")
+    build_parser.set_defaults(func=_build)
+
+    # serve
+    serve_parser = subparsers.add_parser("serve", help="Dev server with live reload")
+    serve_parser.add_argument("file", help="Input markdown file")
+    serve_parser.add_argument("-p", "--port", type=int, default=8080, help="Port (default: 8080)")
+    serve_parser.set_defaults(func=_serve)
+
+    # export
+    export_parser = subparsers.add_parser("export", help="Export to PDF")
+    export_parser.add_argument("file", help="Input markdown file")
+    export_parser.add_argument("--pdf", action="store_true", default=True, help="Export as PDF (default)")
+    export_parser.add_argument("-o", "--output", help="Output PDF path")
+    export_parser.set_defaults(func=_export)
+
+    args = parser.parse_args()
+
+    if not args.command:
+        parser.print_help()
+        sys.exit(1)
+
+    args.func(args)
+
+
+def _get_version() -> str:
+    try:
+        from colloquium import __version__
+        return __version__
+    except ImportError:
+        return "unknown"
+
+
+if __name__ == "__main__":
+    main()
