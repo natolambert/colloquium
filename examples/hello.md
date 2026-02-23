@@ -105,6 +105,9 @@ Supporting points:
 
 ---
 
+<!-- align: center -->
+<!-- valign: center -->
+
 ## Centered Image
 
 ![Colloquium wordmark](mark.webp)
