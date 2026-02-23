@@ -211,6 +211,26 @@ options:
 
 ---
 
+## Mixed Font Sizes
+
+Default body text for context and introduction.
+
+<div class="text-sm">
+
+- **Smaller text** for dense lists or supplementary details
+- Works well for methodology sections with many bullet points
+- Wrap content in `<div class="text-sm">` to scale down
+
+</div>
+
+<div class="text-xs">
+
+Extra-small text for footnotes, references, or fine print. Available sizes: `text-xs` (0.65em), `text-sm` (0.8em), `text-base` (1em), `text-lg` (1.2em), `text-xl` (1.4em).
+
+</div>
+
+---
+
 ## Conclusions
 
 1. Colloquium makes slide creation **fast** and **reproducible**
