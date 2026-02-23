@@ -105,6 +105,26 @@ Supporting points:
 
 ---
 
+## Centered Image
+
+![Colloquium wordmark](mark.webp)
+
+---
+
+<!-- columns: 60/40 -->
+
+## Image with Text
+
+Colloquium supports images in any layout. Here the wordmark sits in the narrower column alongside explanatory text.
+
+Images auto-scale to fit their container while maintaining aspect ratio.
+
+---
+
+![Colloquium wordmark](mark.webp)
+
+---
+
 <!-- layout: section-break -->
 
 ## Key Results
