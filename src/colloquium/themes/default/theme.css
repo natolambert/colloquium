@@ -473,18 +473,25 @@ html, body {
 }
 
 /* ===== Print / PDF Styles ===== */
+@page {
+    size: 10in 5.625in;  /* 16:9 landscape */
+    margin: 0;
+}
+
 @media print {
     html, body {
-        width: auto;
+        width: 10in;
         height: auto;
         overflow: visible;
         background: #fff;
+        margin: 0;
+        padding: 0;
     }
 
     .colloquium-deck {
         position: static;
         transform: none !important;
-        width: auto;
+        width: 10in;
         height: auto;
         background: none;
     }
@@ -492,17 +499,15 @@ html, body {
     .slide {
         display: flex !important;
         position: relative;
-        width: 100%;
-        height: auto;
-        min-height: 720px;
-        aspect-ratio: 16 / 9;
+        width: 10in;
+        height: 5.625in;
         page-break-after: always;
         page-break-inside: avoid;
         break-after: page;
         break-inside: avoid;
-        border: 1px solid #eee;
-        margin-bottom: 0;
+        margin: 0;
         font-size: 18px;
+        overflow: hidden;
     }
 
     .slide:last-child {

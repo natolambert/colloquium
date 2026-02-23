@@ -63,12 +63,17 @@ def export_pdf(input_path: str, output_path: str | None = None) -> str | None:
         return None
 
     # Use Chromium's headless print-to-pdf
+    # 10in x 5.625in = 16:9 landscape, matching @page size in print CSS
     cmd = [
         browser,
         "--headless",
         "--disable-gpu",
         f"--print-to-pdf={output_path}",
         "--no-pdf-header-footer",
+        "--print-to-pdf-no-header",
+        "--no-margins",
+        f"--paper-width=10",
+        f"--paper-height=5.625",
         html_url,
     ]
 
