@@ -107,21 +107,28 @@ def _build_chart_html(yaml_str: str) -> str:
             dataset["backgroundColor"] = ds.get("color", colors[i % len(colors)]) + "cc"
         datasets.append(dataset)
 
+    chart_options = {
+        "responsive": True,
+        "maintainAspectRatio": False,
+        "plugins": {
+            "legend": {"display": len(datasets) > 1},
+            "title": {"display": bool(title), "text": title, "font": {"size": 16}},
+        },
+    }
+    # Deep-merge user options
+    for key, value in options.items():
+        if key in chart_options and isinstance(chart_options[key], dict) and isinstance(value, dict):
+            chart_options[key].update(value)
+        else:
+            chart_options[key] = value
+
     config = {
         "type": chart_type,
         "data": {
             "labels": data.get("labels", []),
             "datasets": datasets,
         },
-        "options": {
-            "responsive": True,
-            "maintainAspectRatio": False,
-            "plugins": {
-                "legend": {"display": len(datasets) > 1},
-                "title": {"display": bool(title), "text": title, "font": {"size": 16}},
-            },
-            **options,
-        },
+        "options": chart_options,
     }
 
     config_json = json.dumps(config)

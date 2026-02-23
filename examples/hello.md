@@ -2,6 +2,27 @@
 title: "Hello Colloquium"
 author: "Nathan Lambert"
 date: "2026-02-22"
+fonts:
+  heading: "Rubik"
+  body: "Poppins"
+footer:
+  left: "logo.png"
+  center: ""
+  right: "auto"
+custom_css: |
+  :root {
+    --colloquium-bg: #E3EEEA;
+    --colloquium-text: #0B1A14;
+    --colloquium-heading: #0B1A14;
+    --colloquium-accent: #4AA691;
+    --colloquium-link: #4AA691;
+    --colloquium-progress-fill: #4AA691;
+    --colloquium-code-bg: #d4e4dd;
+    --colloquium-muted: #3a5a4a;
+    --colloquium-border: #b8d4c8;
+    --colloquium-progress-bg: #b8d4c8;
+  }
+  .slide--section-break { background: #4AA691; }
 ---
 
 # Hello Colloquium
@@ -125,14 +146,21 @@ All content on this slide is vertically centered, like a title slide but with `#
 
 ```chart
 type: line
-title: Model Performance Over Training
 data:
   labels: [10K, 50K, 100K, 250K, 500K, 1M]
   datasets:
     - label: Accuracy
       data: [62.1, 74.5, 82.3, 89.1, 93.4, 95.2]
+      color: "#4AA691"
     - label: F1 Score
       data: [58.3, 71.2, 79.8, 87.4, 91.9, 93.8]
+      color: "#0B1A14"
+options:
+  scales:
+    x:
+      grid: {display: false}
+    y:
+      grid: {display: false}
 ```
 
 ---
@@ -141,14 +169,21 @@ data:
 
 ```chart
 type: bar
-title: GPU Hours by Model Size
 data:
   labels: [Small, Medium, Large, XL]
   datasets:
     - label: Training
       data: [4, 12, 48, 120]
+      color: "#4AA691"
     - label: Evaluation
       data: [1, 3, 8, 20]
+      color: "#0B1A14"
+options:
+  scales:
+    x:
+      grid: {display: false}
+    y:
+      grid: {display: false}
 ```
 
 ---
@@ -165,7 +200,6 @@ data:
 ---
 
 <!-- layout: title -->
-<!-- class: highlight -->
 
 # Thank You
 
