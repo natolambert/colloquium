@@ -83,6 +83,8 @@ def _build_chart_html(yaml_str: str) -> str:
     chart_type = spec.get("type", "bar")
     data = spec.get("data", {})
     title = spec.get("title", "")
+    height = spec.get("height", None)
+    width = spec.get("width", None)
     options = spec.get("options", {})
 
     # Build Chart.js config
@@ -133,10 +135,19 @@ def _build_chart_html(yaml_str: str) -> str:
         "options": chart_options,
     }
 
-    config_json = json.dumps(config)
+    config_json = html_module.escape(json.dumps(config))
+
+    # Container sizing — defaults to 100% width, 400px height
+    style_parts = []
+    if width:
+        style_parts.append(f"width: {width}px")
+    if height:
+        style_parts.append(f"height: {height}px")
+    style_attr = f' style="{"; ".join(style_parts)}"' if style_parts else ""
+
     return (
-        f'<div class="colloquium-chart-container">'
-        f'<canvas id="{chart_id}" data-chart-config=\'{config_json}\'></canvas>'
+        f'<div class="colloquium-chart-container"{style_attr}>'
+        f'<canvas id="{chart_id}" data-chart-config="{config_json}"></canvas>'
         f'</div>'
     )
 
@@ -280,6 +291,21 @@ window.addEventListener("load", function() {
 
             chartCanvases.forEach(function(canvas) {
                 var config = JSON.parse(canvas.getAttribute("data-chart-config"));
+                // Convert tick prefix/suffix strings into real callbacks
+                var scales = config.options && config.options.scales;
+                if (scales) {
+                    Object.keys(scales).forEach(function(axis) {
+                        var ticks = scales[axis].ticks;
+                        if (!ticks) return;
+                        var pre = ticks.prefix || "";
+                        var suf = ticks.suffix || "";
+                        if (pre || suf) {
+                            delete ticks.prefix;
+                            delete ticks.suffix;
+                            ticks.callback = function(v) { return pre + v + suf; };
+                        }
+                    });
+                }
                 new Chart(canvas, config);
             });
 

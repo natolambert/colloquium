@@ -183,7 +183,44 @@ Right column content
 
 **Tables** — standard markdown tables
 
-**Images** — `![alt](url)` with automatic sizing
+**Images** — `![alt](url)` with automatic sizing (SVG supported for vector graphics)
+
+### Charts
+
+Inline charts via Chart.js using YAML in fenced code blocks:
+
+````markdown
+```chart
+type: line
+height: 500
+width: 800
+data:
+  labels: [Q1, Q2, Q3, Q4]
+  datasets:
+    - label: Revenue
+      data: [10, 25, 40, 60]
+      color: "#4AA691"
+options:
+  scales:
+    y:
+      ticks:
+        prefix: "$"
+        suffix: "K"
+```
+````
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `type` | `bar` | Chart type: `line`, `bar`, `scatter`, `pie`, `doughnut` |
+| `height` | `400` | Container height in pixels |
+| `width` | `100%` | Container width in pixels (omit for full width) |
+| `data.labels` | `[]` | X-axis labels |
+| `data.datasets[].label` | `"Series N"` | Legend label |
+| `data.datasets[].data` | `[]` | Data values |
+| `data.datasets[].color` | auto | Series color |
+| `options.scales.{x,y}.ticks.prefix` | `""` | Prepend to tick labels (e.g. `"$"`) |
+| `options.scales.{x,y}.ticks.suffix` | `""` | Append to tick labels (e.g. `"%"`) |
+| `options.scales.{x,y}.grid.display` | `true` | Show/hide grid lines |
 
 ## Keyboard Shortcuts
 
