@@ -111,6 +111,7 @@ def _build_chart_html(yaml_str: str) -> str:
         "responsive": True,
         "maintainAspectRatio": False,
         "animation": False,
+        "devicePixelRatio": 3,
         "plugins": {
             "legend": {"display": len(datasets) > 1},
             "title": {"display": bool(title), "text": title, "font": {"size": 16}},
