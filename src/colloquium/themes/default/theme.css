@@ -399,23 +399,23 @@ html, body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
     z-index: 200;
-    justify-content: center;
-    align-items: center;
 }
 
 .colloquium-picker-overlay.active {
-    display: flex;
+    display: block;
 }
 
 .colloquium-picker {
+    position: absolute;
+    bottom: 48px;
+    right: 24px;
     background: #fff;
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     max-height: 70vh;
     overflow-y: auto;
-    width: 400px;
+    width: 360px;
     padding: 8px 0;
 }
 
