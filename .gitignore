@@ -1,0 +1,17 @@
+# Build artifacts
+*.html
+*.pdf
+!README.md
+
+# Python
+__pycache__/
+*.egg-info/
+.venv/
+dist/
+
+# OS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/

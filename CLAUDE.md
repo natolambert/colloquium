@@ -6,8 +6,8 @@ Colloquium is an agent-native slide creation tool for research talks. Markdown-b
 ## Commands
 - Use `uv` for all Python operations
 - `uv pip install -e .` to install in dev mode
-- `uv run colloquium build examples/hello.md` to build slides
-- `uv run colloquium serve examples/hello.md` for dev server
+- `uv run colloquium build examples/hello/hello.md` to build slides
+- `uv run colloquium serve examples/hello/hello.md` for dev server
 - `uv run pytest` to run tests
 
 ## Architecture Patterns
