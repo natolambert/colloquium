@@ -144,8 +144,8 @@ $presentation_js
 </script>
 
 <script>
-// Initialize KaTeX auto-render after load
-document.addEventListener("DOMContentLoaded", function() {
+// Initialize KaTeX and highlight.js after all deferred scripts have loaded
+window.addEventListener("load", function() {
     if (typeof renderMathInElement !== "undefined") {
         renderMathInElement(document.body, {
             delimiters: [
@@ -157,7 +157,6 @@ document.addEventListener("DOMContentLoaded", function() {
             throwOnError: false
         });
     }
-    // Initialize highlight.js
     if (typeof hljs !== "undefined") {
         hljs.highlightAll();
     }
