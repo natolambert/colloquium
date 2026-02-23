@@ -458,7 +458,7 @@ html, body {
 /* ===== Present Button ===== */
 .colloquium-present {
     position: fixed;
-    bottom: 16px;
+    top: 16px;
     right: 16px;
     z-index: 150;
     width: 40px;
