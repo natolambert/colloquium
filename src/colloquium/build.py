@@ -152,6 +152,9 @@ def _build_footer_html(footer: dict | None, index: int, total: int) -> str:
     if footer is None:
         footer = {"right": "auto"}
 
+    logo_scale = footer.get("logo_scale", 1)
+    logo_height = int(24 * float(logo_scale))
+
     zones = []
     for zone in ("left", "center", "right"):
         value = footer.get(zone, "")
@@ -159,7 +162,7 @@ def _build_footer_html(footer: dict | None, index: int, total: int) -> str:
         if value == "auto":
             inner = f'<span class="colloquium-counter">{index + 1} / {total}</span>'
         elif value and _IMAGE_URL_RE.search(value):
-            inner = f'<img class="colloquium-footer-logo" src="{value}" alt="">'
+            inner = f'<img class="colloquium-footer-logo" src="{value}" alt="" style="height: {logo_height}px">'
         elif value:
             inner = value
         zones.append(f'<div class="colloquium-footer-{zone}">{inner}</div>')
