@@ -40,6 +40,26 @@ class ColloquiumPresentation {
     }
 
     /**
+     * Check each slide for content overflow and add a visual warning.
+     * Temporarily shows all slides to measure, then restores.
+     */
+    _checkOverflow() {
+        const origDisplay = this.slides.map(s => s.style.display);
+        this.slides.forEach(s => s.style.display = 'flex');
+
+        this.slides.forEach((slide, i) => {
+            if (slide.scrollHeight > slide.clientHeight + 2) {
+                const warn = document.createElement('div');
+                warn.className = 'colloquium-overflow-warn';
+                warn.title = `Slide ${i + 1} content overflows`;
+                slide.appendChild(warn);
+            }
+        });
+
+        this.slides.forEach((s, i) => s.style.display = origDisplay[i]);
+    }
+
+    /**
      * Scale the 1280x720 deck to fit the viewport while maintaining 16:9 aspect ratio.
      * Centers the deck with black letterbox/pillarbox bars.
      */

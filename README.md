@@ -102,6 +102,28 @@ custom_css: ".slide h2 { color: red; }"   # inline CSS overrides
 
 When `footer:` is omitted entirely, a minimal footer with just the slide counter in the right zone is used.
 
+## Slide Structure
+
+Slides are separated by `---` on its own line. The first heading in each slide becomes the slide title:
+
+| Heading | Behavior |
+|---------|----------|
+| `# Title` | Title slide — centered, large text, `slide--title` layout |
+| `## Title` | Content slide — standard layout with heading at top |
+| `###` through `######` | Rendered as subheadings within slide content |
+
+```markdown
+# Welcome              ← title slide (centered, large)
+
+---
+
+## Key Results         ← content slide (heading + body)
+
+### Sub-section        ← rendered as h3 inside the slide body
+
+Normal paragraph text.
+```
+
 ## Slide Directives
 
 Per-slide configuration via HTML comments. Place them anywhere in the slide.
@@ -183,7 +205,74 @@ Right column content
 
 **Tables** — standard markdown tables
 
-**Images** — `![alt](url)` with automatic sizing
+**Images** — `![alt](url)` with automatic sizing (SVG supported for vector graphics)
+
+### Text Sizes
+
+Control font size on any element or block using HTML class attributes:
+
+```markdown
+<span class="text-2xl">Big emphasis text</span>
+
+Normal paragraph text.
+
+<div class="text-sm">
+
+- Dense bullet point one
+- Dense bullet point two
+
+</div>
+
+<span class="text-xs">Footnote or citation</span>
+```
+
+| Class | Scale | Use case |
+|-------|-------|----------|
+| `text-xs` | 0.65em | Footnotes, citations |
+| `text-sm` | 0.8em | Dense lists, fine details |
+| `text-base` | 1em | Default |
+| `text-lg` | 1.2em | Callouts |
+| `text-xl` | 1.4em | Key takeaways |
+| `text-2xl` | 1.7em | Emphasis |
+| `text-3xl` | 2.2em | Large statements |
+| `text-4xl` | 2.8em | Hero text |
+
+### Charts
+
+Inline charts via Chart.js using YAML in fenced code blocks:
+
+````markdown
+```chart
+type: line
+height: 500
+width: 800
+data:
+  labels: [Q1, Q2, Q3, Q4]
+  datasets:
+    - label: Revenue
+      data: [10, 25, 40, 60]
+      color: "#4AA691"
+options:
+  scales:
+    y:
+      ticks:
+        prefix: "$"
+        suffix: "K"
+```
+````
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `type` | `bar` | Chart type: `line`, `bar`, `scatter`, `pie`, `doughnut` |
+| `height` | `400` | Container height in pixels |
+| `width` | `100%` | Container width in pixels (omit for full width) |
+| `data.labels` | `[]` | X-axis labels |
+| `data.datasets[].label` | `"Series N"` | Legend label |
+| `data.datasets[].data` | `[]` | Data values |
+| `data.datasets[].color` | auto | Series color |
+| `options.scales.{x,y}.ticks.prefix` | `""` | Prepend to tick labels (e.g. `"$"`) |
+| `options.scales.{x,y}.ticks.suffix` | `""` | Append to tick labels (e.g. `"%"`) |
+| `options.scales.{x,y}.grid.display` | `true` | Show/hide grid lines |
 
 ## Keyboard Shortcuts
 

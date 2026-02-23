@@ -381,10 +381,20 @@ html, body {
 .pad-normal.active  { padding: 60px; }
 .pad-wide.active    { padding: 90px; }
 
-/* ===== Utility: Font Size ===== */
+/* ===== Utility: Font Size (slide-level) ===== */
 .size-small.active  { font-size: 20px; }
 .size-normal.active { font-size: 24px; }
 .size-large.active  { font-size: 28px; }
+
+/* ===== Utility: Inline/Block Text Size ===== */
+.text-xs { font-size: 0.65em; }
+.text-sm { font-size: 0.8em; }
+.text-base { font-size: 1em; }
+.text-lg { font-size: 1.2em; }
+.text-xl { font-size: 1.4em; }
+.text-2xl { font-size: 1.7em; }
+.text-3xl { font-size: 2.2em; }
+.text-4xl { font-size: 2.8em; }
 
 /* ===== Footer (inside each slide) ===== */
 .colloquium-footer {
@@ -535,6 +545,24 @@ body:hover .colloquium-present {
     display: none;
 }
 
+/* ===== Overflow Warning ===== */
+.colloquium-overflow-warn {
+    position: absolute;
+    bottom: 40px;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: repeating-linear-gradient(
+        90deg, #e94560 0, #e94560 8px, transparent 8px, transparent 16px
+    );
+    opacity: 0.8;
+    pointer-events: none;
+}
+
+:fullscreen .colloquium-overflow-warn {
+    display: none;
+}
+
 /* ===== Progress Bar ===== */
 .colloquium-progress {
     position: fixed;
@@ -596,7 +624,8 @@ body:hover .colloquium-present {
 
     .colloquium-progress,
     .colloquium-picker-overlay,
-    .colloquium-present {
+    .colloquium-present,
+    .colloquium-overflow-warn {
         display: none !important;
     }
 
@@ -647,7 +676,7 @@ body:hover .colloquium-present {
 <p>Nathan Lambert</p>
 <p>2026-02-22</p>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">1 / 16</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">1 / 17</span></div></div>
 </section>
 
 <section class="slide slide--content" data-index="1">
@@ -659,7 +688,7 @@ body:hover .colloquium-present {
 <li>Single self-contained HTML output</li>
 </ul>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">2 / 16</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">2 / 17</span></div></div>
 </section>
 
 <section class="slide slide--content" data-index="2">
@@ -670,7 +699,7 @@ body:hover .colloquium-present {
 </div>
 <p>Inline math works too: <span class="math inline">\nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta}[R \cdot \nabla_\theta \log \pi_\theta(a|s)]</span></p>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">3 / 16</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">3 / 17</span></div></div>
 </section>
 
 <section class="slide slide--content" data-index="3">
@@ -686,7 +715,7 @@ deck.add_slide(
 deck.build(&quot;output/&quot;)
 </code></pre>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">4 / 16</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">4 / 17</span></div></div>
 </section>
 
 <section class="slide slide--content cols-2" data-index="4">
@@ -700,7 +729,7 @@ deck.build(&quot;output/&quot;)
 <li>Result B: <strong>87.4%</strong></li>
 <li>Result C: <strong>91.8%</strong></li>
 </ul></div></div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">5 / 16</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">5 / 17</span></div></div>
 </section>
 
 <section class="slide slide--content cols-60-40" data-index="5">
@@ -717,26 +746,26 @@ deck.build(&quot;output/&quot;)
 <li>Evidence A</li>
 <li>Evidence B</li>
 </ol></div></div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">6 / 16</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">6 / 17</span></div></div>
 </section>
 
 <section class="slide slide--content align-center valign-center" data-index="6">
 <h2>Centered Image</h2>
 <div class="slide-content"><p><img src="mark.webp" alt="Colloquium wordmark" /></p>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">7 / 16</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">7 / 17</span></div></div>
 </section>
 
 <section class="slide slide--content cols-40-60" data-index="7">
 <h2>Image with Text</h2>
 <div class="slide-content"><div class="col"><p><img src="mark.webp" alt="Colloquium wordmark" /></p></div><div class="col"><p>Colloquium supports images in any layout. Here the wordmark sits in the wider column alongside explanatory text.</p>
 <p>Images auto-scale to fit their container while maintaining aspect ratio.</p></div></div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">8 / 16</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">8 / 17</span></div></div>
 </section>
 
 <section class="slide slide--section-break" data-index="8">
 <h2>Key Results</h2>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">9 / 16</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">9 / 17</span></div></div>
 </section>
 
 <section class="slide slide--content" data-index="9">
@@ -775,7 +804,7 @@ deck.build(&quot;output/&quot;)
 <p>&quot;The results demonstrate significant improvements across all metrics.&quot;</p>
 </blockquote>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">10 / 16</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">10 / 17</span></div></div>
 </section>
 
 <section class="slide slide--content align-center size-large" data-index="10">
@@ -783,31 +812,43 @@ deck.build(&quot;output/&quot;)
 <div class="slide-content"><p>This slide uses the <code>align</code> and <code>size</code> directives to center all text and increase the font size.</p>
 <p>Great for emphasis slides.</p>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">11 / 16</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">11 / 17</span></div></div>
 </section>
 
 <section class="slide slide--content title-center" data-index="11">
 <h2>Vertically Centered Title</h2>
 <div class="slide-content"><p>All content on this slide is vertically centered, like a title slide but with <code>##</code> heading style.</p>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">12 / 16</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">12 / 17</span></div></div>
 </section>
 
 <section class="slide slide--content" data-index="12">
 <h2>Training Performance</h2>
-<div class="slide-content"><div class="colloquium-chart-container"><canvas id="colloquium-chart-1" data-chart-config='{"type": "line", "data": {"labels": ["10K", "50K", "100K", "250K", "500K", "1M"], "datasets": [{"label": "Accuracy", "data": [62.1, 74.5, 82.3, 89.1, 93.4, 95.2], "borderColor": "#4AA691", "backgroundColor": "transparent", "borderWidth": 2.5, "pointRadius": 3, "tension": 0.3}, {"label": "F1 Score", "data": [58.3, 71.2, 79.8, 87.4, 91.9, 93.8], "borderColor": "#0B1A14", "backgroundColor": "transparent", "borderWidth": 2.5, "pointRadius": 3, "tension": 0.3}]}, "options": {"responsive": true, "maintainAspectRatio": false, "animation": false, "devicePixelRatio": 3, "plugins": {"legend": {"display": true}, "title": {"display": false, "text": "", "font": {"size": 16}}}, "scales": {"x": {"grid": {"display": false}}, "y": {"grid": {"display": false}}}}}'></canvas></div>
+<div class="slide-content"><div class="colloquium-chart-container"><canvas id="colloquium-chart-1" data-chart-config="{&quot;type&quot;: &quot;line&quot;, &quot;data&quot;: {&quot;labels&quot;: [&quot;10K&quot;, &quot;50K&quot;, &quot;100K&quot;, &quot;250K&quot;, &quot;500K&quot;, &quot;1M&quot;], &quot;datasets&quot;: [{&quot;label&quot;: &quot;Accuracy&quot;, &quot;data&quot;: [62.1, 74.5, 82.3, 89.1, 93.4, 95.2], &quot;borderColor&quot;: &quot;#4AA691&quot;, &quot;backgroundColor&quot;: &quot;transparent&quot;, &quot;borderWidth&quot;: 2.5, &quot;pointRadius&quot;: 3, &quot;tension&quot;: 0.3}, {&quot;label&quot;: &quot;F1 Score&quot;, &quot;data&quot;: [58.3, 71.2, 79.8, 87.4, 91.9, 93.8], &quot;borderColor&quot;: &quot;#0B1A14&quot;, &quot;backgroundColor&quot;: &quot;transparent&quot;, &quot;borderWidth&quot;: 2.5, &quot;pointRadius&quot;: 3, &quot;tension&quot;: 0.3}]}, &quot;options&quot;: {&quot;responsive&quot;: true, &quot;maintainAspectRatio&quot;: false, &quot;animation&quot;: false, &quot;devicePixelRatio&quot;: 3, &quot;plugins&quot;: {&quot;legend&quot;: {&quot;display&quot;: true}, &quot;title&quot;: {&quot;display&quot;: false, &quot;text&quot;: &quot;&quot;, &quot;font&quot;: {&quot;size&quot;: 16}}}, &quot;scales&quot;: {&quot;x&quot;: {&quot;grid&quot;: {&quot;display&quot;: false}}, &quot;y&quot;: {&quot;grid&quot;: {&quot;display&quot;: false}}}}}"></canvas></div>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">13 / 16</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">13 / 17</span></div></div>
 </section>
 
 <section class="slide slide--content" data-index="13">
 <h2>Resource Usage</h2>
-<div class="slide-content"><div class="colloquium-chart-container"><canvas id="colloquium-chart-2" data-chart-config='{"type": "bar", "data": {"labels": ["Small", "Medium", "Large", "XL"], "datasets": [{"label": "Training", "data": [4, 12, 48, 120], "borderColor": "#4AA691", "backgroundColor": "#4AA691cc"}, {"label": "Evaluation", "data": [1, 3, 8, 20], "borderColor": "#0B1A14", "backgroundColor": "#0B1A14cc"}]}, "options": {"responsive": true, "maintainAspectRatio": false, "animation": false, "devicePixelRatio": 3, "plugins": {"legend": {"display": true}, "title": {"display": false, "text": "", "font": {"size": 16}}}, "scales": {"x": {"grid": {"display": false}}, "y": {"grid": {"display": false}}}}}'></canvas></div>
+<div class="slide-content"><div class="colloquium-chart-container"><canvas id="colloquium-chart-2" data-chart-config="{&quot;type&quot;: &quot;bar&quot;, &quot;data&quot;: {&quot;labels&quot;: [&quot;Small&quot;, &quot;Medium&quot;, &quot;Large&quot;, &quot;XL&quot;], &quot;datasets&quot;: [{&quot;label&quot;: &quot;Training&quot;, &quot;data&quot;: [4, 12, 48, 120], &quot;borderColor&quot;: &quot;#4AA691&quot;, &quot;backgroundColor&quot;: &quot;#4AA691cc&quot;}, {&quot;label&quot;: &quot;Evaluation&quot;, &quot;data&quot;: [1, 3, 8, 20], &quot;borderColor&quot;: &quot;#0B1A14&quot;, &quot;backgroundColor&quot;: &quot;#0B1A14cc&quot;}]}, &quot;options&quot;: {&quot;responsive&quot;: true, &quot;maintainAspectRatio&quot;: false, &quot;animation&quot;: false, &quot;devicePixelRatio&quot;: 3, &quot;plugins&quot;: {&quot;legend&quot;: {&quot;display&quot;: true}, &quot;title&quot;: {&quot;display&quot;: false, &quot;text&quot;: &quot;&quot;, &quot;font&quot;: {&quot;size&quot;: 16}}}, &quot;scales&quot;: {&quot;x&quot;: {&quot;grid&quot;: {&quot;display&quot;: false}}, &quot;y&quot;: {&quot;grid&quot;: {&quot;display&quot;: false}}}}}"></canvas></div>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">14 / 16</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">14 / 17</span></div></div>
 </section>
 
 <section class="slide slide--content" data-index="14">
+<h2>Text Sizes</h2>
+<div class="slide-content"><p><span class="text-4xl"><strong>text-4xl</strong></span> <span class="text-3xl"><strong>text-3xl</strong></span> <span class="text-2xl"><strong>text-2xl</strong></span></p>
+<p><span class="text-xl"><strong>text-xl</strong> — Key takeaways</span></p>
+<p><span class="text-lg"><strong>text-lg</strong> — Callouts and introductions</span></p>
+<p><span class="text-base"><strong>text-base</strong> — Default body text</span></p>
+<p><span class="text-sm"><strong>text-sm</strong> — Dense lists, supporting details</span></p>
+<p><span class="text-xs"><strong>text-xs</strong> — Footnotes, references, fine print</span></p>
+</div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">15 / 17</span></div></div>
+</section>
+
+<section class="slide slide--content" data-index="15">
 <h2>Conclusions</h2>
 <div class="slide-content"><ol>
 <li>Colloquium makes slide creation <strong>fast</strong> and <strong>reproducible</strong></li>
@@ -816,15 +857,15 @@ deck.build(&quot;output/&quot;)
 <li>AI agents can create and modify presentations programmatically</li>
 </ol>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">15 / 16</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">16 / 17</span></div></div>
 </section>
 
-<section class="slide slide--title" data-index="15">
+<section class="slide slide--title" data-index="16">
 <h1>Thank You</h1>
 <div class="slide-content"><p>Questions?</p>
 <p>github.com/interconnects-ai/colloquium</p>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">16 / 16</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right"><span class="colloquium-counter">17 / 17</span></div></div>
 </section>
 </div>
 
@@ -874,6 +915,26 @@ class ColloquiumPresentation {
         } else {
             this.goTo(0);
         }
+    }
+
+    /**
+     * Check each slide for content overflow and add a visual warning.
+     * Temporarily shows all slides to measure, then restores.
+     */
+    _checkOverflow() {
+        const origDisplay = this.slides.map(s => s.style.display);
+        this.slides.forEach(s => s.style.display = 'flex');
+
+        this.slides.forEach((slide, i) => {
+            if (slide.scrollHeight > slide.clientHeight + 2) {
+                const warn = document.createElement('div');
+                warn.className = 'colloquium-overflow-warn';
+                warn.title = `Slide ${i + 1} content overflows`;
+                slide.appendChild(warn);
+            }
+        });
+
+        this.slides.forEach((s, i) => s.style.display = origDisplay[i]);
     }
 
     /**
@@ -1159,6 +1220,21 @@ window.addEventListener("load", function() {
 
             chartCanvases.forEach(function(canvas) {
                 var config = JSON.parse(canvas.getAttribute("data-chart-config"));
+                // Convert tick prefix/suffix strings into real callbacks
+                var scales = config.options && config.options.scales;
+                if (scales) {
+                    Object.keys(scales).forEach(function(axis) {
+                        var ticks = scales[axis].ticks;
+                        if (!ticks) return;
+                        var pre = ticks.prefix || "";
+                        var suf = ticks.suffix || "";
+                        if (pre || suf) {
+                            delete ticks.prefix;
+                            delete ticks.suffix;
+                            ticks.callback = function(v) { return pre + v + suf; };
+                        }
+                    });
+                }
                 new Chart(canvas, config);
             });
 

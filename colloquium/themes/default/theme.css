@@ -362,10 +362,20 @@ html, body {
 .pad-normal.active  { padding: 60px; }
 .pad-wide.active    { padding: 90px; }
 
-/* ===== Utility: Font Size ===== */
+/* ===== Utility: Font Size (slide-level) ===== */
 .size-small.active  { font-size: 20px; }
 .size-normal.active { font-size: 24px; }
 .size-large.active  { font-size: 28px; }
+
+/* ===== Utility: Inline/Block Text Size ===== */
+.text-xs { font-size: 0.65em; }
+.text-sm { font-size: 0.8em; }
+.text-base { font-size: 1em; }
+.text-lg { font-size: 1.2em; }
+.text-xl { font-size: 1.4em; }
+.text-2xl { font-size: 1.7em; }
+.text-3xl { font-size: 2.2em; }
+.text-4xl { font-size: 2.8em; }
 
 /* ===== Footer (inside each slide) ===== */
 .colloquium-footer {
@@ -516,6 +526,24 @@ body:hover .colloquium-present {
     display: none;
 }
 
+/* ===== Overflow Warning ===== */
+.colloquium-overflow-warn {
+    position: absolute;
+    bottom: 40px;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: repeating-linear-gradient(
+        90deg, #e94560 0, #e94560 8px, transparent 8px, transparent 16px
+    );
+    opacity: 0.8;
+    pointer-events: none;
+}
+
+:fullscreen .colloquium-overflow-warn {
+    display: none;
+}
+
 /* ===== Progress Bar ===== */
 .colloquium-progress {
     position: fixed;
@@ -577,7 +605,8 @@ body:hover .colloquium-present {
 
     .colloquium-progress,
     .colloquium-picker-overlay,
-    .colloquium-present {
+    .colloquium-present,
+    .colloquium-overflow-warn {
         display: none !important;
     }
 
