@@ -21,6 +21,8 @@ class Deck:
         custom_css: str = "",
         footer: dict | None = None,
         fonts: dict | None = None,
+        bibliography: str = "",
+        citation_style: str = "author-year",
     ):
         self.title = title
         self.author = author
@@ -30,6 +32,8 @@ class Deck:
         self.custom_css = custom_css
         self.footer = footer
         self.fonts = fonts
+        self.bibliography = bibliography
+        self.citation_style = citation_style
         self.slides: list[Slide] = []
 
     def add_slide(
@@ -141,6 +145,10 @@ class Deck:
             for key in ("heading", "body"):
                 if key in self.fonts:
                     lines.append(f"  {key}: \"{self.fonts[key]}\"")
+        if self.bibliography:
+            lines.append(f"bibliography: {self.bibliography}")
+        if self.citation_style != "author-year":
+            lines.append(f"citation_style: {self.citation_style}")
         lines.append("---")
 
         for slide in self.slides:

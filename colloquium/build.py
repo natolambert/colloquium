@@ -3,15 +3,14 @@
 from __future__ import annotations
 
 import html as html_module
-import json
 import re
 from pathlib import Path
 from string import Template
 
-import yaml
 from markdown_it import MarkdownIt
 from mdit_py_plugins.dollarmath import dollarmath_plugin
 
+from colloquium import elements
 from colloquium.deck import Deck
 from colloquium.slide import Slide
 
@@ -52,109 +51,255 @@ def _render_markdown(text: str, md: MarkdownIt) -> str:
     if not text:
         return ""
     rendered = md.render(text)
-    rendered = _process_charts(rendered)
+    rendered = elements.process_all(rendered)
     return rendered
 
 
-# Chart block pattern: <pre><code class="language-chart">YAML</code></pre>
-_CHART_BLOCK_RE = re.compile(
-    r'<pre><code class="language-chart">(.*?)</code></pre>',
-    re.DOTALL,
-)
+# ===== Citation processing =====
 
-_chart_counter = 0
+_CITATION_RE = re.compile(r'\[@([\w:.\-]+(?:\s*;\s*@[\w:.\-]+)*)\]')
 
 
-def _build_chart_html(yaml_str: str) -> str:
-    """Convert a YAML chart spec to a <canvas> + JSON config."""
-    global _chart_counter
-    _chart_counter += 1
-    chart_id = f"colloquium-chart-{_chart_counter}"
-
-    raw = html_module.unescape(yaml_str.strip())
+def _parse_bib_file(path: str) -> dict:
+    """Parse a .bib file using pybtex. Returns dict of key -> entry."""
     try:
-        spec = yaml.safe_load(raw)
-    except yaml.YAMLError:
-        return f'<p style="color:red">Invalid chart YAML</p>'
+        from pybtex.database import parse_file as pybtex_parse
+        bib = pybtex_parse(path, bib_format="bibtex")
+        return dict(bib.entries)
+    except Exception:
+        return {}
 
-    if not isinstance(spec, dict):
-        return f'<p style="color:red">Chart spec must be a YAML mapping</p>'
 
-    chart_type = spec.get("type", "bar")
-    data = spec.get("data", {})
-    title = spec.get("title", "")
-    height = spec.get("height", None)
-    width = spec.get("width", None)
-    options = spec.get("options", {})
+def _get_author_surname(entry) -> str:
+    """Extract the first author's surname from a pybtex entry."""
+    try:
+        persons = entry.persons.get("author", [])
+        if not persons:
+            return "Unknown"
+        first = persons[0]
+        surnames = first.last_names
+        if surnames:
+            return surnames[0]
+        return str(first)
+    except Exception:
+        return "Unknown"
 
-    # Build Chart.js config
-    datasets = []
-    colors = [
-        "#0f3460", "#e94560", "#16213e", "#0ea5e9",
-        "#10b981", "#f59e0b", "#8b5cf6", "#ec4899",
-    ]
-    for i, ds in enumerate(data.get("datasets", [])):
-        dataset = {
-            "label": ds.get("label", f"Series {i+1}"),
-            "data": ds.get("data", []),
-            "borderColor": ds.get("color", colors[i % len(colors)]),
-            "backgroundColor": ds.get("color", colors[i % len(colors)]),
-        }
-        if chart_type in ("line", "scatter"):
-            dataset["backgroundColor"] = "transparent"
-            dataset["borderWidth"] = 2.5
-            dataset["pointRadius"] = 3
-            dataset["tension"] = 0.3
-        elif chart_type in ("bar",):
-            dataset["backgroundColor"] = ds.get("color", colors[i % len(colors)]) + "cc"
-        datasets.append(dataset)
 
-    chart_options = {
-        "responsive": True,
-        "maintainAspectRatio": False,
-        "animation": False,
-        "devicePixelRatio": 3,
-        "plugins": {
-            "legend": {"display": len(datasets) > 1},
-            "title": {"display": bool(title), "text": title, "font": {"size": 16}},
-        },
-    }
-    # Deep-merge user options
-    for key, value in options.items():
-        if key in chart_options and isinstance(chart_options[key], dict) and isinstance(value, dict):
-            chart_options[key].update(value)
+def _get_year(entry) -> str:
+    """Extract year from a pybtex entry."""
+    return entry.fields.get("year", "n.d.")
+
+
+def _get_title(entry) -> str:
+    """Extract title from a pybtex entry."""
+    return entry.fields.get("title", "Untitled").strip("{}")
+
+
+def _format_citation_label(entry, key: str, style: str, number: int) -> str:
+    """Format the inline citation label based on style."""
+    if style == "numeric":
+        return str(number)
+    elif style == "title-year":
+        title = _get_title(entry)
+        # Shorten long titles
+        if len(title) > 30:
+            title = title[:27] + "..."
+        return f"{title}, {_get_year(entry)}"
+    else:  # author-year (default)
+        surname = _get_author_surname(entry)
+        authors = entry.persons.get("author", [])
+        if len(authors) > 2:
+            surname += " et al."
+        elif len(authors) == 2:
+            second = authors[1].last_names
+            if second:
+                surname += f" & {second[0]}"
+        return f"{surname}, {_get_year(entry)}"
+
+
+def _process_citations(html: str, bib_entries: dict, style: str, cited_keys: list) -> str:
+    """Replace [@key] with citation links. Tracks cited keys."""
+    key_numbers = {}
+
+    def _replace(m):
+        raw = m.group(1)
+        keys = [k.strip().lstrip("@") for k in raw.split(";")]
+        parts = []
+        for key in keys:
+            if key in bib_entries:
+                if key not in key_numbers:
+                    key_numbers[key] = len(key_numbers) + 1
+                    if key not in cited_keys:
+                        cited_keys.append(key)
+                entry = bib_entries[key]
+                label = _format_citation_label(entry, key, style, key_numbers[key])
+                css_class = "colloquium-cite"
+                if style == "numeric":
+                    label = f"[{label}]"
+                else:
+                    label = f"({label})"
+                parts.append(
+                    f'<a href="#colloquium-ref-{html_module.escape(key)}" '
+                    f'class="{css_class}">{html_module.escape(label)}</a>'
+                )
+            else:
+                parts.append(
+                    f'<span class="colloquium-cite colloquium-cite-missing">[{html_module.escape(key)}?]</span>'
+                )
+                if key not in cited_keys:
+                    cited_keys.append(key)
+        return " ".join(parts)
+
+    return _CITATION_RE.sub(_replace, html)
+
+
+def _format_reference(entry, key: str, style: str, number: int) -> str:
+    """Format a single reference entry for the references slide.
+
+    Style: Authors. "Title." *Venue*, Year.
+    """
+    authors = entry.persons.get("author", [])
+    author_strs = []
+    for person in authors:
+        surnames = " ".join(person.last_names)
+        firsts = " ".join(n[0] + "." for n in person.first_names if n) if person.first_names else ""
+        if firsts:
+            author_strs.append(f"{surnames}, {firsts}")
         else:
-            chart_options[key] = value
+            author_strs.append(surnames)
 
-    config = {
-        "type": chart_type,
-        "data": {
-            "labels": data.get("labels", []),
-            "datasets": datasets,
-        },
-        "options": chart_options,
-    }
+    # Truncate long author lists
+    if len(author_strs) > 5:
+        author_line = ", ".join(author_strs[:5]) + ", et al."
+    elif len(author_strs) > 1:
+        author_line = ", ".join(author_strs[:-1]) + ", and " + author_strs[-1]
+    elif author_strs:
+        author_line = author_strs[0]
+    else:
+        author_line = "Unknown"
 
-    config_json = html_module.escape(json.dumps(config))
+    title = _get_title(entry)
+    year = _get_year(entry)
+    venue = entry.fields.get("journal", entry.fields.get("booktitle", entry.fields.get("publisher", "")))
+    venue = venue.strip("{}")
+    url = entry.fields.get("url", "").strip("{}")
 
-    # Container sizing — defaults to 100% width, 400px height
-    style_parts = []
-    if width:
-        style_parts.append(f"width: {width}px")
-    if height:
-        style_parts.append(f"height: {height}px")
-    style_attr = f' style="{"; ".join(style_parts)}"' if style_parts else ""
+    prefix = f"[{number}] " if style == "numeric" else ""
+
+    # Build: Authors. "Title." Venue, Year.
+    parts = [f'{prefix}{html_module.escape(author_line)}.']
+    parts.append(f' &ldquo;<em>{html_module.escape(title)}</em>.&rdquo;')
+    if venue:
+        parts.append(f' <em>{html_module.escape(venue)}</em>,')
+    parts.append(f' {html_module.escape(year)}.')
+
+    ref_text = "".join(parts)
+
+    if url:
+        ref_text += f' <a href="{html_module.escape(url)}" class="colloquium-ref-url">[link]</a>'
 
     return (
-        f'<div class="colloquium-chart-container"{style_attr}>'
-        f'<canvas id="{chart_id}" data-chart-config="{config_json}"></canvas>'
+        f'<div class="colloquium-reference" id="colloquium-ref-{html_module.escape(key)}">'
+        f'{ref_text}'
         f'</div>'
     )
 
 
-def _process_charts(html_str: str) -> str:
-    """Replace chart code blocks with canvas elements."""
-    return _CHART_BLOCK_RE.sub(lambda m: _build_chart_html(m.group(1)), html_str)
+# Line budget for reference pagination.
+# Slide is 720px tall.  Usable area for references (below h2, above footer):
+#   720 - 60 (top pad) - 80 (heading+gap) - 50 (footer zone) ≈ 530px.
+# References render at 0.75em of 24px base = 18px, line-height 1.5 = 27px.
+# Each ref also has margin-bottom: 0.6em ≈ 11px, so a 2-line ref costs
+#   2*27 + 11 = 65px and a 3-line ref costs 3*27 + 11 = 92px.
+# We express the budget in px for accuracy.
+_REF_PX_BUDGET = 530
+_REF_LINE_HEIGHT_PX = 27
+_REF_MARGIN_PX = 11
+# Characters per rendered line.  The content area is ~1140px wide (1280 - 2*60
+# padding - 2em hanging indent ≈ 36px).  At 18px font, average char width is
+# ~9px for the proportional body font, giving ~127 chars.  We use 120 to
+# account for italic text being slightly wider.
+_REF_CHARS_PER_LINE = 120
+
+
+def _estimate_ref_px(ref_html: str) -> int:
+    """Estimate pixel height of a formatted reference."""
+    import re as _re
+    plain = _re.sub(r"<[^>]+>", "", ref_html)
+    plain = html_module.unescape(plain)
+    text_lines = max(1, -(-len(plain) // _REF_CHARS_PER_LINE))  # ceil division
+    return text_lines * _REF_LINE_HEIGHT_PX + _REF_MARGIN_PX
+
+
+def _paginate_refs(refs: list[str]) -> list[list[str]]:
+    """Split refs into pages based on estimated pixel height."""
+    pages: list[list[str]] = []
+    current_page: list[str] = []
+    current_px = 0
+
+    for ref in refs:
+        px = _estimate_ref_px(ref)
+        # Start a new page if this ref would exceed the budget,
+        # unless the current page is empty (always fit at least one).
+        if current_page and current_px + px > _REF_PX_BUDGET:
+            pages.append(current_page)
+            current_page = []
+            current_px = 0
+        current_page.append(ref)
+        current_px += px
+
+    if current_page:
+        pages.append(current_page)
+
+    return pages
+
+
+def _count_references_slides(cited_keys: list, bib_entries: dict) -> int:
+    """Return how many slides the references will need."""
+    refs = []
+    for i, key in enumerate(cited_keys):
+        if key in bib_entries:
+            refs.append(_format_reference(bib_entries[key], key, "author-year", i + 1))
+    if not refs:
+        return 0
+    return len(_paginate_refs(refs))
+
+
+def _build_references_slides_html(
+    bib_entries: dict, cited_keys: list, style: str,
+    start_index: int, total: int, footer: dict | None,
+) -> list[str]:
+    """Generate one or more References <section> elements, paginated."""
+    refs = []
+    for i, key in enumerate(cited_keys):
+        if key in bib_entries:
+            refs.append(_format_reference(bib_entries[key], key, style, i + 1))
+
+    if not refs:
+        return []
+
+    pages = _paginate_refs(refs)
+    slides = []
+    for page_num, chunk in enumerate(pages):
+        slide_index = start_index + page_num
+        refs_html = "\n".join(chunk)
+
+        heading = "References"
+        if len(pages) > 1:
+            heading = f"References ({page_num + 1}/{len(pages)})"
+
+        content = (
+            f'<h2>{heading}</h2>\n'
+            f'<div class="slide-content colloquium-references-slide">{refs_html}</div>\n'
+            f'{_build_footer_html(footer, slide_index, total)}'
+        )
+
+        classes = "slide slide--content"
+        slides.append(
+            f'<section class="{classes}" data-index="{slide_index}">\n{content}\n</section>'
+        )
+
+    return slides
 
 
 _IMAGE_URL_RE = re.compile(r"\.(png|jpg|jpeg|gif|svg|webp)$|^https?://", re.IGNORECASE)
@@ -183,8 +328,41 @@ def _build_footer_html(footer: dict | None, index: int, total: int) -> str:
     return f'<div class="colloquium-footer">{"".join(zones)}</div>'
 
 
-def _build_slide_html(slide: Slide, index: int, total: int, md: MarkdownIt, footer: dict | None) -> str:
+def _build_slide_cite_html(keys: list, position: str, bib_entries: dict, style: str, cited_keys: list) -> str:
+    """Build a per-slide floating citation footnote."""
+    if not keys or not bib_entries:
+        return ""
+    labels = []
+    for key in keys:
+        if key in bib_entries:
+            entry = bib_entries[key]
+            if key not in cited_keys:
+                cited_keys.append(key)
+            label = _format_citation_label(entry, key, style, len(cited_keys))
+            labels.append(
+                f'<a href="#colloquium-ref-{html_module.escape(key)}" '
+                f'class="colloquium-cite">{html_module.escape(label)}</a>'
+            )
+    if not labels:
+        return ""
+    return (
+        f'<div class="colloquium-slide-cite colloquium-slide-cite--{position}">'
+        + "; ".join(labels)
+        + '</div>'
+    )
+
+
+def _build_slide_html(
+    slide: Slide, index: int, total: int, md: MarkdownIt,
+    footer: dict | None, bib_entries: dict | None = None,
+    citation_style: str = "author-year", cited_keys: list | None = None,
+) -> str:
     """Build the HTML for a single slide."""
+    if bib_entries is None:
+        bib_entries = {}
+    if cited_keys is None:
+        cited_keys = []
+
     # CSS classes
     classes = ["slide", f"slide--{slide.layout}"]
     if index == 0:
@@ -213,6 +391,14 @@ def _build_slide_html(slide: Slide, index: int, total: int, md: MarkdownIt, foot
                 f'<div class="col">{p.strip()}</div>' for p in col_parts if p.strip()
             )
         parts.append(f'<div class="slide-content">{rendered}</div>')
+
+    # Per-slide citation footnotes (floating above footer)
+    cite_left = slide.metadata.get("cite_left", [])
+    cite_right = slide.metadata.get("cite_right", [])
+    if cite_left:
+        parts.append(_build_slide_cite_html(cite_left, "left", bib_entries, citation_style, cited_keys))
+    if cite_right:
+        parts.append(_build_slide_cite_html(cite_right, "right", bib_entries, citation_style, cited_keys))
 
     parts.append(_build_footer_html(footer, index, total))
 
@@ -357,8 +543,7 @@ def _build_font_css(fonts: dict | None) -> str:
 
 def build_deck(deck: Deck) -> str:
     """Build a Deck into a self-contained HTML string."""
-    global _chart_counter
-    _chart_counter = 0
+    elements.reset()
     md = _create_md_renderer()
     theme_css = _read_theme_css(deck.theme)
     presentation_js = _read_presentation_js(deck.theme)
@@ -366,10 +551,57 @@ def build_deck(deck: Deck) -> str:
     font_css = _build_font_css(deck.fonts)
     custom_css = font_css + ("\n" + deck.custom_css if deck.custom_css else "")
 
+    # Load bibliography if configured
+    bib_entries = {}
+    if deck.bibliography:
+        bib_entries = _parse_bib_file(deck.bibliography)
+
+    citation_style = deck.citation_style
+
+    # First pass: build slides and discover cited keys
+    cited_keys: list[str] = []
     total = len(deck.slides)
+
+    # If we have bib entries, we need a two-pass approach:
+    # first discover citations, then rebuild with correct total (including references slide)
+    if bib_entries:
+        # Discovery pass — render slides to find cited keys
+        for slide in deck.slides:
+            if slide.content:
+                rendered = _render_markdown(slide.content, md)
+                _process_citations(rendered, bib_entries, citation_style, cited_keys)
+            if slide.title:
+                _process_citations(slide.title, bib_entries, citation_style, cited_keys)
+            # Also discover keys from per-slide cite directives
+            for key in slide.metadata.get("cite_left", []) + slide.metadata.get("cite_right", []):
+                if key not in cited_keys and key in bib_entries:
+                    cited_keys.append(key)
+
+        # Add reference slides to total count
+        ref_slide_count = _count_references_slides(cited_keys, bib_entries)
+        if ref_slide_count:
+            total = len(deck.slides) + ref_slide_count
+
+        # Reset counters for the real build pass
+        elements.reset()
+
     slides_html_parts = []
     for i, slide in enumerate(deck.slides):
-        slides_html_parts.append(_build_slide_html(slide, i, total, md, deck.footer))
+        slide_html = _build_slide_html(
+            slide, i, total, md, deck.footer,
+            bib_entries=bib_entries, citation_style=citation_style, cited_keys=cited_keys,
+        )
+        if bib_entries:
+            slide_html = _process_citations(slide_html, bib_entries, citation_style, cited_keys)
+        slides_html_parts.append(slide_html)
+
+    # Append references slides if we have citations
+    if bib_entries and cited_keys:
+        ref_slides = _build_references_slides_html(
+            bib_entries, cited_keys, citation_style,
+            len(deck.slides), total, deck.footer,
+        )
+        slides_html_parts.extend(ref_slides)
 
     slides_html = "\n\n".join(slides_html_parts)
 

@@ -52,6 +52,7 @@ html, body {
     left: 0;
     transform-origin: 0 0;
     background: var(--colloquium-bg);
+    overflow: hidden;
 }
 
 .slide {
@@ -64,7 +65,7 @@ html, body {
     position: absolute;
     top: 0;
     left: 0;
-    overflow: hidden;
+    overflow: visible;
     font-size: 24px;
     line-height: 1.5;
     background: var(--colloquium-bg);
@@ -179,7 +180,7 @@ html, body {
 .slide .slide-content {
     flex: 1;
     min-height: 0;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .slide .slide-content img {
@@ -561,6 +562,140 @@ body:hover .colloquium-present {
     transition: width 0.3s ease;
 }
 
+/* ===== Conversation Bubbles ===== */
+.colloquium-conversation {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6em;
+    width: 100%;
+}
+
+.colloquium-message {
+    max-width: 80%;
+    border-radius: 12px;
+    padding: 0.5em 0.8em;
+}
+
+.colloquium-message--user {
+    align-self: flex-end;
+    background: var(--colloquium-accent);
+    color: #ffffff;
+}
+
+.colloquium-message--assistant {
+    align-self: flex-start;
+    background: var(--colloquium-code-bg);
+    color: var(--colloquium-text);
+}
+
+.colloquium-message--system {
+    align-self: center;
+    border: 1px solid var(--colloquium-border);
+    background: transparent;
+    color: var(--colloquium-muted);
+    font-style: italic;
+    font-size: 0.85em;
+    max-width: 90%;
+}
+
+.colloquium-message-role {
+    font-size: 0.65em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.15em;
+    opacity: 0.75;
+}
+
+.colloquium-message--user .colloquium-message-role {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.colloquium-message-content p {
+    margin: 0 0 0.3em;
+}
+
+.colloquium-message-content p:last-child {
+    margin-bottom: 0;
+}
+
+.colloquium-message-content code {
+    font-size: 0.85em;
+}
+
+.colloquium-message--user .colloquium-message-content code {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* ===== Citations ===== */
+.colloquium-cite {
+    color: var(--colloquium-accent);
+    text-decoration: none;
+    font-size: 0.85em;
+    white-space: nowrap;
+}
+
+.colloquium-cite:hover {
+    text-decoration: underline;
+}
+
+.colloquium-cite-missing {
+    color: #dc2626;
+    font-weight: 600;
+}
+
+/* ===== Per-Slide Citation Footnotes ===== */
+.colloquium-slide-cite {
+    position: absolute;
+    bottom: 40px;
+    font-size: 11px;
+    color: var(--colloquium-muted);
+    max-width: 60%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.colloquium-slide-cite--left {
+    left: 24px;
+}
+
+.colloquium-slide-cite--right {
+    right: 24px;
+}
+
+.colloquium-slide-cite .colloquium-cite {
+    font-size: inherit;
+    color: var(--colloquium-muted);
+}
+
+.colloquium-slide-cite .colloquium-cite:hover {
+    color: var(--colloquium-accent);
+}
+
+/* ===== References Slide ===== */
+.colloquium-references-slide {
+}
+
+.colloquium-reference {
+    padding-left: 2em;
+    text-indent: -2em;
+    margin-bottom: 0.6em;
+    font-size: 0.75em;
+    line-height: 1.5;
+}
+
+.colloquium-ref-url {
+    color: var(--colloquium-muted);
+    font-size: 0.9em;
+    text-decoration: none;
+}
+
+.colloquium-ref-url:hover {
+    color: var(--colloquium-accent);
+    text-decoration: underline;
+}
+
 /* ===== Print / PDF Styles ===== */
 @page {
     size: 10in 5.625in;  /* 16:9 landscape */
@@ -596,7 +731,7 @@ body:hover .colloquium-present {
         break-inside: avoid;
         margin: 0;
         font-size: 18px;
-        overflow: hidden;
+        overflow: visible;
     }
 
     .slide:last-child {

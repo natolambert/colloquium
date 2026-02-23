@@ -12,7 +12,7 @@ from colloquium.slide import Slide
 
 # Directive patterns: <!-- key: value -->
 _DIRECTIVE_RE = re.compile(
-    r"<!--\s*(layout|class|style|notes|title|align|valign|columns|padding|size)\s*:\s*(.*?)\s*-->",
+    r"<!--\s*(layout|class|style|notes|title|align|valign|columns|padding|size|cite|cite-right)\s*:\s*(.*?)\s*-->",
     re.DOTALL,
 )
 
@@ -64,6 +64,8 @@ def parse_slide(text: str) -> Slide:
     title = ""
     content_lines = []
 
+    metadata = {}
+
     # Extract directives and notes
     remaining = text
     for match in _DIRECTIVE_RE.finditer(text):
@@ -77,6 +79,14 @@ def parse_slide(text: str) -> Slide:
             style = value
         elif key == "notes":
             notes = value
+        elif key == "cite":
+            metadata.setdefault("cite_left", []).extend(
+                k.strip() for k in value.split(",") if k.strip()
+            )
+        elif key == "cite-right":
+            metadata.setdefault("cite_right", []).extend(
+                k.strip() for k in value.split(",") if k.strip()
+            )
         elif key in _DIRECTIVE_CLASS_MAP:
             classes.append(_DIRECTIVE_CLASS_MAP[key](value))
         remaining = remaining.replace(match.group(0), "")
@@ -105,6 +115,7 @@ def parse_slide(text: str) -> Slide:
         speaker_notes=notes,
         classes=classes,
         style=style,
+        metadata=metadata,
     )
 
 
@@ -121,6 +132,8 @@ def parse_markdown(text: str) -> Deck:
         custom_css=metadata.get("custom_css", ""),
         footer=metadata.get("footer", None),
         fonts=metadata.get("fonts", None),
+        bibliography=metadata.get("bibliography", ""),
+        citation_style=metadata.get("citation_style", "author-year"),
     )
 
     # Split on --- slide separators (horizontal rules)
@@ -141,5 +154,12 @@ def parse_file(path: str) -> Deck:
     """Parse a markdown file into a Deck."""
     from pathlib import Path
 
-    text = Path(path).read_text(encoding="utf-8")
-    return parse_markdown(text)
+    md_path = Path(path)
+    text = md_path.read_text(encoding="utf-8")
+    deck = parse_markdown(text)
+
+    # Resolve bibliography path relative to the markdown file
+    if deck.bibliography and not Path(deck.bibliography).is_absolute():
+        deck.bibliography = str(md_path.parent / deck.bibliography)
+
+    return deck

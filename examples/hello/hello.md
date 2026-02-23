@@ -2,6 +2,7 @@
 title: "Hello Colloquium"
 author: "Nathan Lambert"
 date: "2026-02-22"
+bibliography: refs.bib
 fonts:
   heading: "Rubik"
   body: "Poppins"
@@ -224,6 +225,94 @@ options:
 <span class="text-sm">**text-sm** — Dense lists, supporting details</span>
 
 <span class="text-xs">**text-xs** — Footnotes, references, fine print</span>
+
+---
+
+## LLM Conversation
+
+```conversation
+messages:
+  - role: user
+    content: "What is RLHF?"
+  - role: assistant
+    content: "**RLHF** (Reinforcement Learning from Human Feedback) is a technique for aligning language models with human preferences using reward models trained on human comparisons."
+```
+
+---
+
+<!-- columns: 40/60 -->
+<!-- size: small -->
+
+## Conversation in Columns
+
+- RLHF uses human preferences to train reward models
+- The reward model scores LLM outputs
+- PPO optimizes the policy against the reward
+
+|||
+
+```conversation
+messages:
+  - role: system
+    content: "You are a helpful AI research assistant."
+  - role: user
+    content: "What is RLHF?"
+  - role: assistant
+    content: "**RLHF** is a technique for aligning language models with human preferences."
+```
+
+---
+
+<!-- size: small -->
+
+## Multi-Turn Conversation
+
+```conversation
+messages:
+  - role: user
+    content: "Can you explain the RLHF training pipeline?"
+  - role: assistant
+    content: "The RLHF pipeline has three main steps:\n1. **SFT** — supervised fine-tuning on demonstrations\n2. **Reward modeling** — train a reward model on human preferences\n3. **PPO** — optimize the policy against the reward model"
+  - role: user
+    content: "What's the role of KL divergence?"
+  - role: assistant
+    content: "The KL penalty prevents the policy from diverging too far from the SFT model. Without it, the model can exploit the reward model with degenerate outputs — this is called *reward hacking*."
+```
+
+---
+
+## Key RLHF Papers
+
+<!-- cite: christiano2017, ouyang2022 -->
+
+The foundational work on RLHF [@christiano2017] introduced learning reward models from human comparisons.
+
+InstructGPT [@ouyang2022] scaled this approach to large language models, demonstrating significant alignment improvements.
+
+For a comprehensive overview, see [@lambert2024].
+
+---
+
+## The RLHF Loss
+
+<!-- cite-right: christiano2017 -->
+
+$$\mathcal{L}_{\text{RM}}(\theta) = -\mathbb{E}_{(x, y_w, y_l) \sim D}\left[\log \sigma\left(r_\theta(x, y_w) - r_\theta(x, y_l)\right)\right]$$
+
+The reward model is trained with the Bradley-Terry preference model, where $y_w$ is the preferred response and $y_l$ is the rejected response.
+
+---
+
+<!-- size: small -->
+
+## RLHF Timeline
+
+- **2017**: Deep RL from human preferences [@christiano2017] and PPO [@schulman2017]
+- **2019**: Fine-tuning LMs from human preferences [@ziegler2019]
+- **2020**: Learning to summarize with human feedback [@stiennon2020]
+- **2022**: InstructGPT [@ouyang2022] and Anthropic's HHH assistant [@bai2022]
+- **2023**: DPO [@rafailov2023], IPO [@azar2023], Llama 2 [@touvron2023], Zephyr [@tunstall2023], Tulu 2 [@ivison2023], RLAIF [@lee2023]
+- **2024**: KTO [@ethayarajh2024], AlpacaFarm [@dubois2024], and the RLHF Book [@lambert2024]
 
 ---
 

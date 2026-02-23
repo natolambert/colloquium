@@ -251,6 +251,25 @@ class ColloquiumPresentation {
 
     _bindClick() {
         document.addEventListener('click', (e) => {
+            // Handle citation links — navigate to the slide containing the target ref
+            const citeLink = e.target.closest('a.colloquium-cite');
+            if (citeLink) {
+                e.preventDefault();
+                e.stopPropagation();
+                const href = citeLink.getAttribute('href');
+                if (href && href.startsWith('#')) {
+                    const target = document.getElementById(href.slice(1));
+                    if (target) {
+                        const slide = target.closest('.slide');
+                        if (slide) {
+                            const idx = this.slides.indexOf(slide);
+                            if (idx >= 0) this.goTo(idx);
+                        }
+                    }
+                }
+                return;
+            }
+
             // Ignore clicks on links, interactive elements, footer, and picker
             if (e.target.closest('a, button, input, textarea, select, .colloquium-footer, .colloquium-picker-overlay, .colloquium-present')) return;
 

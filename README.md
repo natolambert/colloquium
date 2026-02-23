@@ -274,6 +274,56 @@ options:
 | `options.scales.{x,y}.ticks.suffix` | `""` | Append to tick labels (e.g. `"%"`) |
 | `options.scales.{x,y}.grid.display` | `true` | Show/hide grid lines |
 
+### Conversations
+
+Render LLM-style chat bubbles using YAML in fenced code blocks:
+
+````markdown
+```conversation
+messages:
+  - role: user
+    content: "What is RLHF?"
+  - role: assistant
+    content: "**RLHF** is a technique for aligning language models..."
+  - role: system
+    content: "You are a helpful AI assistant."
+```
+````
+
+| Role | Styling |
+|------|---------|
+| `user` | Right-aligned bubble, accent background, white text |
+| `assistant` | Left-aligned bubble, code-bg background |
+| `system` | Centered, bordered, muted italic text |
+
+Message content supports markdown formatting (bold, italic, inline code).
+
+### Citations
+
+Add a `.bib` file to your project and reference it in frontmatter:
+
+```yaml
+---
+bibliography: refs.bib
+citation_style: author-year   # or "numeric" or "title-year"
+---
+```
+
+Use `[@key]` to cite in slides:
+
+```markdown
+The foundational work on RLHF [@christiano2017] introduced reward models.
+
+Multiple citations: [@christiano2017; @ouyang2022]
+```
+
+A **References** slide is automatically appended with only the cited works.
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `bibliography` | `""` | Path to `.bib` file (relative to markdown file) |
+| `citation_style` | `"author-year"` | Citation format: `author-year`, `numeric`, `title-year` |
+
 ## Keyboard Shortcuts
 
 | Key | Action |
@@ -297,3 +347,17 @@ Two options:
 ## Output
 
 Everything builds to a single self-contained HTML file. CSS and JS are inlined; math (KaTeX) and code highlighting (highlight.js) load from CDN.
+
+## Contributing Elements
+
+Custom block-level elements live in `colloquium/elements/`. Each module exposes:
+
+- `PATTERN` — compiled regex matching `<pre><code class="language-X">...</code></pre>`
+- `process(yaml_str) -> str` — converts the YAML content to HTML
+- `reset()` (optional) — resets any counters between builds
+
+The registry in `colloquium/elements/__init__.py` auto-wires them into the build pipeline. To add a new element:
+
+1. Create `colloquium/elements/my_element.py` with `PATTERN`, `process`, and optionally `reset`
+2. Import and register it in `colloquium/elements/__init__.py`
+3. Add any element-specific CSS to `colloquium/themes/default/theme.css`
