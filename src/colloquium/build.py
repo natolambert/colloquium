@@ -32,7 +32,12 @@ def _read_presentation_js(theme: str = "default") -> str:
 
 
 def _create_md_renderer() -> MarkdownIt:
-    """Create a markdown-it renderer with math and table support."""
+    """Create a markdown-it renderer with math and table support.
+
+    The dollarmath plugin protects $...$ and $$...$$ from markdown
+    processing (e.g. _ becoming <em>). KaTeX renders the resulting
+    .math elements client-side.
+    """
     md = MarkdownIt("commonmark", {"html": True, "typographer": True})
     md.enable("table")
     dollarmath_plugin(md, double_inline=True)
@@ -119,7 +124,6 @@ _HTML_TEMPLATE = Template("""\
 <!-- KaTeX for LaTeX math -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/contrib/auto-render.min.js"></script>
 
 <!-- highlight.js for code syntax highlighting -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css">
@@ -144,17 +148,15 @@ $presentation_js
 </script>
 
 <script>
-// Initialize KaTeX and highlight.js after all deferred scripts have loaded
+// Render KaTeX math elements and highlight code after deferred scripts load
 window.addEventListener("load", function() {
-    if (typeof renderMathInElement !== "undefined") {
-        renderMathInElement(document.body, {
-            delimiters: [
-                {left: "$$$$", right: "$$$$", display: true},
-                {left: "$$", right: "$$", display: false},
-                {left: "\\\\(", right: "\\\\)", display: false},
-                {left: "\\\\[", right: "\\\\]", display: true}
-            ],
-            throwOnError: false
+    if (typeof katex !== "undefined") {
+        document.querySelectorAll(".math").forEach(function(el) {
+            var displayMode = el.tagName === "DIV";
+            katex.render(el.textContent, el, {
+                displayMode: displayMode,
+                throwOnError: false
+            });
         });
     }
     if (typeof hljs !== "undefined") {
