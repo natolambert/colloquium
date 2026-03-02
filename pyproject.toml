@@ -31,8 +31,8 @@ dependencies = [
 colloquium = "colloquium.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/interconnects-ai/colloquium"
-Repository = "https://github.com/interconnects-ai/colloquium"
+Homepage = "https://github.com/natolambert/colloquium"
+Repository = "https://github.com/natolambert/colloquium"
 
 [tool.hatch.build.targets.wheel]
 packages = ["colloquium"]

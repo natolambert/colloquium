@@ -333,4 +333,4 @@ The reward model is trained with the Bradley-Terry preference model, where $y_w$
 
 Questions?
 
-github.com/interconnects-ai/colloquium
+github.com/natolambert/colloquium

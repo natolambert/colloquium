@@ -4,14 +4,16 @@ Markdown-based slide creation tool for research talks. Git-friendly, AI-drivable
 
 ## Install
 
+Colloquium uses [uv](https://docs.astral.sh/uv/) for fast, reliable Python package management.
+
 ```bash
-pip install git+https://github.com/Interconnects-AI/colloquium.git
+uv pip install git+https://github.com/natolambert/colloquium.git
 ```
 
 Or for development:
 
 ```bash
-git clone https://github.com/Interconnects-AI/colloquium.git
+git clone https://github.com/natolambert/colloquium.git
 cd colloquium
 uv pip install -e .
 ```
