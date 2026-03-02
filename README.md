@@ -97,12 +97,22 @@ custom_css: ".slide h2 { color: red; }"   # inline CSS overrides
 | `aspect_ratio` | `"16:9"` | Slide aspect ratio |
 | `fonts.heading` | Inter | Google Font for headings |
 | `fonts.body` | Inter | Google Font for body text |
-| `footer.left` | `""` | Left footer zone (text or image URL) |
+| `footer.left` | `""` | Left footer zone (text, image URL, or `"auto"`) |
 | `footer.center` | `""` | Center footer zone |
 | `footer.right` | `"auto"` | Right footer zone (`"auto"` = slide numbers) |
 | `custom_css` | `""` | Additional CSS injected into the page |
 
 When `footer:` is omitted entirely, a minimal footer with just the slide counter in the right zone is used.
+
+Use `{n}` and `{N}` placeholders to embed the current slide number and total count inline with text:
+
+```yaml
+footer:
+  left: "rlhfbook.com"
+  right: "Lambert {n}/{N}"    # renders as "Lambert 3/25"
+```
+
+If no zone uses `"auto"`, `{n}`, or `{N}`, the slide counter is automatically placed in the first empty zone.
 
 ## Slide Structure
 

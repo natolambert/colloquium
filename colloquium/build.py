@@ -310,6 +310,19 @@ def _build_footer_html(footer: dict | None, index: int, total: int) -> str:
     if footer is None:
         footer = {"right": "auto"}
 
+    # Support {n} (current slide) and {N} (total) placeholders in footer text
+    counter_html = f'<span class="colloquium-counter">{index + 1} / {total}</span>'
+    has_counter = any(
+        footer.get(z) == "auto" or "{n}" in str(footer.get(z, "")) or "{N}" in str(footer.get(z, ""))
+        for z in ("left", "center", "right")
+    )
+    # Auto-inject counter into first empty zone if no zone references it
+    if not has_counter:
+        for z in ("center", "right", "left"):
+            if not footer.get(z):
+                footer = {**footer, z: "auto"}
+                break
+
     logo_scale = footer.get("logo_scale", 1)
     logo_height = int(24 * float(logo_scale))
 
@@ -318,7 +331,10 @@ def _build_footer_html(footer: dict | None, index: int, total: int) -> str:
         value = footer.get(zone, "")
         inner = ""
         if value == "auto":
-            inner = f'<span class="colloquium-counter">{index + 1} / {total}</span>'
+            inner = counter_html
+        elif value and ("{n}" in value or "{N}" in value):
+            text = value.replace("{n}", str(index + 1)).replace("{N}", str(total))
+            inner = f'<span class="colloquium-counter">{text}</span>'
         elif value and _IMAGE_URL_RE.search(value):
             inner = f'<img class="colloquium-footer-logo" src="{value}" alt="" style="height: {logo_height}px">'
         elif value:
