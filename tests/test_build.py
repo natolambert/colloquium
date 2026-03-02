@@ -201,6 +201,39 @@ class TestBuildDeck:
         assert "1 / 1" in html
 
 
+    def test_footer_placeholder_n(self):
+        """Footer text with {n} gets current slide number."""
+        deck = Deck(title="Test", footer={"left": "rlhfbook.com", "right": "Lambert {n}"})
+        deck.add_slide(title="S1", content="A")
+        deck.add_slide(title="S2", content="B")
+        html = build_deck(deck)
+
+        assert "Lambert 1" in html
+        assert "Lambert 2" in html
+        assert 'class="colloquium-counter"' in html
+
+    def test_footer_placeholder_N(self):
+        """Footer text with {N} gets total slide count."""
+        deck = Deck(title="Test", footer={"right": "{n}/{N}"})
+        deck.add_slide(title="S1", content="A")
+        deck.add_slide(title="S2", content="B")
+        html = build_deck(deck)
+
+        assert "1/2" in html
+        assert "2/2" in html
+
+    def test_footer_auto_inject_counter_when_missing(self):
+        """Counter appears in empty center zone when no zone uses auto or placeholders."""
+        deck = Deck(title="Test", footer={"left": "rlhfbook.com", "right": "Lambert"})
+        deck.add_slide(title="S1", content="A")
+        deck.add_slide(title="S2", content="B")
+        html = build_deck(deck)
+
+        assert "1 / 2" in html
+        assert "2 / 2" in html
+        assert 'class="colloquium-counter"' in html
+
+
 class TestBuildFile:
     def test_build_from_markdown(self):
         md_content = """---
