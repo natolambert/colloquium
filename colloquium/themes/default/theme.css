@@ -184,14 +184,8 @@ html, body {
 }
 
 .slide .slide-content img {
-    max-height: 500px;
-    display: block;
-}
-
-/* When image is the sole or primary content, let it fill the available space */
-.slide .slide-content > p:only-child > img,
-.slide .slide-content > p:first-child:last-of-type > img {
     max-height: calc(720px - var(--colloquium-slide-padding) * 2 - 100px);
+    display: block;
 }
 
 /* ===== Charts ===== */
@@ -357,11 +351,12 @@ html, body {
 .cols-30-70 .slide-content { display: grid; grid-template-columns: 3fr 7fr; gap: 2em; align-items: start; width: 100%; }
 .cols-70-30 .slide-content { display: grid; grid-template-columns: 7fr 3fr; gap: 2em; align-items: start; width: 100%; }
 
-/* Images in grid layouts fill their column */
+/* Images in grid layouts: fit within the available content height */
 [class*="cols-"] .slide-content img {
-    width: 100%;
+    width: auto;
+    max-width: 100%;
     height: auto;
-    max-height: 100%;
+    max-height: calc(720px - var(--colloquium-slide-padding) * 2 - 100px);
     object-fit: contain;
 }
 

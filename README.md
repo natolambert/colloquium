@@ -18,6 +18,17 @@ cd colloquium
 uv pip install -e .
 ```
 
+### Using colloquium from another uv project
+
+uv's venv doesn't process `.pth` files, so `uv pip install -e` from another project's venv won't work. Use a symlink instead:
+
+```bash
+# From your other project's directory:
+ln -s /path/to/colloquium/colloquium .venv/lib/python3.*/site-packages/colloquium
+```
+
+This gives you a true editable install — changes to colloquium source are reflected immediately.
+
 ## Quick Start
 
 Create a markdown file:
@@ -101,6 +112,8 @@ custom_css: ".slide h2 { color: red; }"   # inline CSS overrides
 | `footer.center` | `""` | Center footer zone |
 | `footer.right` | `"auto"` | Right footer zone (`"auto"` = slide numbers) |
 | `custom_css` | `""` | Additional CSS injected into the page |
+
+Footer text supports `{n}` (slide number) and `{N}` (total slides) for custom counters, e.g. `"Lambert {n}/{N}"` → `"Lambert 6/23"`.
 
 When `footer:` is omitted entirely, a minimal footer with just the slide counter in the right zone is used.
 
@@ -198,6 +211,8 @@ Right column content
 | `<!-- class: name1 name2 -->` | Add CSS classes to the slide |
 | `<!-- style: css-here -->` | Inline CSS on the slide element |
 | `<!-- notes: text -->` | Speaker notes (hidden in presentation) |
+| `<!-- img-align: center -->` | Align images only (`left`, `center`, `right`) — title unaffected |
+| `<!-- img-fill: true -->` | Expand image to fill available slide space |
 
 ## Content Features
 
@@ -338,6 +353,17 @@ A **References** slide is automatically appended with only the cited works.
 | Escape | Close picker / exit fullscreen |
 
 Click the slide counter to open the slide picker. Click left 1/3 of screen to go back, right 2/3 to go forward.
+
+## PPTX Export (Experimental)
+
+Export to PowerPoint/Google Slides format:
+
+```bash
+uv pip install colloquium[pptx]     # install optional dependency
+colloquium export --pptx slides.md  # → slides.pptx
+```
+
+This produces a reasonable starting point, but some colloquium features lose fidelity: citations are flattened, math renders as raw LaTeX, and custom themes/CSS aren't applied. Charts and tables become native editable PPTX objects.
 
 ## PDF Export
 
