@@ -322,7 +322,8 @@ def _build_footer_html(footer: dict | None, index: int, total: int) -> str:
         elif value and _IMAGE_URL_RE.search(value):
             inner = f'<img class="colloquium-footer-logo" src="{value}" alt="" style="height: {logo_height}px">'
         elif value:
-            inner = value
+            # Substitute {n} (slide number) and {N} (total slides)
+            inner = value.replace("{n}", str(index + 1)).replace("{N}", str(total))
         zones.append(f'<div class="colloquium-footer-{zone}">{inner}</div>')
 
     return f'<div class="colloquium-footer">{"".join(zones)}</div>'
@@ -468,11 +469,15 @@ window.addEventListener("load", function() {
         var chartCanvases = document.querySelectorAll("[data-chart-config]");
         if (chartCanvases.length > 0) {
             // Make all slides visible so Chart.js can measure canvas size
+            // Use visibility:hidden to avoid a visual flash
             var slides = document.querySelectorAll(".slide");
             var origDisplay = [];
             slides.forEach(function(s) {
                 origDisplay.push(s.style.display);
                 s.style.display = "flex";
+                if (!s.classList.contains("active")) {
+                    s.style.visibility = "hidden";
+                }
             });
 
             chartCanvases.forEach(function(canvas) {
@@ -508,6 +513,7 @@ window.addEventListener("load", function() {
                 // Restore original slide visibility
                 slides.forEach(function(s, i) {
                     s.style.display = origDisplay[i];
+                    s.style.visibility = "";
                 });
             });
         }
