@@ -27,6 +27,9 @@ dependencies = [
     "pybtex>=0.24",
 ]
 
+[project.optional-dependencies]
+pptx = ["python-pptx>=1.0"]
+
 [project.scripts]
 colloquium = "colloquium.cli:main"
 

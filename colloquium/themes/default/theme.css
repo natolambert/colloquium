@@ -358,6 +358,28 @@ html, body {
     object-fit: contain;
 }
 
+/* ===== Utility: Image Alignment (independent of title) ===== */
+.img-align-center .slide-content { display: flex; flex-direction: column; align-items: center; }
+.img-align-center .slide-content img { margin-left: auto; margin-right: auto; }
+.img-align-left .slide-content img { margin-right: auto; }
+.img-align-right .slide-content img { margin-left: auto; }
+
+/* ===== Utility: Image Fill ===== */
+.img-fill .slide-content img {
+    max-height: none;
+    max-width: none;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+.img-fill .slide-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+}
+
 /* ===== Utility: Padding ===== */
 .pad-compact.active { padding: 30px; }
 .pad-normal.active  { padding: 60px; }
