@@ -19,7 +19,7 @@ class Slide:
 
     @property
     def is_title_slide(self) -> bool:
-        return self.layout == "title"
+        return self.layout == "title" or self.layout.startswith("title-")
 
     def to_markdown(self) -> str:
         """Serialize this slide back to markdown."""

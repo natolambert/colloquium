@@ -323,8 +323,15 @@ def _build_footer_html(footer: dict | None, index: int, total: int) -> str:
             inner = f'<img class="colloquium-footer-logo" src="{value}" alt="" style="height: {logo_height}px">'
         elif value:
             # Substitute {n} (slide number) and {N} (total slides)
-            inner = value.replace("{n}", str(index + 1)).replace("{N}", str(total))
-        zones.append(f'<div class="colloquium-footer-{zone}">{inner}</div>')
+            rendered = value.replace("{n}", str(index + 1)).replace("{N}", str(total))
+            if "{n}" in value or "{N}" in value:
+                inner = f'<span class="colloquium-counter">{rendered}</span>'
+            else:
+                inner = rendered
+        zone_classes = [f"colloquium-footer-{zone}"]
+        if zone == "right":
+            zone_classes.append("colloquium-footer-nav")
+        zones.append(f'<div class="{" ".join(zone_classes)}">{inner}</div>')
 
     return f'<div class="colloquium-footer">{"".join(zones)}</div>'
 
@@ -449,6 +456,22 @@ $presentation_js
 </script>
 
 <script>
+window.colloquiumFitDisplayMathIn = function(root) {
+    var scope = root || document;
+    scope.querySelectorAll(".katex-display").forEach(function(display) {
+        display.style.fontSize = "";
+        var katexNode = display.querySelector(".katex");
+        if (!katexNode) return;
+
+        var availableWidth = display.clientWidth;
+        var contentWidth = katexNode.scrollWidth;
+        if (!availableWidth || !contentWidth || contentWidth <= availableWidth) return;
+
+        var scale = availableWidth / contentWidth;
+        display.style.fontSize = (scale * 100) + "%";
+    });
+};
+
 // Render KaTeX math elements and highlight code after deferred scripts load
 window.addEventListener("load", function() {
     if (typeof katex !== "undefined") {
@@ -459,6 +482,12 @@ window.addEventListener("load", function() {
                 throwOnError: false
             });
         });
+        window.colloquiumFitDisplayMathIn(document);
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(function() {
+                window.colloquiumFitDisplayMathIn(document);
+            });
+        }
     }
     if (typeof hljs !== "undefined") {
         hljs.highlightAll();

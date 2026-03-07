@@ -27,6 +27,7 @@ class TestBuildDeck:
 
         assert "katex" in html
         assert "katex.render" in html
+        assert "colloquiumFitDisplayMathIn" in html
 
     def test_contains_highlightjs(self):
         deck = Deck(title="Code")
@@ -175,6 +176,24 @@ class TestBuildDeck:
 
         assert "1 / 2" in html
         assert "2 / 2" in html
+
+    def test_custom_footer_counter_template_is_clickable(self):
+        deck = Deck(title="Test", footer={"right": "Lambert {n}/{N}"})
+        deck.add_slide(title="S1", content="A")
+        deck.add_slide(title="S2", content="B")
+        html = build_deck(deck)
+
+        assert html.count('class="colloquium-counter"') == 2
+        assert "Lambert 1/2" in html
+        assert "Lambert 2/2" in html
+
+    def test_right_footer_zone_is_always_nav_trigger(self):
+        deck = Deck(title="Test", footer={"left": "ACME", "right": "Appendix"})
+        deck.add_slide(title="S1", content="A")
+        html = build_deck(deck)
+
+        assert 'class="colloquium-footer-right colloquium-footer-nav"' in html
+        assert ">Appendix<" in html
 
     def test_no_old_nav_div(self):
         deck = Deck(title="Test")

@@ -240,7 +240,24 @@ html, body {
 /* ===== Math (KaTeX) ===== */
 .slide .katex-display {
     margin: 0.8em 0;
-    overflow-x: auto;
+    overflow-x: hidden;
+    overflow-x: clip;
+    overflow-y: visible;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    width: 100%;
+    touch-action: pan-y;
+    overscroll-behavior-x: none;
+}
+
+.slide .katex-display .katex {
+    max-width: 100%;
+    pointer-events: none;
+}
+
+.slide .katex-display::-webkit-scrollbar {
+    width: 0;
+    height: 0;
 }
 
 /* ===== Layout: Title Slide ===== */
@@ -262,6 +279,152 @@ html, body {
 .slide--title .slide-content p {
     font-size: 1.1em;
     color: var(--colloquium-muted);
+}
+
+/* Shared title-slide components */
+.colloquium-title-eyebrow {
+    font-size: 0.72em;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--colloquium-accent);
+    margin-bottom: 1.1em;
+}
+
+.colloquium-title-rule {
+    width: 84px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--colloquium-accent);
+    margin-bottom: 1.4em;
+}
+
+.colloquium-title-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15em;
+}
+
+.colloquium-title-meta p {
+    margin: 0;
+    color: var(--colloquium-muted);
+}
+
+.colloquium-title-name {
+    font-size: 1.55em;
+    font-weight: 500;
+    color: var(--colloquium-heading);
+}
+
+.colloquium-title-note {
+    font-size: 0.9em;
+    line-height: 1.45;
+    color: var(--colloquium-muted);
+    max-width: 26em;
+}
+
+/* ===== Layout: Title Left ===== */
+.slide--title-left {
+    justify-content: center;
+    align-items: flex-start;
+    text-align: left;
+    padding: 72px 84px 60px;
+}
+
+.slide--title-left.active {
+    display: flex;
+}
+
+.slide--title-left h1 {
+    max-width: 980px;
+    font-size: 3em;
+    line-height: 1.02;
+    letter-spacing: -0.05em;
+    margin-bottom: 0.95em;
+}
+
+.slide--title-left .slide-content {
+    flex: 0 0 auto;
+    max-width: 560px;
+}
+
+.slide--title-left .slide-content > * + * {
+    margin-top: 1em;
+}
+
+/* ===== Layout: Title Sidebar ===== */
+.slide--title-sidebar {
+    padding: 72px 84px 60px;
+}
+
+.slide--title-sidebar.active {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    grid-template-rows: 1fr auto;
+    column-gap: 56px;
+    align-items: stretch;
+}
+
+.slide--title-sidebar h1 {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+    max-width: 760px;
+    font-size: 2.9em;
+    line-height: 1.03;
+    letter-spacing: -0.045em;
+    text-align: left;
+    margin: 0;
+}
+
+.slide--title-sidebar .slide-content {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: end;
+    border-left: 3px solid var(--colloquium-accent);
+    padding: 0 0 48px 28px;
+}
+
+.slide--title-sidebar .slide-content > * + * {
+    margin-top: 1em;
+}
+
+.slide--title-sidebar .colloquium-footer {
+    grid-column: 1 / -1;
+    grid-row: 2;
+}
+
+/* ===== Layout: Title Banner ===== */
+.slide--title-banner {
+    justify-content: flex-start;
+    align-items: flex-start;
+    text-align: left;
+    padding: 72px 84px 60px;
+}
+
+.slide--title-banner.active {
+    display: flex;
+}
+
+.slide--title-banner h1 {
+    max-width: 980px;
+    font-size: 3em;
+    line-height: 1.02;
+    letter-spacing: -0.05em;
+    margin-bottom: 0.45em;
+}
+
+.slide--title-banner .slide-content {
+    flex: 1;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    max-width: 620px;
+}
+
+.slide--title-banner .slide-content > * + * {
+    margin-top: 1em;
 }
 
 /* ===== Layout: Section Break ===== */
@@ -429,6 +592,10 @@ html, body {
 .colloquium-footer-center { justify-content: center; flex: 1; }
 .colloquium-footer-right  { justify-content: flex-end; }
 
+.colloquium-footer-nav {
+    cursor: pointer;
+}
+
 .slide .colloquium-footer-logo {
     height: 24px;
     width: auto;
@@ -445,6 +612,10 @@ html, body {
 
 .colloquium-counter:hover {
     opacity: 1;
+}
+
+.colloquium-footer-nav:hover {
+    color: var(--colloquium-accent);
 }
 
 /* Inverted footer on section breaks */
