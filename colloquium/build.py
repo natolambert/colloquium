@@ -388,7 +388,7 @@ def _build_slide_html(
             # Split content at ||| column dividers
             col_parts = re.split(r"<p>\|\|\|</p>", rendered)
             rendered = "".join(
-                f'<div class="col">{p.strip()}</div>' for p in col_parts if p.strip()
+                f'<div class="col">{p.strip()}</div>' for p in col_parts
             )
         parts.append(f'<div class="slide-content">{rendered}</div>')
 

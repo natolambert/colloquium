@@ -184,7 +184,14 @@ html, body {
 }
 
 .slide .slide-content img {
-    max-height: 450px;
+    max-height: 500px;
+    display: block;
+}
+
+/* When image is the sole or primary content, let it fill the available space */
+.slide .slide-content > p:only-child > img,
+.slide .slide-content > p:first-child:last-of-type > img {
+    max-height: calc(720px - var(--colloquium-slide-padding) * 2 - 100px);
 }
 
 /* ===== Charts ===== */
