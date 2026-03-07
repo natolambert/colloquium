@@ -163,6 +163,9 @@ Per-slide configuration via HTML comments. Place them anywhere in the slide.
 | Directive | Effect |
 |-----------|--------|
 | `<!-- layout: title -->` | Centered title slide (used with `# Heading`) |
+| `<!-- layout: title-left -->` | Left-aligned title slide with stacked metadata |
+| `<!-- layout: title-sidebar -->` | Wide title with a right-side metadata rail |
+| `<!-- layout: title-banner -->` | Editorial title slide with headline up top and metadata near the bottom |
 | `<!-- layout: content -->` | Default content layout (used with `## Heading`) |
 | `<!-- layout: section-break -->` | Dark accent background, centered text |
 | `<!-- layout: two-column -->` | Two-column grid |
@@ -213,6 +216,8 @@ Right column content
 | `<!-- notes: text -->` | Speaker notes (hidden in presentation) |
 | `<!-- img-align: center -->` | Align images only (`left`, `center`, `right`) — title unaffected |
 | `<!-- img-fill: true -->` | Expand image to fill available slide space |
+
+See [`examples/title-slides/title-slides.md`](./examples/title-slides/title-slides.md) for concrete title-slide compositions using the built-in title layouts, and [`examples/title-slides/README.md`](./examples/title-slides/README.md) for copy-paste guidance on when to use each layout.
 
 ## Content Features
 

@@ -86,6 +86,18 @@ class TestBuildDeck:
         assert "slide--title" in html
         assert "<h1>" in html
 
+    def test_title_sidebar_with_valign_class(self):
+        deck = Deck(title="Test")
+        deck.add_slide(
+            title="Long Title",
+            content="Meta",
+            layout="title-sidebar",
+            classes=["valign-bottom"],
+        )
+        html = build_deck(deck)
+
+        assert 'class="slide slide--title-sidebar active valign-bottom"' in html
+
     def test_columns_splits_at_divider(self):
         deck = Deck(title="Test")
         deck.add_slide(
