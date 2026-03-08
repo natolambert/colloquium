@@ -963,14 +963,14 @@ body:hover .colloquium-present {
 }
 
 /* ===== Citations ===== */
-.colloquium-cite {
+.slide a.colloquium-cite {
     color: var(--colloquium-accent);
     text-decoration: none;
     font-size: 0.85em;
     white-space: nowrap;
 }
 
-.colloquium-cite:hover {
+.slide a.colloquium-cite:hover {
     text-decoration: underline;
 }
 
@@ -999,12 +999,12 @@ body:hover .colloquium-present {
     right: 24px;
 }
 
-.colloquium-slide-cite .colloquium-cite {
+.colloquium-slide-cite a.colloquium-cite {
     font-size: inherit;
     color: var(--colloquium-accent);
 }
 
-.colloquium-slide-cite .colloquium-cite:hover {
+.colloquium-slide-cite a.colloquium-cite:hover {
     color: var(--colloquium-heading);
 }
 
@@ -1151,9 +1151,9 @@ body:hover .colloquium-present {
         text-decoration: underline;
     }
 
-    .colloquium-cite,
-    .colloquium-slide-cite .colloquium-cite,
-    .colloquium-ref-url {
+    .slide a.colloquium-cite,
+    .colloquium-slide-cite a.colloquium-cite,
+    .slide a.colloquium-ref-url {
         color: var(--colloquium-accent) !important;
     }
 
