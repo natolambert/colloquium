@@ -338,8 +338,16 @@ def _build_footer_html(footer: dict | None, index: int, total: int) -> str:
         elif value and _IMAGE_URL_RE.search(value):
             inner = f'<img class="colloquium-footer-logo" src="{value}" alt="" style="height: {logo_height}px">'
         elif value:
-            inner = value
-        zones.append(f'<div class="colloquium-footer-{zone}">{inner}</div>')
+            # Substitute {n} (slide number) and {N} (total slides)
+            rendered = value.replace("{n}", str(index + 1)).replace("{N}", str(total))
+            if "{n}" in value or "{N}" in value:
+                inner = f'<span class="colloquium-counter">{rendered}</span>'
+            else:
+                inner = rendered
+        zone_classes = [f"colloquium-footer-{zone}"]
+        if zone == "right":
+            zone_classes.append("colloquium-footer-nav")
+        zones.append(f'<div class="{" ".join(zone_classes)}">{inner}</div>')
 
     return f'<div class="colloquium-footer">{"".join(zones)}</div>'
 
@@ -404,7 +412,7 @@ def _build_slide_html(
             # Split content at ||| column dividers
             col_parts = re.split(r"<p>\|\|\|</p>", rendered)
             rendered = "".join(
-                f'<div class="col">{p.strip()}</div>' for p in col_parts if p.strip()
+                f'<div class="col">{p.strip()}</div>' for p in col_parts
             )
         parts.append(f'<div class="slide-content">{rendered}</div>')
 
@@ -464,6 +472,22 @@ $presentation_js
 </script>
 
 <script>
+window.colloquiumFitDisplayMathIn = function(root) {
+    var scope = root || document;
+    scope.querySelectorAll(".katex-display").forEach(function(display) {
+        display.style.fontSize = "";
+        var katexNode = display.querySelector(".katex");
+        if (!katexNode) return;
+
+        var availableWidth = display.clientWidth;
+        var contentWidth = katexNode.scrollWidth;
+        if (!availableWidth || !contentWidth || contentWidth <= availableWidth) return;
+
+        var scale = availableWidth / contentWidth;
+        display.style.fontSize = (scale * 100) + "%";
+    });
+};
+
 // Render KaTeX math elements and highlight code after deferred scripts load
 window.addEventListener("load", function() {
     if (typeof katex !== "undefined") {
@@ -474,6 +498,12 @@ window.addEventListener("load", function() {
                 throwOnError: false
             });
         });
+        window.colloquiumFitDisplayMathIn(document);
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(function() {
+                window.colloquiumFitDisplayMathIn(document);
+            });
+        }
     }
     if (typeof hljs !== "undefined") {
         hljs.highlightAll();
@@ -484,11 +514,15 @@ window.addEventListener("load", function() {
         var chartCanvases = document.querySelectorAll("[data-chart-config]");
         if (chartCanvases.length > 0) {
             // Make all slides visible so Chart.js can measure canvas size
+            // Use visibility:hidden to avoid a visual flash
             var slides = document.querySelectorAll(".slide");
             var origDisplay = [];
             slides.forEach(function(s) {
                 origDisplay.push(s.style.display);
                 s.style.display = "flex";
+                if (!s.classList.contains("active")) {
+                    s.style.visibility = "hidden";
+                }
             });
 
             chartCanvases.forEach(function(canvas) {
@@ -524,6 +558,7 @@ window.addEventListener("load", function() {
                 // Restore original slide visibility
                 slides.forEach(function(s, i) {
                     s.style.display = origDisplay[i];
+                    s.style.visibility = "";
                 });
             });
         }

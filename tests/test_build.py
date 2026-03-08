@@ -27,6 +27,7 @@ class TestBuildDeck:
 
         assert "katex" in html
         assert "katex.render" in html
+        assert "colloquiumFitDisplayMathIn" in html
 
     def test_contains_highlightjs(self):
         deck = Deck(title="Code")
@@ -84,6 +85,18 @@ class TestBuildDeck:
 
         assert "slide--title" in html
         assert "<h1>" in html
+
+    def test_title_sidebar_with_valign_class(self):
+        deck = Deck(title="Test")
+        deck.add_slide(
+            title="Long Title",
+            content="Meta",
+            layout="title-sidebar",
+            classes=["valign-bottom"],
+        )
+        html = build_deck(deck)
+
+        assert 'class="slide slide--title-sidebar active valign-bottom"' in html
 
     def test_columns_splits_at_divider(self):
         deck = Deck(title="Test")
@@ -175,6 +188,41 @@ class TestBuildDeck:
 
         assert "1 / 2" in html
         assert "2 / 2" in html
+
+    def test_custom_footer_counter_template_is_clickable(self):
+        deck = Deck(title="Test", footer={"right": "Lambert {n}/{N}"})
+        deck.add_slide(title="S1", content="A")
+        deck.add_slide(title="S2", content="B")
+        html = build_deck(deck)
+
+        assert html.count('class="colloquium-counter"') == 2
+        assert "Lambert 1/2" in html
+        assert "Lambert 2/2" in html
+
+    def test_right_footer_zone_is_always_nav_trigger(self):
+        deck = Deck(title="Test", footer={"left": "ACME", "right": "Appendix"})
+        deck.add_slide(title="S1", content="A")
+        html = build_deck(deck)
+
+        assert 'class="colloquium-footer-right colloquium-footer-nav"' in html
+        assert ">Appendix<" in html
+
+    def test_img_align_utility_styles_only_images(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="Image", content="![alt](demo.png)", classes=["img-align-right"])
+        html = build_deck(deck)
+
+        assert ".img-align-right .slide-content img {\n    display: block;" in html
+        assert ".img-align-right .slide-content img { margin-left: auto; }" in html
+        assert ".img-align-center .slide-content { display: flex;" not in html
+
+    def test_chart_print_image_hidden_on_screen(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="Chart", content="```chart\ntype: bar\ndata:\n  labels: [A]\n  datasets:\n    - label: Series\n      data: [1]\n```")
+        html = build_deck(deck)
+
+        assert ".slide .slide-content img.colloquium-chart-print {" in html
+        assert "max-height: none;" in html
 
     def test_no_old_nav_div(self):
         deck = Deck(title="Test")

@@ -40,27 +40,37 @@ def _serve(args):
 
 
 def _export(args):
-    """Export a presentation to PDF."""
-    from colloquium.export import export_pdf
-
+    """Export a presentation to PDF or PPTX."""
     input_path = args.file
     if not Path(input_path).exists():
         print(f"Error: {input_path} not found", file=sys.stderr)
         sys.exit(1)
 
     output_path = args.output
-    result = export_pdf(input_path, output_path)
 
-    if result:
-        print(f"Exported: {result}")
+    if args.pptx:
+        from colloquium.export import export_pptx
+
+        try:
+            result = export_pptx(input_path, output_path)
+            print(f"Exported: {result}")
+        except ImportError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
     else:
-        # Build HTML and give instructions
-        from colloquium.build import build_file
+        from colloquium.export import export_pdf
 
-        html_path = build_file(input_path)
-        print("No compatible browser found for headless PDF export.")
-        print(f"HTML built at: {html_path}")
-        print(f"Open it in a browser and use Cmd+P / Ctrl+P to print to PDF.")
+        result = export_pdf(input_path, output_path)
+
+        if result:
+            print(f"Exported: {result}")
+        else:
+            from colloquium.build import build_file
+
+            html_path = build_file(input_path)
+            print("No compatible browser found for headless PDF export.")
+            print(f"HTML built at: {html_path}")
+            print(f"Open it in a browser and use Cmd+P / Ctrl+P to print to PDF.")
 
 
 def main():
@@ -89,10 +99,10 @@ def main():
     serve_parser.set_defaults(func=_serve)
 
     # export
-    export_parser = subparsers.add_parser("export", help="Export to PDF")
+    export_parser = subparsers.add_parser("export", help="Export to PDF or PPTX")
     export_parser.add_argument("file", help="Input markdown file")
-    export_parser.add_argument("--pdf", action="store_true", default=True, help="Export as PDF (default)")
-    export_parser.add_argument("-o", "--output", help="Output PDF path")
+    export_parser.add_argument("--pptx", action="store_true", help="Export as PPTX (requires: pip install colloquium[pptx])")
+    export_parser.add_argument("-o", "--output", help="Output file path")
     export_parser.set_defaults(func=_export)
 
     args = parser.parse_args()

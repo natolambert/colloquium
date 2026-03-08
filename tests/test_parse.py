@@ -50,6 +50,12 @@ class TestParseSlide:
         assert slide.layout == "two-column"
         assert slide.title == "Slide"
 
+    def test_title_layout_variant_is_title_slide(self):
+        text = "<!-- layout: title-left -->\n# Slide\n\nSubtitle"
+        slide = parse_slide(text)
+        assert slide.layout == "title-left"
+        assert slide.is_title_slide
+
     def test_class_directive(self):
         text = "<!-- class: highlight special -->\n## Slide\n\nContent"
         slide = parse_slide(text)

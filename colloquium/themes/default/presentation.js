@@ -83,6 +83,12 @@ class ColloquiumPresentation {
         this.currentIndex = index;
         this.slides[this.currentIndex].classList.add('active');
 
+        if (window.colloquiumFitDisplayMathIn) {
+            requestAnimationFrame(() => {
+                window.colloquiumFitDisplayMathIn(this.slides[this.currentIndex]);
+            });
+        }
+
         // Update hash
         history.replaceState(null, '', '#' + (this.currentIndex + 1));
 
@@ -139,7 +145,7 @@ class ColloquiumPresentation {
             btn.className = 'colloquium-picker-item';
             btn.innerHTML =
                 '<span class="colloquium-picker-num">' + (i + 1) + '</span>' +
-                '<span>' + this._getSlideTitle(slide, i) + '</span>';
+                '<span class="colloquium-picker-title">' + this._getSlideTitle(slide, i) + '</span>';
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.goTo(i);
@@ -181,9 +187,9 @@ class ColloquiumPresentation {
     }
 
     _bindFooter() {
-        // Attach click handler to all counter spans (one per slide)
-        document.querySelectorAll('.colloquium-counter').forEach((counter) => {
-            counter.addEventListener('click', (e) => {
+        // The entire right footer zone is the picker trigger.
+        document.querySelectorAll('.colloquium-footer-nav').forEach((target) => {
+            target.addEventListener('click', (e) => {
                 e.stopPropagation();
                 if (this.pickerOpen) {
                     this._closePicker();
