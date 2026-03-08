@@ -63,7 +63,7 @@ Build it:
 ```bash
 colloquium build slides.md        # → slides.html
 colloquium serve slides.md        # dev server with live reload
-colloquium export slides.md       # PDF via headless Chrome
+colloquium export slides.md       # PDF via a headless Chromium-based browser
 ```
 
 ## CLI Commands
@@ -72,7 +72,7 @@ colloquium export slides.md       # PDF via headless Chrome
 |---------|-------------|
 | `colloquium build <file.md>` | Build to self-contained HTML |
 | `colloquium serve <file.md>` | Dev server with live reload |
-| `colloquium export <file.md>` | PDF export (requires Chrome) |
+| `colloquium export <file.md>` | PDF export (requires a Chromium-based browser) |
 
 ## Frontmatter Reference
 
@@ -163,6 +163,7 @@ Per-slide configuration via HTML comments. Place them anywhere in the slide.
 <!-- align: center -->
 <!-- valign: bottom -->
 <!-- columns: 2 -->
+<!-- rows: 35/65 -->
 <!-- padding: compact -->
 <!-- size: large -->
 <!-- title: hidden -->
@@ -207,6 +208,56 @@ Right column content
 | `70/30` | 70%/30% split |
 | `30/70` | 30%/70% split |
 
+Arbitrary numeric ratios are allowed, e.g. `25/75`, `33/67`, or `1/2/1`.
+
+### Rows
+
+Split a slide vertically with `===` between row blocks:
+
+```markdown
+<!-- rows: 35/65 -->
+## Overview
+
+Top row content
+
+===
+
+Bottom row content
+```
+
+| Value | Effect |
+|-------|--------|
+| `2` | Two equal rows |
+| `3` | Three equal rows |
+| `60/40` | 60%/40% split |
+| `40/60` | 40%/60% split |
+| `35/65` | 35%/65% split |
+| `65/35` | 65%/35% split |
+| `70/30` | 70%/30% split |
+| `30/70` | 30%/70% split |
+
+Arbitrary numeric ratios are allowed here too, e.g. `25/75` or `20/30/50`.
+
+To use columns inside a specific row block, add a row-local directive at the top of that row:
+
+```markdown
+<!-- rows: 35/65 -->
+## Overview
+
+<!-- row-columns: 40/60 -->
+Left text
+
+|||
+
+Right text
+
+===
+
+![Wide image](figure.png)
+```
+
+At the slide root, use either `columns:` or `rows:`. For nested layouts, use `row-columns:` inside a row block.
+
 ### Text & Spacing
 
 | Directive | Values |
@@ -226,8 +277,25 @@ Right column content
 | `<!-- notes: text -->` | Speaker notes (hidden in presentation) |
 | `<!-- img-align: center -->` | Align images only (`left`, `center`, `right`) — title unaffected |
 | `<!-- img-fill: true -->` | Expand image to fill available slide space |
+| `<!-- img-overflow: true -->` | Let images in grid cells bleed outside their box instead of fitting inside |
 
-See [`examples/title-slides/title-slides.md`](./examples/title-slides/title-slides.md) for concrete title-slide compositions using the built-in title layouts, and [`examples/title-slides/README.md`](./examples/title-slides/README.md) for copy-paste guidance on when to use each layout.
+See [`examples/title-slides/title-slides.md`](./examples/title-slides/title-slides.md) for concrete title-slide compositions using the built-in title layouts, [`examples/title-slides/README.md`](./examples/title-slides/README.md) for copy-paste guidance on when to use each layout, and [`examples/rows-and-columns/rows-and-columns.md`](./examples/rows-and-columns/rows-and-columns.md) for nested row/column layouts.
+
+Generated example HTML is not tracked in git. Build any example locally with `uv run colloquium build examples/.../*.md`.
+
+### Bibliography
+
+Frontmatter options:
+
+```yaml
+bibliography: refs.bib
+citation_style: author-year
+citation_order: auto
+```
+
+- `citation_style: numeric` keeps citations and references in first-appearance order.
+- Non-numeric styles default to alphabetical ordering.
+- Set `citation_order: appearance` to keep author-year or title-year citations in source order.
 
 ## Content Features
 
@@ -312,6 +380,7 @@ Render LLM-style chat bubbles using YAML in fenced code blocks:
 
 ````markdown
 ```conversation
+size: 0.9
 messages:
   - role: user
     content: "What is RLHF?"
@@ -329,6 +398,12 @@ messages:
 | `system` | Centered, bordered, muted italic text |
 
 Message content supports markdown formatting (bold, italic, inline code).
+
+Optional conversation settings:
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `size` | unset | Bubble font scale as a positive numeric value like `0.9` or `1.05` |
 
 ### Citations
 

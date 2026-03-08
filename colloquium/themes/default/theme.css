@@ -151,6 +151,7 @@ html, body {
     background: var(--colloquium-code-bg);
     padding: 0.15em 0.4em;
     border-radius: 4px;
+    white-space: nowrap;
 }
 
 .slide pre {
@@ -167,6 +168,7 @@ html, body {
     background: none;
     padding: 0;
     font-size: inherit;
+    white-space: pre;
 }
 
 /* ===== Images ===== */
@@ -534,26 +536,118 @@ html, body {
 .align-center.active { text-align: center; }
 .align-right.active { text-align: right; }
 
+.align-center.active .slide-content > img,
+.align-center.active .slide-content > p > img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.align-left.active .slide-content > img,
+.align-left.active .slide-content > p > img {
+    display: block;
+    margin-right: auto;
+}
+
+.align-right.active .slide-content > img,
+.align-right.active .slide-content > p > img {
+    display: block;
+    margin-left: auto;
+}
+
 /* ===== Utility: Vertical Alignment ===== */
 .valign-top.active { justify-content: flex-start; }
 .valign-center.active { justify-content: center; }
 .valign-bottom.active { justify-content: flex-end; }
 
 /* ===== Utility: Columns ===== */
-.cols-2 .slide-content { display: grid; grid-template-columns: 1fr 1fr; gap: 2em; align-items: start; width: 100%; }
-.cols-3 .slide-content { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2em; align-items: start; width: 100%; }
-.cols-60-40 .slide-content { display: grid; grid-template-columns: 3fr 2fr; gap: 2em; align-items: start; width: 100%; }
-.cols-40-60 .slide-content { display: grid; grid-template-columns: 2fr 3fr; gap: 2em; align-items: start; width: 100%; }
-.cols-30-70 .slide-content { display: grid; grid-template-columns: 3fr 7fr; gap: 2em; align-items: start; width: 100%; }
-.cols-70-30 .slide-content { display: grid; grid-template-columns: 7fr 3fr; gap: 2em; align-items: start; width: 100%; }
+.colloquium-grid {
+    display: grid;
+    gap: 2em;
+    align-items: stretch;
+    width: 100%;
+}
+
+/* ===== Utility: Rows ===== */
+.colloquium-rows {
+    display: grid;
+    gap: 0.9em;
+    width: 100%;
+    min-height: 0;
+    flex: 1;
+}
+
+.colloquium-row {
+    min-height: 0;
+}
 
 /* Images in grid layouts: fit within the available content height */
-[class*="cols-"] .slide-content img {
+.colloquium-grid img {
     width: auto;
     max-width: 100%;
     height: auto;
     max-height: calc(720px - var(--colloquium-slide-padding) * 2 - 100px);
     object-fit: contain;
+}
+
+.colloquium-rows img {
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.colloquium-grid > .col,
+.colloquium-rows > .colloquium-row {
+    min-width: 0;
+    min-height: 0;
+    overflow: visible;
+}
+
+.colloquium-grid > .col > :last-child,
+.colloquium-rows > .colloquium-row > :last-child {
+    margin-bottom: 0;
+}
+
+/* Standalone images inside grid cells should fit the cell by default. */
+.slide .colloquium-grid > .col > p:first-child:last-child:has(> img),
+.slide .colloquium-row > p:first-child:last-child:has(> img) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+.slide .colloquium-grid > .col > p:first-child:last-child:has(> img) > img,
+.slide .colloquium-row > p:first-child:last-child:has(> img) > img {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.img-overflow .colloquium-grid > .col,
+.img-overflow .colloquium-rows > .colloquium-row,
+.img-overflow .slide-content {
+    overflow: visible;
+}
+
+.slide.img-overflow .colloquium-grid > .col > p:first-child:last-child:has(> img),
+.slide.img-overflow .colloquium-row > p:first-child:last-child:has(> img) {
+    overflow: visible;
+}
+
+.slide.img-overflow .colloquium-grid > .col > p:first-child:last-child:has(> img) > img,
+.slide.img-overflow .colloquium-row > p:first-child:last-child:has(> img) > img {
+    width: auto;
+    height: auto;
+    max-width: none;
+    max-height: none;
 }
 
 /* ===== Utility: Image Alignment (independent of title) ===== */
@@ -869,14 +963,14 @@ body:hover .colloquium-present {
 }
 
 /* ===== Citations ===== */
-.colloquium-cite {
+.slide a.colloquium-cite {
     color: var(--colloquium-accent);
     text-decoration: none;
     font-size: 0.85em;
     white-space: nowrap;
 }
 
-.colloquium-cite:hover {
+.slide a.colloquium-cite:hover {
     text-decoration: underline;
 }
 
@@ -905,13 +999,13 @@ body:hover .colloquium-present {
     right: 24px;
 }
 
-.colloquium-slide-cite .colloquium-cite {
+.colloquium-slide-cite a.colloquium-cite {
     font-size: inherit;
-    color: var(--colloquium-muted);
+    color: var(--colloquium-accent);
 }
 
-.colloquium-slide-cite .colloquium-cite:hover {
-    color: var(--colloquium-accent);
+.colloquium-slide-cite a.colloquium-cite:hover {
+    color: var(--colloquium-heading);
 }
 
 /* ===== References Slide ===== */
@@ -939,13 +1033,13 @@ body:hover .colloquium-present {
 
 /* ===== Print / PDF Styles ===== */
 @page {
-    size: 10in 5.625in;  /* 16:9 landscape */
+    size: 13.333in 7.5in;  /* 16:9 widescreen at 96 CSS px/in => 1280x720 */
     margin: 0;
 }
 
 @media print {
     html, body {
-        width: 10in;
+        width: 13.333in;
         height: auto;
         overflow: visible;
         background: #fff;
@@ -956,7 +1050,7 @@ body:hover .colloquium-present {
     .colloquium-deck {
         position: static;
         transform: none !important;
-        width: 10in;
+        width: auto;
         height: auto;
         background: none;
     }
@@ -964,20 +1058,82 @@ body:hover .colloquium-present {
     .slide {
         display: flex !important;
         position: relative;
-        width: 10in;
-        height: 5.625in;
+        width: 1280px;
+        height: 720px;
         page-break-after: always;
         page-break-inside: avoid;
         break-after: page;
         break-inside: avoid;
         margin: 0;
-        font-size: 18px;
+        font-size: 24px;
         overflow: visible;
     }
 
     .slide:last-child {
         page-break-after: auto;
     }
+
+    /* Printed slides are not .active, so re-apply layout/utility rules without that gate. */
+    .slide--title,
+    .slide--title-left,
+    .slide--title-banner,
+    .slide--section-break {
+        display: flex !important;
+    }
+
+    .slide--title-sidebar {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) 300px;
+        column-gap: 56px;
+        align-content: center;
+        align-items: start;
+    }
+
+    .slide--title-sidebar.valign-top {
+        align-content: start;
+    }
+
+    .slide--title-sidebar.valign-center {
+        align-content: center;
+    }
+
+    .slide--title-sidebar.valign-bottom {
+        align-content: end;
+    }
+
+    .title-top { justify-content: flex-start; }
+    .title-center { justify-content: center; align-items: center; text-align: center; }
+
+    .align-left { text-align: left; }
+    .align-center { text-align: center; }
+    .align-right { text-align: right; }
+
+    .align-center .slide-content > img,
+    .align-center .slide-content > p > img {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .align-left .slide-content > img,
+    .align-left .slide-content > p > img {
+        display: block;
+        margin-right: auto;
+    }
+
+    .align-right .slide-content > img,
+    .align-right .slide-content > p > img {
+        display: block;
+        margin-left: auto;
+    }
+
+    .valign-top { justify-content: flex-start; }
+    .valign-center { justify-content: center; }
+    .valign-bottom { justify-content: flex-end; }
+
+    .size-small { font-size: 20px; }
+    .size-normal { font-size: 24px; }
+    .size-large { font-size: 28px; }
 
     .colloquium-progress,
     .colloquium-picker-overlay,
@@ -993,6 +1149,12 @@ body:hover .colloquium-present {
     a {
         color: inherit !important;
         text-decoration: underline;
+    }
+
+    .slide a.colloquium-cite,
+    .colloquium-slide-cite a.colloquium-cite,
+    .slide a.colloquium-ref-url {
+        color: var(--colloquium-accent) !important;
     }
 
     /* Swap chart canvases for static images */

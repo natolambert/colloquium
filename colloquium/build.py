@@ -117,22 +117,98 @@ def _format_citation_label(entry, key: str, style: str, number: int) -> str:
         return f"{surname}, {_get_year(entry)}"
 
 
-def _process_citations(html: str, bib_entries: dict, style: str, cited_keys: list) -> str:
-    """Replace [@key] with citation links. Tracks cited keys."""
-    key_numbers = {}
+def _resolve_citation_order(style: str, citation_order: str) -> str:
+    """Resolve the effective citation ordering policy."""
+    if style == "numeric":
+        return "appearance"
+    if citation_order in {"appearance", "alphabetical"}:
+        return citation_order
+    return "alphabetical"
 
+
+def _dedupe_keys(keys: list[str]) -> list[str]:
+    """Preserve the first occurrence of each citation key."""
+    unique = []
+    seen = set()
+    for key in keys:
+        if key not in seen:
+            seen.add(key)
+            unique.append(key)
+    return unique
+
+
+def _citation_sort_key(
+    key: str,
+    bib_entries: dict,
+    style: str,
+    citation_numbers: dict[str, int] | None,
+) -> tuple[int, str, str]:
+    """Return a stable sort key for non-numeric citation styles."""
+    if key not in bib_entries:
+        return (1, key.lower(), key.lower())
+    number = citation_numbers.get(key, 1) if citation_numbers else 1
+    label = _format_citation_label(bib_entries[key], key, style, number)
+    return (0, html_module.unescape(label).lower(), key.lower())
+
+
+def _ordered_citation_keys(
+    keys: list[str],
+    bib_entries: dict,
+    style: str,
+    citation_order: str,
+    citation_numbers: dict[str, int] | None = None,
+) -> list[str]:
+    """Return keys in appearance or alphabetical order."""
+    unique = _dedupe_keys(keys)
+    if _resolve_citation_order(style, citation_order) == "appearance":
+        return unique
+    return sorted(
+        unique,
+        key=lambda key: _citation_sort_key(key, bib_entries, style, citation_numbers),
+    )
+
+
+def _discover_citation_keys(text: str, bib_entries: dict, cited_keys: list) -> None:
+    """Append cited keys in first-appearance order without rendering citations."""
+    for match in _CITATION_RE.finditer(text):
+        keys = [k.strip().lstrip("@") for k in match.group(1).split(";")]
+        for key in keys:
+            if key in bib_entries and key not in cited_keys:
+                cited_keys.append(key)
+
+
+def _get_citation_number(
+    key: str,
+    cited_keys: list[str],
+    citation_numbers: dict[str, int] | None = None,
+) -> int:
+    """Return the numeric citation index for a key."""
+    if citation_numbers and key in citation_numbers:
+        return citation_numbers[key]
+    if key not in cited_keys:
+        cited_keys.append(key)
+    return cited_keys.index(key) + 1
+
+
+def _process_citations(
+    html: str,
+    bib_entries: dict,
+    style: str,
+    cited_keys: list,
+    citation_order: str = "auto",
+    citation_numbers: dict[str, int] | None = None,
+) -> str:
+    """Replace [@key] with citation links. Tracks cited keys."""
     def _replace(m):
         raw = m.group(1)
         keys = [k.strip().lstrip("@") for k in raw.split(";")]
+        keys = _ordered_citation_keys(keys, bib_entries, style, citation_order, citation_numbers)
         parts = []
         for key in keys:
             if key in bib_entries:
-                if key not in key_numbers:
-                    key_numbers[key] = len(key_numbers) + 1
-                    if key not in cited_keys:
-                        cited_keys.append(key)
+                number = _get_citation_number(key, cited_keys, citation_numbers)
                 entry = bib_entries[key]
-                label = _format_citation_label(entry, key, style, key_numbers[key])
+                label = _format_citation_label(entry, key, style, number)
                 css_class = "colloquium-cite"
                 if style == "numeric":
                     label = f"[{label}]"
@@ -146,8 +222,6 @@ def _process_citations(html: str, bib_entries: dict, style: str, cited_keys: lis
                 parts.append(
                     f'<span class="colloquium-cite colloquium-cite-missing">[{html_module.escape(key)}?]</span>'
                 )
-                if key not in cited_keys:
-                    cited_keys.append(key)
         return " ".join(parts)
 
     return _CITATION_RE.sub(_replace, html)
@@ -254,12 +328,20 @@ def _paginate_refs(refs: list[str]) -> list[list[str]]:
     return pages
 
 
-def _count_references_slides(cited_keys: list, bib_entries: dict) -> int:
+def _count_references_slides(
+    cited_keys: list,
+    bib_entries: dict,
+    style: str,
+    citation_order: str,
+    citation_numbers: dict[str, int] | None = None,
+) -> int:
     """Return how many slides the references will need."""
     refs = []
-    for i, key in enumerate(cited_keys):
+    ordered_keys = _ordered_citation_keys(cited_keys, bib_entries, style, citation_order, citation_numbers)
+    for key in ordered_keys:
         if key in bib_entries:
-            refs.append(_format_reference(bib_entries[key], key, "author-year", i + 1))
+            number = _get_citation_number(key, cited_keys, citation_numbers)
+            refs.append(_format_reference(bib_entries[key], key, style, number))
     if not refs:
         return 0
     return len(_paginate_refs(refs))
@@ -268,12 +350,15 @@ def _count_references_slides(cited_keys: list, bib_entries: dict) -> int:
 def _build_references_slides_html(
     bib_entries: dict, cited_keys: list, style: str,
     start_index: int, total: int, footer: dict | None,
+    citation_order: str = "auto", citation_numbers: dict[str, int] | None = None,
 ) -> list[str]:
     """Generate one or more References <section> elements, paginated."""
     refs = []
-    for i, key in enumerate(cited_keys):
+    ordered_keys = _ordered_citation_keys(cited_keys, bib_entries, style, citation_order, citation_numbers)
+    for key in ordered_keys:
         if key in bib_entries:
-            refs.append(_format_reference(bib_entries[key], key, style, i + 1))
+            number = _get_citation_number(key, cited_keys, citation_numbers)
+            refs.append(_format_reference(bib_entries[key], key, style, number))
 
     if not refs:
         return []
@@ -352,17 +437,25 @@ def _build_footer_html(footer: dict | None, index: int, total: int) -> str:
     return f'<div class="colloquium-footer">{"".join(zones)}</div>'
 
 
-def _build_slide_cite_html(keys: list, position: str, bib_entries: dict, style: str, cited_keys: list) -> str:
+def _build_slide_cite_html(
+    keys: list,
+    position: str,
+    bib_entries: dict,
+    style: str,
+    cited_keys: list,
+    citation_order: str = "auto",
+    citation_numbers: dict[str, int] | None = None,
+) -> str:
     """Build a per-slide floating citation footnote."""
     if not keys or not bib_entries:
         return ""
+    keys = _ordered_citation_keys(keys, bib_entries, style, citation_order, citation_numbers)
     labels = []
     for key in keys:
         if key in bib_entries:
             entry = bib_entries[key]
-            if key not in cited_keys:
-                cited_keys.append(key)
-            label = _format_citation_label(entry, key, style, len(cited_keys))
+            number = _get_citation_number(key, cited_keys, citation_numbers)
+            label = _format_citation_label(entry, key, style, number)
             labels.append(
                 f'<a href="#colloquium-ref-{html_module.escape(key)}" '
                 f'class="colloquium-cite">{html_module.escape(label)}</a>'
@@ -376,10 +469,67 @@ def _build_slide_cite_html(keys: list, position: str, bib_entries: dict, style: 
     )
 
 
+_ROW_SPLIT_RE = re.compile(r"^\s*===+\s*$", re.MULTILINE)
+_ROW_COLUMNS_RE = re.compile(r"<!--\s*row-columns\s*:\s*(.*?)\s*-->")
+
+
+def _split_columns_from_rendered(rendered: str) -> str:
+    """Split rendered HTML into .col wrappers at ||| markers."""
+    col_parts = re.split(r"<p>\|\|\|</p>", rendered)
+    return "".join(f'<div class="col">{p.strip()}</div>' for p in col_parts)
+
+
+def _extract_grid_spec(classes: list[str], prefix: str) -> str | None:
+    """Return the first grid spec found for a class prefix such as cols- or rows-."""
+    for cls in classes:
+        if cls.startswith(prefix):
+            return cls[len(prefix):]
+    return None
+
+
+def _grid_template_style(spec: str, axis: str) -> str:
+    """Convert a class-like grid spec to an inline CSS grid template declaration."""
+    if spec.isdigit():
+        count = max(int(spec), 1)
+        return f"grid-template-{axis}: repeat({count}, minmax(0, 1fr));"
+
+    parts = [p for p in spec.split("-") if p]
+    if len(parts) >= 2 and all(part.isdigit() for part in parts):
+        tracks = " ".join(f"minmax(0, {int(part)}fr)" for part in parts)
+        return f"grid-template-{axis}: {tracks};"
+
+    return ""
+
+
+def _build_rows_html(content: str, md: MarkdownIt) -> str:
+    """Build a row-based slide body with optional nested columns in each row."""
+    row_blocks = [block.strip() for block in _ROW_SPLIT_RE.split(content) if block.strip()]
+    rows_html = []
+    for block in row_blocks:
+        row_classes = ["colloquium-row"]
+        row_style = ""
+        for match in _ROW_COLUMNS_RE.finditer(block):
+            spec = match.group(1).strip()
+            row_classes.append(f'cols-{spec.replace("/", "-")}')
+            row_classes.append("colloquium-grid")
+            row_style = _grid_template_style(spec.replace("/", "-"), "columns")
+            block = block.replace(match.group(0), "")
+
+        rendered = _render_markdown(block.strip(), md)
+        if any(cls.startswith("cols-") for cls in row_classes):
+            rendered = _split_columns_from_rendered(rendered)
+
+        style_attr = f' style="{row_style}"' if row_style else ""
+        rows_html.append(f'<div class="{" ".join(row_classes)}"{style_attr}>{rendered}</div>')
+
+    return "".join(rows_html)
+
+
 def _build_slide_html(
     slide: Slide, index: int, total: int, md: MarkdownIt,
     footer: dict | None, bib_entries: dict | None = None,
     citation_style: str = "author-year", cited_keys: list | None = None,
+    citation_order: str = "auto", citation_numbers: dict[str, int] | None = None,
 ) -> str:
     """Build the HTML for a single slide."""
     if bib_entries is None:
@@ -396,7 +546,7 @@ def _build_slide_html(
     class_str = " ".join(classes)
 
     # Style attribute
-    style_attr = f' style="{slide.style}"' if slide.style else ""
+    slide_style_attr = f' style="{slide.style}"' if slide.style else ""
 
     # Slide content
     parts = []
@@ -405,30 +555,48 @@ def _build_slide_html(
         parts.append(f"<{tag}>{slide.title}</{tag}>")
 
     has_columns = any(c.startswith("cols-") for c in slide.classes)
+    has_rows = any(c.startswith("rows-") for c in slide.classes)
 
     if slide.content:
-        rendered = _render_markdown(slide.content, md)
-        if has_columns:
-            # Split content at ||| column dividers
-            col_parts = re.split(r"<p>\|\|\|</p>", rendered)
-            rendered = "".join(
-                f'<div class="col">{p.strip()}</div>' for p in col_parts
-            )
-        parts.append(f'<div class="slide-content">{rendered}</div>')
+        if has_rows:
+            rendered = _build_rows_html(slide.content, md)
+            rows_spec = _extract_grid_spec(slide.classes, "rows-")
+            rows_style = _grid_template_style(rows_spec or "", "rows")
+            content_style_attr = f' style="{rows_style}"' if rows_style else ""
+            parts.append(f'<div class="slide-content colloquium-rows"{content_style_attr}>{rendered}</div>')
+        else:
+            rendered = _render_markdown(slide.content, md)
+            content_classes = ["slide-content"]
+            content_style = ""
+            if has_columns:
+                cols_spec = _extract_grid_spec(slide.classes, "cols-")
+                content_classes.append("colloquium-grid")
+                content_style = _grid_template_style(cols_spec or "", "columns")
+                rendered = _split_columns_from_rendered(rendered)
+            content_style_attr = f' style="{content_style}"' if content_style else ""
+            parts.append(f'<div class="{" ".join(content_classes)}"{content_style_attr}>{rendered}</div>')
 
     # Per-slide citation footnotes (floating above footer)
     cite_left = slide.metadata.get("cite_left", [])
     cite_right = slide.metadata.get("cite_right", [])
     if cite_left:
-        parts.append(_build_slide_cite_html(cite_left, "left", bib_entries, citation_style, cited_keys))
+        parts.append(
+            _build_slide_cite_html(
+                cite_left, "left", bib_entries, citation_style, cited_keys, citation_order, citation_numbers,
+            )
+        )
     if cite_right:
-        parts.append(_build_slide_cite_html(cite_right, "right", bib_entries, citation_style, cited_keys))
+        parts.append(
+            _build_slide_cite_html(
+                cite_right, "right", bib_entries, citation_style, cited_keys, citation_order, citation_numbers,
+            )
+        )
 
     parts.append(_build_footer_html(footer, index, total))
 
     inner = "\n".join(parts)
 
-    return f'<section class="{class_str}"{style_attr} data-index="{index}">\n{inner}\n</section>'
+    return f'<section class="{class_str}"{slide_style_attr} data-index="{index}">\n{inner}\n</section>'
 
 
 # HTML template — uses $-style substitution
@@ -608,6 +776,8 @@ def build_deck(deck: Deck) -> str:
         bib_entries = _parse_bib_file(deck.bibliography)
 
     citation_style = deck.citation_style
+    citation_order = deck.citation_order
+    citation_numbers: dict[str, int] = {}
 
     # First pass: build slides and discover cited keys
     cited_keys: list[str] = []
@@ -620,16 +790,20 @@ def build_deck(deck: Deck) -> str:
         for slide in deck.slides:
             if slide.content:
                 rendered = _render_markdown(slide.content, md)
-                _process_citations(rendered, bib_entries, citation_style, cited_keys)
+                _discover_citation_keys(rendered, bib_entries, cited_keys)
             if slide.title:
-                _process_citations(slide.title, bib_entries, citation_style, cited_keys)
+                _discover_citation_keys(slide.title, bib_entries, cited_keys)
             # Also discover keys from per-slide cite directives
             for key in slide.metadata.get("cite_left", []) + slide.metadata.get("cite_right", []):
                 if key not in cited_keys and key in bib_entries:
                     cited_keys.append(key)
 
+        citation_numbers = {key: i + 1 for i, key in enumerate(cited_keys)}
+
         # Add reference slides to total count
-        ref_slide_count = _count_references_slides(cited_keys, bib_entries)
+        ref_slide_count = _count_references_slides(
+            cited_keys, bib_entries, citation_style, citation_order, citation_numbers,
+        )
         if ref_slide_count:
             total = len(deck.slides) + ref_slide_count
 
@@ -640,17 +814,23 @@ def build_deck(deck: Deck) -> str:
     for i, slide in enumerate(deck.slides):
         slide_html = _build_slide_html(
             slide, i, total, md, deck.footer,
-            bib_entries=bib_entries, citation_style=citation_style, cited_keys=cited_keys,
+            bib_entries=bib_entries,
+            citation_style=citation_style,
+            cited_keys=cited_keys,
+            citation_order=citation_order,
+            citation_numbers=citation_numbers,
         )
         if bib_entries:
-            slide_html = _process_citations(slide_html, bib_entries, citation_style, cited_keys)
+            slide_html = _process_citations(
+                slide_html, bib_entries, citation_style, cited_keys, citation_order, citation_numbers,
+            )
         slides_html_parts.append(slide_html)
 
     # Append references slides if we have citations
     if bib_entries and cited_keys:
         ref_slides = _build_references_slides_html(
             bib_entries, cited_keys, citation_style,
-            len(deck.slides), total, deck.footer,
+            len(deck.slides), total, deck.footer, citation_order, citation_numbers,
         )
         slides_html_parts.extend(ref_slides)
 
