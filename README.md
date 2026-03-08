@@ -63,7 +63,7 @@ Build it:
 ```bash
 colloquium build slides.md        # → slides.html
 colloquium serve slides.md        # dev server with live reload
-colloquium export slides.md       # PDF via headless Chrome
+colloquium export slides.md       # PDF via a headless Chromium-based browser
 ```
 
 ## CLI Commands
@@ -72,7 +72,7 @@ colloquium export slides.md       # PDF via headless Chrome
 |---------|-------------|
 | `colloquium build <file.md>` | Build to self-contained HTML |
 | `colloquium serve <file.md>` | Dev server with live reload |
-| `colloquium export <file.md>` | PDF export (requires Chrome) |
+| `colloquium export <file.md>` | PDF export (requires a Chromium-based browser) |
 
 ## Frontmatter Reference
 
@@ -280,6 +280,8 @@ At the slide root, use either `columns:` or `rows:`. For nested layouts, use `ro
 | `<!-- img-overflow: true -->` | Let images in grid cells bleed outside their box instead of fitting inside |
 
 See [`examples/title-slides/title-slides.md`](./examples/title-slides/title-slides.md) for concrete title-slide compositions using the built-in title layouts, [`examples/title-slides/README.md`](./examples/title-slides/README.md) for copy-paste guidance on when to use each layout, and [`examples/rows-and-columns/rows-and-columns.md`](./examples/rows-and-columns/rows-and-columns.md) for nested row/column layouts.
+
+Generated example HTML is not tracked in git. Build any example locally with `uv run colloquium build examples/.../*.md`.
 
 ### Bibliography
 

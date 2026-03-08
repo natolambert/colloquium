@@ -59,6 +59,25 @@ class TestBuildDeck:
         assert "--colloquium-bg" in html  # Theme CSS is inlined
         assert "ColloquiumPresentation" in html  # JS is inlined
 
+    def test_print_css_reapplies_non_active_layout_utilities(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="Centered", content="Body", classes=["align-center", "valign-center"])
+        html = build_deck(deck)
+
+        assert "@media print" in html
+        assert ".align-center { text-align: center; }" in html
+        assert ".valign-center { justify-content: center; }" in html
+        assert ".slide--title-sidebar {" in html
+
+    def test_align_center_centers_standalone_images(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="Centered", content="![Alt](image.png)", classes=["align-center"])
+        html = build_deck(deck)
+
+        assert ".align-center.active .slide-content > p > img {" in html
+        assert "margin-left: auto;" in html
+        assert "margin-right: auto;" in html
+
     def test_slide_classes(self):
         deck = Deck(title="Test")
         deck.add_slide(title="S1", content="C", classes=["highlight"])

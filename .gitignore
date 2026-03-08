@@ -4,6 +4,8 @@ __pycache__/
 .venv/
 dist/
 *.pptx
+examples/**/*.html
+examples/**/*.pdf
 
 # OS
 .DS_Store

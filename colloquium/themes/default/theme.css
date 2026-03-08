@@ -536,6 +536,25 @@ html, body {
 .align-center.active { text-align: center; }
 .align-right.active { text-align: right; }
 
+.align-center.active .slide-content > img,
+.align-center.active .slide-content > p > img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.align-left.active .slide-content > img,
+.align-left.active .slide-content > p > img {
+    display: block;
+    margin-right: auto;
+}
+
+.align-right.active .slide-content > img,
+.align-right.active .slide-content > p > img {
+    display: block;
+    margin-left: auto;
+}
+
 /* ===== Utility: Vertical Alignment ===== */
 .valign-top.active { justify-content: flex-start; }
 .valign-center.active { justify-content: center; }
@@ -982,11 +1001,11 @@ body:hover .colloquium-present {
 
 .colloquium-slide-cite .colloquium-cite {
     font-size: inherit;
-    color: var(--colloquium-muted);
+    color: var(--colloquium-accent);
 }
 
 .colloquium-slide-cite .colloquium-cite:hover {
-    color: var(--colloquium-accent);
+    color: var(--colloquium-heading);
 }
 
 /* ===== References Slide ===== */
@@ -1014,13 +1033,13 @@ body:hover .colloquium-present {
 
 /* ===== Print / PDF Styles ===== */
 @page {
-    size: 10in 5.625in;  /* 16:9 landscape */
+    size: 13.333in 7.5in;  /* 16:9 widescreen at 96 CSS px/in => 1280x720 */
     margin: 0;
 }
 
 @media print {
     html, body {
-        width: 10in;
+        width: 13.333in;
         height: auto;
         overflow: visible;
         background: #fff;
@@ -1031,7 +1050,7 @@ body:hover .colloquium-present {
     .colloquium-deck {
         position: static;
         transform: none !important;
-        width: 10in;
+        width: auto;
         height: auto;
         background: none;
     }
@@ -1039,20 +1058,82 @@ body:hover .colloquium-present {
     .slide {
         display: flex !important;
         position: relative;
-        width: 10in;
-        height: 5.625in;
+        width: 1280px;
+        height: 720px;
         page-break-after: always;
         page-break-inside: avoid;
         break-after: page;
         break-inside: avoid;
         margin: 0;
-        font-size: 18px;
+        font-size: 24px;
         overflow: visible;
     }
 
     .slide:last-child {
         page-break-after: auto;
     }
+
+    /* Printed slides are not .active, so re-apply layout/utility rules without that gate. */
+    .slide--title,
+    .slide--title-left,
+    .slide--title-banner,
+    .slide--section-break {
+        display: flex !important;
+    }
+
+    .slide--title-sidebar {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) 300px;
+        column-gap: 56px;
+        align-content: center;
+        align-items: start;
+    }
+
+    .slide--title-sidebar.valign-top {
+        align-content: start;
+    }
+
+    .slide--title-sidebar.valign-center {
+        align-content: center;
+    }
+
+    .slide--title-sidebar.valign-bottom {
+        align-content: end;
+    }
+
+    .title-top { justify-content: flex-start; }
+    .title-center { justify-content: center; align-items: center; text-align: center; }
+
+    .align-left { text-align: left; }
+    .align-center { text-align: center; }
+    .align-right { text-align: right; }
+
+    .align-center .slide-content > img,
+    .align-center .slide-content > p > img {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .align-left .slide-content > img,
+    .align-left .slide-content > p > img {
+        display: block;
+        margin-right: auto;
+    }
+
+    .align-right .slide-content > img,
+    .align-right .slide-content > p > img {
+        display: block;
+        margin-left: auto;
+    }
+
+    .valign-top { justify-content: flex-start; }
+    .valign-center { justify-content: center; }
+    .valign-bottom { justify-content: flex-end; }
+
+    .size-small { font-size: 20px; }
+    .size-normal { font-size: 24px; }
+    .size-large { font-size: 28px; }
 
     .colloquium-progress,
     .colloquium-picker-overlay,
@@ -1068,6 +1149,12 @@ body:hover .colloquium-present {
     a {
         color: inherit !important;
         text-decoration: underline;
+    }
+
+    .colloquium-cite,
+    .colloquium-slide-cite .colloquium-cite,
+    .colloquium-ref-url {
+        color: var(--colloquium-accent) !important;
     }
 
     /* Swap chart canvases for static images */
