@@ -128,6 +128,16 @@ class TestParseSlide:
         slide = parse_slide(text)
         assert "cols-30-70" in slide.classes
 
+    def test_rows_equal(self):
+        text = "<!-- rows: 2 -->\n## Slide\n\nTop\n\n===\n\nBottom"
+        slide = parse_slide(text)
+        assert "rows-2" in slide.classes
+
+    def test_rows_ratio(self):
+        text = "<!-- rows: 35/65 -->\n## Slide\n\nTop\n\n===\n\nBottom"
+        slide = parse_slide(text)
+        assert "rows-35-65" in slide.classes
+
     def test_padding_directive(self):
         text = "<!-- padding: compact -->\n## Slide\n\nContent"
         slide = parse_slide(text)
@@ -147,6 +157,11 @@ class TestParseSlide:
         text = "<!-- size: small -->\n## Slide\n\nContent"
         slide = parse_slide(text)
         assert "size-small" in slide.classes
+
+    def test_img_overflow_directive(self):
+        text = "<!-- img-overflow: true -->\n## Slide\n\n![Alt](figure.png)"
+        slide = parse_slide(text)
+        assert "img-overflow" in slide.classes
 
     def test_multiple_directives(self):
         text = "<!-- align: center -->\n<!-- size: large -->\n<!-- padding: compact -->\n## Slide\n\nContent"
@@ -226,3 +241,8 @@ Some math: $E = mc^2$
         deck = parse_markdown(text)
         assert deck.footer == {"right": "auto"}
         assert "left" not in deck.footer
+
+    def test_citation_order_frontmatter_parsed(self):
+        text = "---\ntitle: Talk\ncitation_order: appearance\n---\n\n## S1\n\nContent"
+        deck = parse_markdown(text)
+        assert deck.citation_order == "appearance"

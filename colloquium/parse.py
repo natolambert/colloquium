@@ -12,7 +12,7 @@ from colloquium.slide import Slide
 
 # Directive patterns: <!-- key: value -->
 _DIRECTIVE_RE = re.compile(
-    r"<!--\s*(layout|class|style|notes|title|align|valign|columns|padding|size|cite|cite-right|img-align|img-fill)\s*:\s*(.*?)\s*-->",
+    r"<!--\s*(layout|class|style|notes|title|align|valign|columns|rows|padding|size|cite|cite-right|img-align|img-fill|img-overflow)\s*:\s*(.*?)\s*-->",
     re.DOTALL,
 )
 
@@ -22,10 +22,12 @@ _DIRECTIVE_CLASS_MAP = {
     "align": lambda v: f"align-{v}",
     "valign": lambda v: f"valign-{v}",
     "columns": lambda v: f'cols-{v.replace("/", "-")}',
+    "rows": lambda v: f'rows-{v.replace("/", "-")}',
     "padding": lambda v: f"pad-{v}",
     "size": lambda v: f"size-{v}",
     "img-align": lambda v: f"img-align-{v}",
     "img-fill": lambda v: "img-fill",
+    "img-overflow": lambda v: "img-overflow",
 }
 
 
@@ -136,6 +138,7 @@ def parse_markdown(text: str) -> Deck:
         fonts=metadata.get("fonts", None),
         bibliography=metadata.get("bibliography", ""),
         citation_style=metadata.get("citation_style", "author-year"),
+        citation_order=metadata.get("citation_order", "auto"),
     )
 
     # Split on --- slide separators (horizontal rules)

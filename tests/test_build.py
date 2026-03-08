@@ -37,6 +37,19 @@ class TestBuildDeck:
         assert "highlight" in html
         assert "hljs" in html
 
+    def test_block_code_preserves_preformatted_whitespace(self):
+        deck = Deck(title="Code")
+        deck.add_slide(
+            title="Example",
+            content="```python\nfrom colloquium import Deck\n\ndeck = Deck(title='My Talk')\n```",
+        )
+        html = build_deck(deck)
+
+        assert ".slide pre code {" in html
+        assert "white-space: pre;" in html
+        assert "from colloquium import Deck" in html
+        assert "deck = Deck" in html
+
     def test_inlines_css_and_js(self):
         deck = Deck(title="Test")
         deck.add_slide(title="S1", content="Content")
@@ -134,6 +147,58 @@ class TestBuildDeck:
 
         assert "cols-60-40" in html
         assert 'class="col"' in html
+        assert 'grid-template-columns: minmax(0, 60fr) minmax(0, 40fr);' in html
+
+    def test_columns_arbitrary_ratio_class(self):
+        deck = Deck(title="Test")
+        deck.add_slide(
+            title="Ratio",
+            content="Wide\n\n|||\n\nNarrow",
+            classes=["cols-25-75"],
+        )
+        html = build_deck(deck)
+
+        assert 'grid-template-columns: minmax(0, 25fr) minmax(0, 75fr);' in html
+
+    def test_rows_splits_at_divider(self):
+        deck = Deck(title="Test")
+        deck.add_slide(
+            title="Rows",
+            content="Top row\n\n===\n\nBottom row",
+            classes=["rows-2"],
+        )
+        html = build_deck(deck)
+
+        assert 'class="slide slide--content active rows-2"' in html
+        assert html.count('class="colloquium-row"') == 2
+        assert "Top row" in html
+        assert "Bottom row" in html
+        assert 'grid-template-rows: repeat(2, minmax(0, 1fr));' in html
+
+    def test_rows_with_nested_columns(self):
+        deck = Deck(title="Test")
+        deck.add_slide(
+            title="Rows",
+            content="<!-- row-columns: 40/60 -->\nLeft\n\n|||\n\nRight\n\n===\n\nBottom",
+            classes=["rows-35-65"],
+        )
+        html = build_deck(deck)
+
+        assert 'class="colloquium-row cols-40-60 colloquium-grid"' in html
+        assert html.count('class="col"') == 2
+        assert "Bottom" in html
+        assert 'grid-template-columns: minmax(0, 40fr) minmax(0, 60fr);' in html
+
+    def test_rows_arbitrary_ratio_class(self):
+        deck = Deck(title="Test")
+        deck.add_slide(
+            title="Rows",
+            content="Top\n\n===\n\nBottom",
+            classes=["rows-25-75"],
+        )
+        html = build_deck(deck)
+
+        assert 'grid-template-rows: minmax(0, 25fr) minmax(0, 75fr);' in html
 
     def test_no_columns_preserves_hr(self):
         deck = Deck(title="Test")
@@ -515,6 +580,41 @@ class TestCitationRendering:
             assert "Jones" in result
             assert len(cited_keys) == 2
 
+    def test_author_year_multiple_citations_default_to_alphabetical(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bib_path = self._make_bib(tmpdir)
+            bib_entries = _parse_bib_file(bib_path)
+            cited_keys = ["smith2024", "jones2023"]
+            citation_numbers = {"smith2024": 1, "jones2023": 2}
+
+            result = _process_citations(
+                "See [@smith2024; @jones2023] for details.",
+                bib_entries,
+                "author-year",
+                cited_keys,
+                citation_numbers=citation_numbers,
+            )
+
+            assert result.index("Jones") < result.index("Smith")
+
+    def test_author_year_can_preserve_appearance_order(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bib_path = self._make_bib(tmpdir)
+            bib_entries = _parse_bib_file(bib_path)
+            cited_keys = ["smith2024", "jones2023"]
+            citation_numbers = {"smith2024": 1, "jones2023": 2}
+
+            result = _process_citations(
+                "See [@smith2024; @jones2023] for details.",
+                bib_entries,
+                "author-year",
+                cited_keys,
+                citation_order="appearance",
+                citation_numbers=citation_numbers,
+            )
+
+            assert result.index("Smith") < result.index("Jones")
+
     def test_references_slide_generated(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             bib_path = self._make_bib(tmpdir)
@@ -530,6 +630,48 @@ class TestCitationRendering:
             assert "colloquium-reference" in ref_html
             assert "smith2024" in ref_html
             assert "jones2023" in ref_html
+
+    def test_references_default_to_alphabetical_for_author_year(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bib_path = self._make_bib(tmpdir)
+            bib_entries = _parse_bib_file(bib_path)
+            cited_keys = ["smith2024", "jones2023"]
+            citation_numbers = {"smith2024": 1, "jones2023": 2}
+
+            ref_slides = _build_references_slides_html(
+                bib_entries,
+                cited_keys,
+                "author-year",
+                5,
+                7,
+                None,
+                citation_numbers=citation_numbers,
+            )
+            ref_html = "\n".join(ref_slides)
+
+            assert ref_html.index("jones2023") < ref_html.index("smith2024")
+
+    def test_references_numeric_stay_in_appearance_order(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bib_path = self._make_bib(tmpdir)
+            bib_entries = _parse_bib_file(bib_path)
+            cited_keys = ["smith2024", "jones2023"]
+            citation_numbers = {"smith2024": 1, "jones2023": 2}
+
+            ref_slides = _build_references_slides_html(
+                bib_entries,
+                cited_keys,
+                "numeric",
+                5,
+                7,
+                None,
+                citation_numbers=citation_numbers,
+            )
+            ref_html = "\n".join(ref_slides)
+
+            assert ref_html.index("smith2024") < ref_html.index("jones2023")
+            assert "[1]" in ref_html
+            assert "[2]" in ref_html
 
     def test_only_cited_works_included(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -605,6 +747,19 @@ class TestCitationRendering:
             assert "colloquium-cite" in html
             assert "References" in html
             assert "colloquium-reference" in html
+
+    def test_numeric_citations_keep_global_numbers_across_slides(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bib_path = self._make_bib(tmpdir)
+            deck = Deck(title="Test", bibliography=bib_path, citation_style="numeric")
+            deck.add_slide(title="One", content="See [@smith2024].")
+            deck.add_slide(title="Two", content="Compare [@jones2023].")
+            html = build_deck(deck)
+
+            first_slide = html.split("<section")[1]
+            second_slide = html.split("<section")[2]
+            assert "[1]" in first_slide
+            assert "[2]" in second_slide
 
     def test_reference_has_italic_title(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -734,3 +889,17 @@ class TestCitationRendering:
 
             assert "colloquium-slide-cite--right" in html
             assert "Jones" in html
+
+    def test_per_slide_cite_default_order_is_alphabetical(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bib_path = self._make_bib(tmpdir)
+            deck = Deck(title="Test", bibliography=bib_path)
+            slide = Slide(
+                title="Intro",
+                content="Some content.",
+                metadata={"cite_right": ["smith2024", "jones2023"]},
+            )
+            deck.slides.append(slide)
+            html = build_deck(deck)
+
+            assert html.index("Jones") < html.index("Smith")
