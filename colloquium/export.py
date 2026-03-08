@@ -249,7 +249,7 @@ def export_pptx(input_path: str, output_path: str | None = None) -> str:
         from pptx import Presentation
         from pptx.util import Inches, Pt, Emu
         from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
-        from pptx.chart.data import CategoryChartData
+        from pptx.chart.data import CategoryChartData, XyChartData
         from pptx.enum.chart import XL_CHART_TYPE
         from pptx.dml.color import RGBColor
     except ImportError:
@@ -342,17 +342,8 @@ def export_pptx(input_path: str, output_path: str | None = None) -> str:
         labels = [str(l) for l in data.get("labels", [])]
         datasets = data.get("datasets", [])
 
-        if not labels or not datasets:
+        if not datasets:
             return
-
-        chart_data = CategoryChartData()
-        chart_data.categories = labels
-
-        for ds in datasets:
-            chart_data.add_series(
-                ds.get("label", "Series"),
-                ds.get("data", []),
-            )
 
         type_map = {
             "bar": XL_CHART_TYPE.COLUMN_CLUSTERED,
@@ -360,6 +351,34 @@ def export_pptx(input_path: str, output_path: str | None = None) -> str:
             "scatter": XL_CHART_TYPE.XY_SCATTER,
         }
         xl_type = type_map.get(chart_type_str, XL_CHART_TYPE.COLUMN_CLUSTERED)
+
+        if chart_type_str == "scatter":
+            chart_data = XyChartData()
+            for ds in datasets:
+                series = chart_data.add_series(ds.get("label", "Series"))
+                points = ds.get("data", [])
+                if points and isinstance(points[0], dict):
+                    for point in points:
+                        if "x" in point and "y" in point:
+                            series.add_data_point(point["x"], point["y"])
+                else:
+                    for x, y in zip(labels, points):
+                        try:
+                            series.add_data_point(float(x), float(y))
+                        except (TypeError, ValueError):
+                            continue
+        else:
+            if not labels:
+                return
+
+            chart_data = CategoryChartData()
+            chart_data.categories = labels
+
+            for ds in datasets:
+                chart_data.add_series(
+                    ds.get("label", "Series"),
+                    ds.get("data", []),
+                )
 
         chart_frame = slide.shapes.add_chart(
             xl_type, left, top, width, height, chart_data,

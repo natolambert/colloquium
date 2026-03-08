@@ -195,11 +195,12 @@ html, body {
     margin: 0.5em 0;
 }
 
-.colloquium-chart-print {
+.slide .slide-content img.colloquium-chart-print {
     display: none;
     width: 100%;
     height: 100%;
     object-fit: contain;
+    max-height: none;
 }
 
 /* ===== Tables ===== */
@@ -556,7 +557,12 @@ html, body {
 }
 
 /* ===== Utility: Image Alignment (independent of title) ===== */
-.img-align-center .slide-content { display: flex; flex-direction: column; align-items: center; }
+.img-align-center .slide-content img,
+.img-align-left .slide-content img,
+.img-align-right .slide-content img {
+    display: block;
+}
+
 .img-align-center .slide-content img { margin-left: auto; margin-right: auto; }
 .img-align-left .slide-content img { margin-right: auto; }
 .img-align-right .slide-content img { margin-left: auto; }

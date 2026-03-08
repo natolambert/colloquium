@@ -207,6 +207,23 @@ class TestBuildDeck:
         assert 'class="colloquium-footer-right colloquium-footer-nav"' in html
         assert ">Appendix<" in html
 
+    def test_img_align_utility_styles_only_images(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="Image", content="![alt](demo.png)", classes=["img-align-right"])
+        html = build_deck(deck)
+
+        assert ".img-align-right .slide-content img {\n    display: block;" in html
+        assert ".img-align-right .slide-content img { margin-left: auto; }" in html
+        assert ".img-align-center .slide-content { display: flex;" not in html
+
+    def test_chart_print_image_hidden_on_screen(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="Chart", content="```chart\ntype: bar\ndata:\n  labels: [A]\n  datasets:\n    - label: Series\n      data: [1]\n```")
+        html = build_deck(deck)
+
+        assert ".slide .slide-content img.colloquium-chart-print {" in html
+        assert "max-height: none;" in html
+
     def test_no_old_nav_div(self):
         deck = Deck(title="Test")
         deck.add_slide(title="S1", content="C")

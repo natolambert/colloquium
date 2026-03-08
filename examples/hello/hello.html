@@ -214,11 +214,12 @@ html, body {
     margin: 0.5em 0;
 }
 
-.colloquium-chart-print {
+.slide .slide-content img.colloquium-chart-print {
     display: none;
     width: 100%;
     height: 100%;
     object-fit: contain;
+    max-height: none;
 }
 
 /* ===== Tables ===== */
@@ -293,6 +294,10 @@ html, body {
 .slide--title h1 {
     font-size: 2.8em;
     margin-bottom: 0.3em;
+}
+
+.slide--title .slide-content {
+    flex: 0 0 auto;
 }
 
 .slide--title .slide-content p {
@@ -379,15 +384,14 @@ html, body {
 .slide--title-sidebar.active {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 300px;
-    grid-template-rows: 1fr auto;
     column-gap: 56px;
-    align-items: stretch;
+    align-content: center;
+    align-items: start;
 }
 
 .slide--title-sidebar h1 {
     grid-column: 1;
-    grid-row: 1;
-    align-self: center;
+    align-self: start;
     max-width: 760px;
     font-size: 2.9em;
     line-height: 1.03;
@@ -398,19 +402,48 @@ html, body {
 
 .slide--title-sidebar .slide-content {
     grid-column: 2;
-    grid-row: 1;
-    align-self: end;
-    border-left: 3px solid var(--colloquium-accent);
-    padding: 0 0 48px 28px;
+    align-self: start;
+    position: relative;
+    padding: 0 0 24px 28px;
+}
+
+.slide--title-sidebar .slide-content::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 24px;
+    left: 0;
+    width: 3px;
+    border-radius: 999px;
+    background: var(--colloquium-accent);
 }
 
 .slide--title-sidebar .slide-content > * + * {
     margin-top: 1em;
 }
 
-.slide--title-sidebar .colloquium-footer {
-    grid-column: 1 / -1;
-    grid-row: 2;
+.slide--title-sidebar.title-sidebar-rule-full .slide-content {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+.slide--title-sidebar.title-sidebar-rule-full .slide-content::before {
+    bottom: 0;
+}
+
+/* Title-sidebar uses grid, so vertical positioning maps to align-content. */
+.slide--title-sidebar.valign-top.active {
+    align-content: start;
+}
+
+.slide--title-sidebar.valign-center.active {
+    align-content: center;
+}
+
+.slide--title-sidebar.valign-bottom.active {
+    align-content: end;
 }
 
 /* ===== Layout: Title Banner ===== */
@@ -543,7 +576,12 @@ html, body {
 }
 
 /* ===== Utility: Image Alignment (independent of title) ===== */
-.img-align-center .slide-content { display: flex; flex-direction: column; align-items: center; }
+.img-align-center .slide-content img,
+.img-align-left .slide-content img,
+.img-align-right .slide-content img {
+    display: block;
+}
+
 .img-align-center .slide-content img { margin-left: auto; margin-right: auto; }
 .img-align-left .slide-content img { margin-right: auto; }
 .img-align-right .slide-content img { margin-left: auto; }
@@ -683,6 +721,14 @@ html, body {
     color: var(--colloquium-text);
     cursor: pointer;
     text-align: left;
+}
+
+.colloquium-picker-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .colloquium-picker-item:hover {
@@ -1454,7 +1500,7 @@ class ColloquiumPresentation {
             btn.className = 'colloquium-picker-item';
             btn.innerHTML =
                 '<span class="colloquium-picker-num">' + (i + 1) + '</span>' +
-                '<span>' + this._getSlideTitle(slide, i) + '</span>';
+                '<span class="colloquium-picker-title">' + this._getSlideTitle(slide, i) + '</span>';
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.goTo(i);
