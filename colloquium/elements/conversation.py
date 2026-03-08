@@ -40,13 +40,9 @@ def process(yaml_str: str) -> str:
     if not messages:
         return '<p style="color:red">Conversation has no messages</p>'
 
-    size_value = spec.get("size", "normal")
-    size = str(size_value).strip().lower()
-    size_class = ""
+    size_value = spec.get("size")
     size_style = ""
-    if size in {"small", "large"}:
-        size_class = f" colloquium-conversation--{size}"
-    elif size not in {"", "normal"}:
+    if size_value not in {None, ""}:
         try:
             scale = float(size_value)
         except (TypeError, ValueError):
@@ -59,7 +55,7 @@ def process(yaml_str: str) -> str:
     other_msgs = [m for m in messages if isinstance(m, dict) and m.get("role") != "system"]
     ordered = system_msgs + other_msgs
 
-    parts = [f'<div class="colloquium-conversation{size_class}" id="{conv_id}"{size_style}>']
+    parts = [f'<div class="colloquium-conversation" id="{conv_id}"{size_style}>']
     for msg in ordered:
         if not isinstance(msg, dict):
             continue

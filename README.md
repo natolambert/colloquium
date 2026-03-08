@@ -401,7 +401,7 @@ Optional conversation settings:
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `size` | `normal` | Bubble font scale as `small`, `normal`, `large`, or a numeric value like `0.9` |
+| `size` | unset | Bubble font scale as a positive numeric value like `0.9` or `1.05` |
 
 ### Citations
 

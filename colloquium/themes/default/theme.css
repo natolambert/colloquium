@@ -886,14 +886,6 @@ body:hover .colloquium-present {
     width: 100%;
 }
 
-.colloquium-conversation--small {
-    font-size: 0.84em;
-}
-
-.colloquium-conversation--large {
-    font-size: 1.08em;
-}
-
 .colloquium-message {
     max-width: 80%;
     border-radius: 12px;
