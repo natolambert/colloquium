@@ -41,8 +41,6 @@
     --colloquium-slide-width: 1280;
     --colloquium-slide-height: 720;
     --colloquium-slide-padding: 60px;
-    --colloquium-footer-height: 40px;
-    --colloquium-footer-reserve: 16px;
 }
 
 /* ===== Reset & Base ===== */
@@ -204,7 +202,6 @@ html, body {
     flex: 1;
     min-height: 0;
     overflow: visible;
-    padding-bottom: var(--colloquium-footer-reserve);
 }
 
 .slide .slide-content img {
@@ -706,7 +703,7 @@ html, body {
     bottom: 0;
     left: 0;
     right: 0;
-    height: var(--colloquium-footer-height);
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -868,7 +865,7 @@ body:hover .colloquium-present {
 /* ===== Overflow Warning ===== */
 .colloquium-overflow-warn {
     position: absolute;
-    bottom: var(--colloquium-footer-height);
+    bottom: 40px;
     left: 0;
     right: 0;
     height: 4px;
@@ -993,7 +990,7 @@ body:hover .colloquium-present {
 /* ===== Per-Slide Citation Footnotes ===== */
 .colloquium-slide-cite {
     position: absolute;
-    bottom: var(--colloquium-footer-height);
+    bottom: 40px;
     font-size: 11px;
     color: var(--colloquium-muted);
     max-width: 60%;

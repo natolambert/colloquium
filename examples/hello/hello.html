@@ -41,7 +41,6 @@
     --colloquium-slide-width: 1280;
     --colloquium-slide-height: 720;
     --colloquium-slide-padding: 60px;
-    --colloquium-footer-height: 40px;
 }
 
 /* ===== Reset & Base ===== */
@@ -203,7 +202,6 @@ html, body {
     flex: 1;
     min-height: 0;
     overflow: visible;
-    padding-bottom: var(--colloquium-footer-height);
 }
 
 .slide .slide-content img {
@@ -573,7 +571,7 @@ html, body {
 /* ===== Utility: Rows ===== */
 .colloquium-rows {
     display: grid;
-    gap: 1.6em;
+    gap: 0.9em;
     width: 100%;
     min-height: 0;
     flex: 1;
@@ -604,7 +602,12 @@ html, body {
 .colloquium-rows > .colloquium-row {
     min-width: 0;
     min-height: 0;
-    overflow: hidden;
+    overflow: visible;
+}
+
+.colloquium-grid > .col > :last-child,
+.colloquium-rows > .colloquium-row > :last-child {
+    margin-bottom: 0;
 }
 
 /* Standalone images inside grid cells should fit the cell by default. */
@@ -700,7 +703,7 @@ html, body {
     bottom: 0;
     left: 0;
     right: 0;
-    height: var(--colloquium-footer-height);
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: space-between;
