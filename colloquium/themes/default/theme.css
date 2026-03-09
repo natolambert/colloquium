@@ -644,6 +644,22 @@ html, body {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
+    object-position: top center;
+}
+
+.slide.img-valign-top .colloquium-grid > .col > p:first-child:last-child:has(> img) > img,
+.slide.img-valign-top .colloquium-row > p:first-child:last-child:has(> img) > img {
+    object-position: top center;
+}
+
+.slide.img-valign-center .colloquium-grid > .col > p:first-child:last-child:has(> img) > img,
+.slide.img-valign-center .colloquium-row > p:first-child:last-child:has(> img) > img {
+    object-position: center center;
+}
+
+.slide.img-valign-bottom .colloquium-grid > .col > p:first-child:last-child:has(> img) > img,
+.slide.img-valign-bottom .colloquium-row > p:first-child:last-child:has(> img) > img {
+    object-position: bottom center;
 }
 
 .img-overflow .colloquium-grid > .col,

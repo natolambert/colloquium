@@ -337,6 +337,11 @@ class TestBuildDeck:
         assert "align-items: flex-start;" in html
         assert ".slide.img-valign-bottom .colloquium-grid > .col > p:first-child:last-child:has(> img)," in html
         assert "align-items: flex-end;" in html
+        assert "object-position: top center;" in html
+        assert ".slide.img-valign-center .colloquium-grid > .col > p:first-child:last-child:has(> img) > img," in html
+        assert "object-position: center center;" in html
+        assert ".slide.img-valign-bottom .colloquium-grid > .col > p:first-child:last-child:has(> img) > img," in html
+        assert "object-position: bottom center;" in html
 
     def test_chart_print_image_hidden_on_screen(self):
         deck = Deck(title="Test")
