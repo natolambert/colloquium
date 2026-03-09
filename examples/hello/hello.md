@@ -282,6 +282,47 @@ messages:
 
 ---
 
+<!-- columns: 1/1/1 -->
+<!-- size: small -->
+
+## Callout Boxes
+
+```box
+title: Accent
+tone: accent
+content: |
+  High-contrast callout for key takeaways.
+
+  - Great for punchy emphasis
+  - Uses the deck accent color
+```
+
+|||
+
+```box
+title: Muted
+tone: muted
+content: |
+  Softer card for supporting notes.
+
+  - Good for side explanations
+  - Uses the code/surface background
+```
+
+|||
+
+```box
+title: Surface
+tone: surface
+content: |
+  Neutral bordered panel for references or caveats.
+
+  - Works when you want less visual weight
+  - Keeps strong contrast with body text
+```
+
+---
+
 ## Key RLHF Papers
 
 <!-- cite: christiano2017, ouyang2022 -->

@@ -496,6 +496,38 @@ Optional conversation settings:
 | `size` | unset | Bubble font scale as a positive numeric value like `0.9` or `1.05` |
 | `messages[].model` | unset | Optional model label shown next to the role, e.g. `ASSISTANT (Llama 3.1 405B Base)` |
 
+### Boxes
+
+Render a rounded callout card using YAML in fenced code blocks:
+
+````markdown
+```box
+title: DPO became popular because:
+tone: accent
+content: |
+  - Far simpler to implement
+  - Far cheaper to run
+  - Often reaches most of the final performance
+```
+````
+
+Optional box settings:
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `title` | unset | Bold heading shown at the top of the box |
+| `tone` | `accent` | Visual style: `accent`, `muted`, or `surface` |
+| `size` | unset | Font scale as a positive numeric value like `0.9` or `1.05` |
+| `align` | unset | Text alignment inside the box: `left`, `center`, or `right` |
+
+The supported tones are:
+
+| Tone | Use |
+|------|-----|
+| `accent` | High-contrast highlight box using the deck accent color |
+| `muted` | Softer supporting card using the code/background surface |
+| `surface` | Neutral bordered panel for references, caveats, or side notes |
+
 ### Built With Badge
 
 Render a compact GitHub badge anywhere in a slide using the normal layout tools:

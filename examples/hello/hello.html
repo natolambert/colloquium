@@ -243,6 +243,76 @@ html, body {
     font-weight: 600;
 }
 
+/* ===== Box ===== */
+.colloquium-box {
+    border-radius: 18px;
+    padding: 0.85em 1em;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.colloquium-box--accent {
+    background: var(--colloquium-accent);
+    color: white;
+}
+
+.colloquium-box--muted {
+    background: var(--colloquium-code-bg);
+    color: var(--colloquium-text);
+}
+
+.colloquium-box--surface {
+    background: color-mix(in srgb, var(--colloquium-bg) 85%, white 15%);
+    color: var(--colloquium-text);
+    border: 1px solid var(--colloquium-border);
+}
+
+.colloquium-box--align-center {
+    text-align: center;
+}
+
+.colloquium-box--align-right {
+    text-align: right;
+}
+
+.colloquium-box-title {
+    font-weight: 700;
+    margin-bottom: 0.35em;
+}
+
+.colloquium-box-content > :first-child {
+    margin-top: 0;
+}
+
+.colloquium-box-content > :last-child {
+    margin-bottom: 0;
+}
+
+.colloquium-box ul,
+.colloquium-box ol {
+    margin-bottom: 0;
+    padding-left: 1.25em;
+}
+
+.colloquium-box li::marker {
+    color: var(--colloquium-accent);
+}
+
+.colloquium-box--accent li::marker {
+    color: white;
+}
+
+.colloquium-box--accent a,
+.colloquium-box--accent strong,
+.colloquium-box--accent em,
+.colloquium-box--accent code {
+    color: inherit;
+}
+
+.colloquium-box--accent code {
+    background: color-mix(in srgb, black 12%, transparent);
+}
+
 /* ===== Charts ===== */
 .colloquium-chart-container {
     width: 100%;
@@ -1585,7 +1655,7 @@ body:hover .colloquium-present {
 <p>Nathan Lambert</p>
 <p>2026-02-22</p>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">1 / 25</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">1 / 26</span></div></div>
 </section>
 
 <section class="slide slide--content" data-index="1">
@@ -1597,7 +1667,7 @@ body:hover .colloquium-present {
 <li>Single self-contained HTML output</li>
 </ul>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">2 / 25</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">2 / 26</span></div></div>
 </section>
 
 <section class="slide slide--content" data-index="2">
@@ -1608,7 +1678,7 @@ body:hover .colloquium-present {
 </div>
 <p>Inline math works too: <span class="math inline">\nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta}[R \cdot \nabla_\theta \log \pi_\theta(a|s)]</span></p>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">3 / 25</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">3 / 26</span></div></div>
 </section>
 
 <section class="slide slide--content" data-index="3">
@@ -1624,7 +1694,7 @@ deck.add_slide(
 deck.build(&quot;output/&quot;)
 </code></pre>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">4 / 25</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">4 / 26</span></div></div>
 </section>
 
 <section class="slide slide--content cols-2" data-index="4">
@@ -1638,7 +1708,7 @@ deck.build(&quot;output/&quot;)
 <li>Result B: <strong>87.4%</strong></li>
 <li>Result C: <strong>91.8%</strong></li>
 </ul></div></div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">5 / 25</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">5 / 26</span></div></div>
 </section>
 
 <section class="slide slide--content cols-60-40" data-index="5">
@@ -1655,26 +1725,26 @@ deck.build(&quot;output/&quot;)
 <li>Evidence A</li>
 <li>Evidence B</li>
 </ol></div></div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">6 / 25</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">6 / 26</span></div></div>
 </section>
 
 <section class="slide slide--content align-center valign-center" data-index="6">
 <h2>Centered Image</h2>
 <div class="slide-content"><p><img src="mark.webp" alt="" /></p>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">7 / 25</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">7 / 26</span></div></div>
 </section>
 
 <section class="slide slide--content cols-40-60" data-index="7">
 <h2>Image with Text</h2>
 <div class="slide-content colloquium-grid" style="grid-template-columns: minmax(0, 40fr) minmax(0, 60fr);"><div class="col"><figure class="colloquium-figure"><img src="mark.webp" alt="Colloquium wordmark" /><figcaption class="colloquium-figure-caption">Colloquium wordmark</figcaption></figure></div><div class="col"><p>Colloquium supports images in any layout. Here the wordmark sits in the wider column alongside explanatory text.</p>
 <p>Images auto-scale to fit their container while maintaining aspect ratio.</p></div></div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">8 / 25</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">8 / 26</span></div></div>
 </section>
 
 <section class="slide slide--section-break" data-index="8">
 <h2>Key Results</h2>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">9 / 25</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">9 / 26</span></div></div>
 </section>
 
 <section class="slide slide--content" data-index="9">
@@ -1713,7 +1783,7 @@ deck.build(&quot;output/&quot;)
 <p>&quot;The results demonstrate significant improvements across all metrics.&quot;</p>
 </blockquote>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">10 / 25</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">10 / 26</span></div></div>
 </section>
 
 <section class="slide slide--content align-center size-large" data-index="10">
@@ -1721,28 +1791,28 @@ deck.build(&quot;output/&quot;)
 <div class="slide-content"><p>This slide uses the <code>align</code> and <code>size</code> directives to center all text and increase the font size.</p>
 <p>Great for emphasis slides.</p>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">11 / 25</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">11 / 26</span></div></div>
 </section>
 
 <section class="slide slide--content title-center" data-index="11">
 <h2>Vertically Centered Title</h2>
 <div class="slide-content"><p>All content on this slide is vertically centered, like a title slide but with <code>##</code> heading style.</p>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">12 / 25</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">12 / 26</span></div></div>
 </section>
 
 <section class="slide slide--content" data-index="12">
 <h2>Training Performance</h2>
 <div class="slide-content"><div class="colloquium-chart-container"><canvas id="colloquium-chart-1" data-chart-config='{"type": "line", "data": {"labels": ["10K", "50K", "100K", "250K", "500K", "1M"], "datasets": [{"label": "Accuracy", "data": [62.1, 74.5, 82.3, 89.1, 93.4, 95.2], "borderColor": "#4AA691", "backgroundColor": "transparent", "borderWidth": 2.5, "pointRadius": 3, "tension": 0.3}, {"label": "F1 Score", "data": [58.3, 71.2, 79.8, 87.4, 91.9, 93.8], "borderColor": "#0B1A14", "backgroundColor": "transparent", "borderWidth": 2.5, "pointRadius": 3, "tension": 0.3}]}, "options": {"responsive": true, "maintainAspectRatio": false, "animation": false, "devicePixelRatio": 3, "plugins": {"legend": {"display": true}, "title": {"display": false, "text": "", "font": {"size": 16}}}, "scales": {"x": {"grid": {"display": false}}, "y": {"grid": {"display": false}}}}}'></canvas></div>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">13 / 25</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">13 / 26</span></div></div>
 </section>
 
 <section class="slide slide--content" data-index="13">
 <h2>Resource Usage</h2>
 <div class="slide-content"><div class="colloquium-chart-container"><canvas id="colloquium-chart-2" data-chart-config='{"type": "bar", "data": {"labels": ["Small", "Medium", "Large", "XL"], "datasets": [{"label": "Training", "data": [4, 12, 48, 120], "borderColor": "#4AA691", "backgroundColor": "#4AA691cc"}, {"label": "Evaluation", "data": [1, 3, 8, 20], "borderColor": "#0B1A14", "backgroundColor": "#0B1A14cc"}]}, "options": {"responsive": true, "maintainAspectRatio": false, "animation": false, "devicePixelRatio": 3, "plugins": {"legend": {"display": true}, "title": {"display": false, "text": "", "font": {"size": 16}}}, "scales": {"x": {"grid": {"display": false}}, "y": {"grid": {"display": false}}}}}'></canvas></div>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">14 / 25</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">14 / 26</span></div></div>
 </section>
 
 <section class="slide slide--content" data-index="14">
@@ -1754,7 +1824,7 @@ deck.build(&quot;output/&quot;)
 <p><span class="text-sm"><strong>text-sm</strong> — Dense lists, supporting details</span></p>
 <p><span class="text-xs"><strong>text-xs</strong> — Footnotes, references, fine print</span></p>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">15 / 25</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">15 / 26</span></div></div>
 </section>
 
 <section class="slide slide--content" data-index="15">
@@ -1764,7 +1834,7 @@ deck.build(&quot;output/&quot;)
 <div class="colloquium-message colloquium-message--assistant"><div class="colloquium-message-role"><span class="colloquium-message-role-name">Assistant</span></div><div class="colloquium-message-content"><p><strong>RLHF</strong> (Reinforcement Learning from Human Feedback) is a technique for aligning language models with human preferences using reward models trained on human comparisons.</p></div></div>
 </div>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">16 / 25</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">16 / 26</span></div></div>
 </section>
 
 <section class="slide slide--content cols-40-60 size-small" data-index="16">
@@ -1778,7 +1848,7 @@ deck.build(&quot;output/&quot;)
 <div class="colloquium-message colloquium-message--user"><div class="colloquium-message-role"><span class="colloquium-message-role-name">User</span></div><div class="colloquium-message-content"><p>What is RLHF?</p></div></div>
 <div class="colloquium-message colloquium-message--assistant"><div class="colloquium-message-role"><span class="colloquium-message-role-name">Assistant</span></div><div class="colloquium-message-content"><p><strong>RLHF</strong> is a technique for aligning language models with human preferences.</p></div></div>
 </div></div></div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">17 / 25</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">17 / 26</span></div></div>
 </section>
 
 <section class="slide slide--content size-small" data-index="17">
@@ -1795,20 +1865,47 @@ deck.build(&quot;output/&quot;)
 <div class="colloquium-message colloquium-message--assistant"><div class="colloquium-message-role"><span class="colloquium-message-role-name">Assistant</span></div><div class="colloquium-message-content"><p>The KL penalty prevents the policy from diverging too far from the SFT model. Without it, the model can exploit the reward model with degenerate outputs — this is called <em>reward hacking</em>.</p></div></div>
 </div>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">18 / 25</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">18 / 26</span></div></div>
 </section>
 
-<section class="slide slide--content" data-index="18">
+<section class="slide slide--content cols-1-1-1 size-small" data-index="18">
+<h2>Callout Boxes</h2>
+<div class="slide-content colloquium-grid" style="grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);"><div class="col"><div class="colloquium-box colloquium-box--accent">
+<div class="colloquium-box-title">Accent</div>
+<div class="colloquium-box-content"><p>High-contrast callout for key takeaways.</p>
+<ul>
+<li>Great for punchy emphasis</li>
+<li>Uses the deck accent color</li>
+</ul></div>
+</div></div><div class="col"><div class="colloquium-box colloquium-box--muted">
+<div class="colloquium-box-title">Muted</div>
+<div class="colloquium-box-content"><p>Softer card for supporting notes.</p>
+<ul>
+<li>Good for side explanations</li>
+<li>Uses the code/surface background</li>
+</ul></div>
+</div></div><div class="col"><div class="colloquium-box colloquium-box--surface">
+<div class="colloquium-box-title">Surface</div>
+<div class="colloquium-box-content"><p>Neutral bordered panel for references or caveats.</p>
+<ul>
+<li>Works when you want less visual weight</li>
+<li>Keeps strong contrast with body text</li>
+</ul></div>
+</div></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">19 / 26</span></div></div>
+</section>
+
+<section class="slide slide--content" data-index="19">
 <h2>Key RLHF Papers</h2>
 <div class="slide-content"><p>The foundational work on RLHF <a href="#colloquium-ref-christiano2017" class="colloquium-cite">(Christiano et al., 2017)</a> introduced learning reward models from human comparisons.</p>
 <p>InstructGPT <a href="#colloquium-ref-ouyang2022" class="colloquium-cite">(Ouyang et al., 2022)</a> scaled this approach to large language models, demonstrating significant alignment improvements.</p>
 <p>For a comprehensive overview, see <a href="#colloquium-ref-lambert2024" class="colloquium-cite">(Lambert, 2024)</a>.</p>
 </div>
 <div class="colloquium-slide-meta colloquium-slide-meta--left"><div class="colloquium-slide-cite"><a href="#colloquium-ref-christiano2017" class="colloquium-cite">Christiano et al., 2017</a>; <a href="#colloquium-ref-ouyang2022" class="colloquium-cite">Ouyang et al., 2022</a></div></div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">19 / 25</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">20 / 26</span></div></div>
 </section>
 
-<section class="slide slide--content" data-index="19">
+<section class="slide slide--content" data-index="20">
 <h2>The RLHF Loss</h2>
 <div class="slide-content"><div class="math block">
 \mathcal{L}_{\text{RM}}(\theta) = -\mathbb{E}_{(x, y_w, y_l) \sim D}\left[\log \sigma\left(r_\theta(x, y_w) - r_\theta(x, y_l)\right)\right]
@@ -1816,10 +1913,10 @@ deck.build(&quot;output/&quot;)
 <p>The reward model is trained with the Bradley-Terry preference model, where <span class="math inline">y_w</span> is the preferred response and <span class="math inline">y_l</span> is the rejected response.</p>
 </div>
 <div class="colloquium-slide-meta colloquium-slide-meta--right"><div class="colloquium-slide-cite"><a href="#colloquium-ref-christiano2017" class="colloquium-cite">Christiano et al., 2017</a></div></div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">20 / 25</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">21 / 26</span></div></div>
 </section>
 
-<section class="slide slide--content size-small" data-index="20">
+<section class="slide slide--content size-small" data-index="21">
 <h2>RLHF Timeline</h2>
 <div class="slide-content"><ul>
 <li><strong>2017</strong>: Deep RL from human preferences <a href="#colloquium-ref-christiano2017" class="colloquium-cite">(Christiano et al., 2017)</a> and PPO <a href="#colloquium-ref-schulman2017" class="colloquium-cite">(Schulman et al., 2017)</a></li>
@@ -1830,10 +1927,10 @@ deck.build(&quot;output/&quot;)
 <li><strong>2024</strong>: KTO <a href="#colloquium-ref-ethayarajh2024" class="colloquium-cite">(Ethayarajh et al., 2024)</a>, AlpacaFarm <a href="#colloquium-ref-dubois2024" class="colloquium-cite">(Dubois et al., 2024)</a>, and the RLHF Book <a href="#colloquium-ref-lambert2024" class="colloquium-cite">(Lambert, 2024)</a></li>
 </ul>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">21 / 25</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">22 / 26</span></div></div>
 </section>
 
-<section class="slide slide--content" data-index="21">
+<section class="slide slide--content" data-index="22">
 <h2>Conclusions</h2>
 <div class="slide-content"><ol>
 <li>Colloquium makes slide creation <strong>fast</strong> and <strong>reproducible</strong></li>
@@ -1842,10 +1939,10 @@ deck.build(&quot;output/&quot;)
 <li>AI agents can create and modify presentations programmatically</li>
 </ol>
 </div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">22 / 25</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">23 / 26</span></div></div>
 </section>
 
-<section class="slide slide--content rows-80-20" data-index="22">
+<section class="slide slide--content rows-80-20" data-index="23">
 <h2>Thank You</h2>
 <div class="slide-content colloquium-rows" style="grid-template-rows: minmax(0, 80fr) minmax(0, 20fr);"><div class="colloquium-row"><p>Questions?</p>
 </div><div class="colloquium-row cols-60-40 colloquium-grid" style="grid-template-columns: minmax(0, 60fr) minmax(0, 40fr);"><div class="col"></div><div class="col"><a class="colloquium-builtwith" href="https://github.com/natolambert/colloquium" target="_blank" rel="noopener noreferrer"><span class="colloquium-builtwith-icon"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
@@ -1857,10 +1954,10 @@ deck.build(&quot;output/&quot;)
   3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0
   0 16 8c0-4.42-3.58-8-8-8Z"></path>
 </svg></span><span class="colloquium-builtwith-text"><span class="colloquium-builtwith-label">Built with</span><span class="colloquium-builtwith-repo">natolambert/colloquium</span></span><span class="colloquium-builtwith-stars">4 stars</span></a></div></div></div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">23 / 25</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">24 / 26</span></div></div>
 </section>
 
-<section class="slide slide--content" data-index="23">
+<section class="slide slide--content" data-index="24">
 <h2>References (1/2)</h2>
 <div class="slide-content colloquium-references-slide"><div class="colloquium-reference" id="colloquium-ref-azar2023">Azar, M., Rowland, M., Piot, B., Guo, D., Calandriello, D., et al.. &ldquo;<em>A General Theoretical Paradigm to Understand Learning from Human Feedback</em>.&rdquo; <em>arXiv preprint arXiv:2310.12036</em>, 2023. <a href="https://arxiv.org/abs/2310.12036" class="colloquium-ref-url">[link]</a></div>
 <div class="colloquium-reference" id="colloquium-ref-bai2022">Bai, Y., Jones, A., Ndousse, K., Askell, A., Chen, A., et al.. &ldquo;<em>Training a Helpful and Harmless Assistant with Reinforcement Learning from Human Feedback</em>.&rdquo; <em>arXiv preprint arXiv:2204.05862</em>, 2022. <a href="https://arxiv.org/abs/2204.05862" class="colloquium-ref-url">[link]</a></div>
@@ -1870,10 +1967,10 @@ deck.build(&quot;output/&quot;)
 <div class="colloquium-reference" id="colloquium-ref-ivison2023">Ivison, H., Wang, Y., Pyatkin, V., Lambert, N., Peters, M., et al.. &ldquo;<em>Camels in a Changing Climate: Enhancing LM Adaptation with Tulu 2</em>.&rdquo; <em>arXiv preprint arXiv:2311.10702</em>, 2023. <a href="https://arxiv.org/abs/2311.10702" class="colloquium-ref-url">[link]</a></div>
 <div class="colloquium-reference" id="colloquium-ref-lambert2024">Lambert, N.. &ldquo;<em>Reinforcement Learning from Human Feedback</em>.&rdquo; <em>Manning Publications</em>, 2024. <a href="https://rlhfbook.com" class="colloquium-ref-url">[link]</a></div>
 <div class="colloquium-reference" id="colloquium-ref-lee2023">Lee, H., Phatale, S., Mansoor, H., Lu, K., Mesnard, T., et al.. &ldquo;<em>RLAIF: Scaling Reinforcement Learning from Human Feedback with AI Feedback</em>.&rdquo; <em>arXiv preprint arXiv:2309.00267</em>, 2023. <a href="https://arxiv.org/abs/2309.00267" class="colloquium-ref-url">[link]</a></div></div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">24 / 25</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">25 / 26</span></div></div>
 </section>
 
-<section class="slide slide--content" data-index="24">
+<section class="slide slide--content" data-index="25">
 <h2>References (2/2)</h2>
 <div class="slide-content colloquium-references-slide"><div class="colloquium-reference" id="colloquium-ref-ouyang2022">Ouyang, L., Wu, J., Jiang, X., Almeida, D., Wainwright, C., et al.. &ldquo;<em>Training Language Models to Follow Instructions with Human Feedback</em>.&rdquo; <em>Advances in Neural Information Processing Systems</em>, 2022. <a href="https://arxiv.org/abs/2203.02155" class="colloquium-ref-url">[link]</a></div>
 <div class="colloquium-reference" id="colloquium-ref-rafailov2023">Rafailov, R., Sharma, A., Mitchell, E., Ermon, S., Manning, C., et al.. &ldquo;<em>Direct Preference Optimization: Your Language Model is Secretly a Reward Model</em>.&rdquo; <em>Advances in Neural Information Processing Systems</em>, 2023. <a href="https://arxiv.org/abs/2305.18290" class="colloquium-ref-url">[link]</a></div>
@@ -1882,7 +1979,7 @@ deck.build(&quot;output/&quot;)
 <div class="colloquium-reference" id="colloquium-ref-touvron2023">Touvron, H., Martin, L., Stone, K., Albert, P., Almahairi, A., et al.. &ldquo;<em>Llama 2: Open Foundation and Fine-Tuned Chat Models</em>.&rdquo; <em>arXiv preprint arXiv:2307.09288</em>, 2023. <a href="https://arxiv.org/abs/2307.09288" class="colloquium-ref-url">[link]</a></div>
 <div class="colloquium-reference" id="colloquium-ref-tunstall2023">Tunstall, L., Beeching, E., Lambert, N., Rajani, N., Rasul, K., et al.. &ldquo;<em>Zephyr: Direct Distillation of LM Alignment</em>.&rdquo; <em>arXiv preprint arXiv:2310.16944</em>, 2023. <a href="https://arxiv.org/abs/2310.16944" class="colloquium-ref-url">[link]</a></div>
 <div class="colloquium-reference" id="colloquium-ref-ziegler2019">Ziegler, D., Stiennon, N., Wu, J., Brown, T., Radford, A., et al.. &ldquo;<em>Fine-Tuning Language Models from Human Preferences</em>.&rdquo; <em>arXiv preprint arXiv:1909.08593</em>, 2019. <a href="https://arxiv.org/abs/1909.08593" class="colloquium-ref-url">[link]</a></div></div>
-<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">25 / 25</span></div></div>
+<div class="colloquium-footer"><div class="colloquium-footer-left"><img class="colloquium-footer-logo" src="logo.png" alt="" style="height: 24px"></div><div class="colloquium-footer-center"></div><div class="colloquium-footer-right colloquium-footer-nav"><span class="colloquium-counter">26 / 26</span></div></div>
 </section>
 </div>
 
@@ -1890,7 +1987,7 @@ deck.build(&quot;output/&quot;)
 
 <button class="colloquium-picker-trigger" title="Open slide picker">
     <span class="colloquium-picker-trigger-label">Slides</span>
-    <span class="colloquium-picker-trigger-count">1 / 25</span>
+    <span class="colloquium-picker-trigger-count">1 / 26</span>
 </button>
 
 <div class="colloquium-progress">

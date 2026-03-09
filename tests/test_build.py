@@ -192,6 +192,44 @@ class TestBuildDeck:
         assert "window.colloquiumFitCaptionedFiguresIn = function(root)" in html
         assert '.slide-content > figure.colloquium-figure:first-child:last-child' in html
 
+    def test_box_element_renders(self):
+        deck = Deck(title="Test")
+        deck.add_slide(
+            title="Box",
+            content=(
+                "```box\n"
+                "title: Key point\n"
+                "tone: accent\n"
+                "content: |\n"
+                "  - One\n"
+                "  - Two\n"
+                "```"
+            ),
+        )
+        html = build_deck(deck)
+
+        assert 'class="colloquium-box colloquium-box--accent"' in html
+        assert "colloquium-box-title" in html
+        assert "<li>One</li>" in html
+
+    def test_box_element_allows_unquoted_colon_in_title(self):
+        deck = Deck(title="Test")
+        deck.add_slide(
+            title="Box",
+            content=(
+                "```box\n"
+                "title: DPO became very popular as it is:\n"
+                "tone: accent\n"
+                "content: |\n"
+                "  - One\n"
+                "```"
+            ),
+        )
+        html = build_deck(deck)
+
+        assert "Invalid box YAML" not in html
+        assert "DPO became very popular as it is:" in html
+
     def test_slide_classes(self):
         deck = Deck(title="Test")
         deck.add_slide(title="S1", content="C", classes=["highlight"])
@@ -1041,6 +1079,12 @@ class TestCitationRendering:
         from colloquium.parse import parse_slide
 
         slide = parse_slide("## Test\n\n<!-- cite: smith2024, jones2023 -->\n\nContent")
+        assert slide.metadata.get("cite_left") == ["smith2024", "jones2023"]
+
+    def test_per_slide_cite_left_alias(self):
+        from colloquium.parse import parse_slide
+
+        slide = parse_slide("## Test\n\n<!-- cite-left: smith2024, jones2023 -->\n\nContent")
         assert slide.metadata.get("cite_left") == ["smith2024", "jones2023"]
 
     def test_per_slide_cite_right(self):
