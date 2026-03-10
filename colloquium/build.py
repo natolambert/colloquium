@@ -42,7 +42,7 @@ def _create_md_renderer() -> MarkdownIt:
     .math elements client-side.
     """
     md = MarkdownIt("commonmark", {"html": True, "typographer": True})
-    md.enable("table")
+    md.enable(["table", "replacements", "smartquotes"])
     dollarmath_plugin(md, double_inline=True)
     return md
 
