@@ -1,6 +1,6 @@
 # Rows and Columns
 
-This example deck shows how to combine:
+Use this when a slide needs stacked sections, nested subcolumns, or a big visual row without resorting to custom CSS.
 
 - slide-level `rows:`
 - the `===` row divider

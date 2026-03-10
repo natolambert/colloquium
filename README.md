@@ -300,7 +300,7 @@ At the slide root, use either `columns:` or `rows:`. For nested layouts, use `ro
 
 See [`examples/hello/README.md`](./examples/hello/README.md) for the broad feature tour, [`examples/title-slides/title-slides.md`](./examples/title-slides/title-slides.md) for concrete title-slide compositions, [`examples/title-slides/README.md`](./examples/title-slides/README.md) for copy-paste title guidance, [`examples/rows-and-columns/rows-and-columns.md`](./examples/rows-and-columns/rows-and-columns.md) for nested row/column layouts, and [`examples/footnotes/footnotes.md`](./examples/footnotes/footnotes.md) for numbered inline footnotes and floating slide notes.
 
-Generated example HTML/PDF/PPTX is not tracked in git. Build any example locally with `uv run colloquium build examples/.../*.md`, or generate the full docs site with `uv run python docs/build.py`.
+Generated example HTML/PDF/PPTX is not tracked in git. Build any example locally with `uv run colloquium build examples/.../*.md`, or generate the small project website with `uv run python docs/build.py`.
 
 ### Bibliography
 
@@ -645,7 +645,7 @@ Everything builds to a single self-contained HTML file. CSS and JS are inlined; 
 
 - Changelog: [`CHANGELOG.md`](./CHANGELOG.md)
 - Release checklist: [`RELEASING.md`](./RELEASING.md)
-- Docs site builder: `uv run python docs/build.py`
+- Website/examples builder: `uv run python docs/build.py`
 
 ## Contributing Elements
 

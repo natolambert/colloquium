@@ -5,7 +5,7 @@ This document is the manual checklist for a release.
 ## Before the first release
 
 1. Enable GitHub Pages for the repository.
-2. Confirm the docs site workflow can deploy from `main`.
+2. Confirm the website workflow can deploy from `main`.
 
 ## Release checklist
 
@@ -38,7 +38,7 @@ This document is the manual checklist for a release.
    uv publish
    ```
 
-8. Confirm the `Examples site` workflow has deployed the latest docs site.
+8. Confirm the `Website` workflow has deployed the latest site.
 
 ## Notes
 

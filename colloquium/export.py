@@ -38,23 +38,9 @@ def _is_chromium_based(browser_path: str) -> bool:
     return any(x in name for x in ["chrome", "chromium", "edge", "brave"])
 
 
-def export_pdf(input_path: str, output_path: str | None = None) -> str | None:
-    """Export a presentation to PDF using a system browser.
-
-    Returns the output path on success, or None if no browser was found.
-    """
-    from colloquium.build import build_file
-
-    input_path = str(Path(input_path).resolve())
-
-    # Build HTML first
-    html_path = build_file(input_path)
-
-    if output_path is None:
-        output_path = str(Path(input_path).with_suffix(".pdf"))
-
+def _export_pdf_from_html(html_path: str, output_path: str) -> str | None:
+    """Export an existing HTML deck to PDF using a system browser."""
     html_url = f"file://{Path(html_path).resolve()}"
-
     browser = _find_browser()
     if browser is None:
         return None
@@ -89,6 +75,29 @@ def export_pdf(input_path: str, output_path: str | None = None) -> str | None:
         return output_path
 
     return None
+
+
+def export_pdf(input_path: str, output_path: str | None = None) -> str | None:
+    """Export a presentation to PDF using a system browser.
+
+    Accepts either a markdown source file or a prebuilt HTML deck.
+    Returns the output path on success, or None if no browser was found.
+    """
+    from colloquium.build import build_file
+
+    input_path = str(Path(input_path).resolve())
+    input_path_obj = Path(input_path)
+
+    if input_path_obj.suffix.lower() == ".html":
+        html_path = input_path
+        if output_path is None:
+            output_path = str(input_path_obj.with_suffix(".pdf"))
+    else:
+        html_path = build_file(input_path)
+        if output_path is None:
+            output_path = str(input_path_obj.with_suffix(".pdf"))
+
+    return _export_pdf_from_html(html_path, output_path)
 
 
 def _compress_pdf(pdf_path: str) -> None:
