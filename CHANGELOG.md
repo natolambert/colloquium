@@ -10,8 +10,8 @@ once public releases begin.
 
 ### Added
 
-- GitHub Pages examples site with rendered decks and minimal docs.
-- Release workflow and release checklist docs.
+- GitHub Pages docs site with rendered decks and minimal docs.
+- Release checklist docs.
 
 ### Changed
 

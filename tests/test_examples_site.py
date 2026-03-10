@@ -19,6 +19,6 @@ def test_build_examples_site(tmp_path: Path):
     }
 
     for slug, deck_file in expected_examples.items():
-        example_dir = output_dir / "examples" / slug
+        example_dir = output_dir / "docs" / slug
         assert (example_dir / "index.html").exists()
         assert (example_dir / deck_file).exists()

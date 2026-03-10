@@ -268,8 +268,8 @@ def _render_index(examples: list[Example]) -> str:
           <h3>{html.escape(example.title)}</h3>
           <p>{html.escape(example.summary)}</p>
           <div class="example-links">
-            <a href="examples/{html.escape(example.slug)}/" class="button secondary">Docs & preview</a>
-            <a href="examples/{html.escape(example.slug)}/{html.escape(example.deck_filename)}">Deck only</a>
+            <a href="docs/{html.escape(example.slug)}/" class="button secondary">Docs & preview</a>
+            <a href="docs/{html.escape(example.slug)}/{html.escape(example.deck_filename)}">Deck only</a>
           </div>
         </article>
         """
@@ -280,16 +280,16 @@ def _render_index(examples: list[Example]) -> str:
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Colloquium examples</title>
+  <title>Colloquium docs</title>
   <style>{_site_css()}</style>
 </head>
 <body>
   <main class="shell">
     <section class="hero">
-      <h1>Colloquium examples</h1>
+      <h1>Colloquium docs</h1>
       <p>Minimal docs and rendered example decks for a markdown-first slide tool aimed at research talks. The examples are the source of truth for most authoring patterns.</p>
       <div class="hero-links">
-        <a class="button secondary" href="{PAGES_URL}">Examples site</a>
+        <a class="button secondary" href="{PAGES_URL}">Docs site</a>
         <a class="button" href="{REPO_URL}">GitHub</a>
       </div>
     </section>
@@ -316,7 +316,7 @@ uv run colloquium export examples/hello/hello.md</code></pre>
 
     <section>
       <div class="eyebrow">Examples</div>
-      <h2 class="section-title">Rendered decks with copy-paste docs</h2>
+      <h2 class="section-title">Worked examples with copy-paste docs</h2>
       <div class="grid">
         {cards}
       </div>
@@ -339,7 +339,7 @@ def _render_example_page(example: Example) -> str:
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{html.escape(example.title)} · Colloquium examples</title>
+  <title>{html.escape(example.title)} · Colloquium docs</title>
   <style>{_site_css()}</style>
 </head>
 <body>
@@ -347,7 +347,7 @@ def _render_example_page(example: Example) -> str:
     <a class="back-link" href="../../">← Back to examples</a>
     <section class="example-page">
       <article class="card docs-card">
-        <div class="eyebrow">Example</div>
+        <div class="eyebrow">Docs</div>
         <h1>{html.escape(example.title)}</h1>
         <div class="example-links">
           <a class="button secondary" href="{html.escape(example.deck_filename)}">Open deck</a>
@@ -385,7 +385,7 @@ def build_examples_site(output_dir: Path = DEFAULT_OUTPUT_DIR) -> Path:
     (output_dir / ".nojekyll").write_text("", encoding="utf-8")
 
     for example in examples:
-        example_dir = output_dir / "examples" / example.slug
+        example_dir = output_dir / "docs" / example.slug
         example_dir.mkdir(parents=True, exist_ok=True)
         build_file(str(example.deck_path), str(example_dir / example.deck_filename))
         _copy_example_assets(example.deck_path.parent, example_dir)
