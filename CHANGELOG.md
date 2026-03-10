@@ -10,12 +10,14 @@ once public releases begin.
 
 ### Added
 
-- GitHub Pages docs site with rendered decks and minimal docs.
-- Release checklist docs.
+- GitHub Pages website with rendered example decks.
+- CI workflows for tests, changelog enforcement, and site deploy.
+- `pytest` as a dev optional dependency.
+- Release checklist in `RELEASING.md`.
 
 ### Changed
 
-- README install guidance now separates stable release, GitHub install, and development usage.
+- Simplified README: install section, site link, removed internal release details.
 - Generated example artifacts are no longer tracked in git.
 
 ## [0.1.0] - 2026-03-10

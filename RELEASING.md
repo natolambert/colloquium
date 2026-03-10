@@ -2,11 +2,6 @@
 
 This document is the manual checklist for a release.
 
-## Before the first release
-
-1. Enable GitHub Pages for the repository.
-2. Confirm the website workflow can deploy from `main`.
-
 ## Release checklist
 
 1. Make sure `main` is clean and up to date.

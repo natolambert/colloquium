@@ -2,11 +2,11 @@
 
 Markdown-based slide creation tool for research talks. Git-friendly, AI-drivable, single-file HTML output.
 
+**[Website & examples](https://natolambert.github.io/colloquium/)** · **[PyPI](https://pypi.org/project/colloquium/)**
+
 ## Install
 
 Colloquium uses [uv](https://docs.astral.sh/uv/) for fast, reliable Python package management.
-
-### Latest release
 
 ```bash
 uv tool install colloquium
@@ -14,32 +14,13 @@ uv tool install colloquium
 uv pip install colloquium
 ```
 
-### Unreleased main
-
-```bash
-uv tool install --from git+https://github.com/natolambert/colloquium colloquium
-# or inside a project
-uv pip install git+https://github.com/natolambert/colloquium.git
-```
-
-### Development
+For development:
 
 ```bash
 git clone https://github.com/natolambert/colloquium.git
 cd colloquium
-uv pip install -e .
+uv pip install -e ".[dev]"
 ```
-
-### Using colloquium from another uv project
-
-uv's venv doesn't process `.pth` files, so `uv pip install -e` from another project's venv won't work. Use a symlink instead:
-
-```bash
-# From your other project's directory:
-ln -s /path/to/colloquium/colloquium .venv/lib/python3.*/site-packages/colloquium
-```
-
-This gives you a true editable install — changes to colloquium source are reflected immediately.
 
 ## Quick Start
 
@@ -77,10 +58,6 @@ colloquium build slides.md        # → slides.html
 colloquium serve slides.md        # dev server with live reload
 colloquium export slides.md       # PDF via a headless Chromium-based browser
 ```
-
-Rendered docs and examples live at:
-
-- `https://natolambert.github.io/colloquium/`
 
 ## CLI Commands
 
@@ -298,9 +275,7 @@ At the slide root, use either `columns:` or `rows:`. For nested layouts, use `ro
 | `<!-- img-fill: true -->` | Expand image to fill available slide space |
 | `<!-- img-overflow: true -->` | Let images in grid cells bleed outside their box instead of fitting inside |
 
-See [`examples/hello/README.md`](./examples/hello/README.md) for the broad feature tour, [`examples/title-slides/title-slides.md`](./examples/title-slides/title-slides.md) for concrete title-slide compositions, [`examples/title-slides/README.md`](./examples/title-slides/README.md) for copy-paste title guidance, [`examples/rows-and-columns/rows-and-columns.md`](./examples/rows-and-columns/rows-and-columns.md) for nested row/column layouts, and [`examples/footnotes/footnotes.md`](./examples/footnotes/footnotes.md) for numbered inline footnotes and floating slide notes.
-
-Generated example HTML/PDF/PPTX is not tracked in git. Build any example locally with `uv run colloquium build examples/.../*.md`, or generate the small project website with `uv run python docs/build.py`.
+See the [examples on the website](https://natolambert.github.io/colloquium/) for rendered decks and copy-paste patterns, or browse the source in [`examples/`](./examples/).
 
 ### Bibliography
 
@@ -640,12 +615,6 @@ Two options:
 ## Output
 
 Everything builds to a single self-contained HTML file. CSS and JS are inlined; math (KaTeX) and code highlighting (highlight.js) load from CDN.
-
-## Release Process
-
-- Changelog: [`CHANGELOG.md`](./CHANGELOG.md)
-- Release checklist: [`RELEASING.md`](./RELEASING.md)
-- Website/examples builder: `uv run python docs/build.py`
 
 ## Contributing Elements
 
