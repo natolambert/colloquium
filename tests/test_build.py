@@ -249,6 +249,24 @@ class TestBuildDeck:
 
         assert "colloquium-box--compact" in html
 
+    def test_box_element_allows_title_only(self):
+        deck = Deck(title="Test")
+        deck.add_slide(
+            title="Box",
+            content=(
+                "```box\n"
+                "title: Quick takeaway\n"
+                "tone: accent\n"
+                "```"
+            ),
+        )
+        html = build_deck(deck)
+
+        assert "Quick takeaway" in html
+        assert "Invalid box YAML" not in html
+        assert "Box requires title or content" not in html
+        assert 'class="colloquium-box-content"' not in html
+
     def test_slide_classes(self):
         deck = Deck(title="Test")
         deck.add_slide(title="S1", content="C", classes=["highlight"])

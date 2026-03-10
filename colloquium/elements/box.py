@@ -58,11 +58,13 @@ def process(yaml_str: str) -> str:
     if not isinstance(spec, dict):
         return '<p style="color:red">Box spec must be a YAML mapping</p>'
 
-    content = spec.get("content", "")
-    if not isinstance(content, str) or not content.strip():
-        return '<p style="color:red">Box requires content</p>'
-
     title = spec.get("title", "")
+    content = spec.get("content", "")
+    title_text = str(title).strip()
+    content_text = content.strip() if isinstance(content, str) else ""
+    if not title_text and not content_text:
+        return '<p style="color:red">Box requires title or content</p>'
+
     tone = str(spec.get("tone", "accent")).strip().lower() or "accent"
     size_value = spec.get("size")
     align = str(spec.get("align", "")).strip().lower()
@@ -84,9 +86,10 @@ def process(yaml_str: str) -> str:
             style_attr = f' style="font-size: {scale:g}em"'
 
     parts = [f'<div class="{" ".join(classes)}"{style_attr}>']
-    if title:
-        title_html = _block_md.renderInline(str(title)).strip()
+    if title_text:
+        title_html = _block_md.renderInline(title_text).strip()
         parts.append(f'<div class="colloquium-box-title">{title_html}</div>')
-    parts.append(f'<div class="colloquium-box-content">{_block_md.render(content).strip()}</div>')
+    if content_text:
+        parts.append(f'<div class="colloquium-box-content">{_block_md.render(content_text).strip()}</div>')
     parts.append("</div>")
     return "\n".join(parts)

@@ -324,6 +324,15 @@ content: |
 
 ---
 
+## Title-only Box
+
+```box
+title: Core idea
+tone: accent
+```
+
+---
+
 ## Key RLHF Papers
 
 <!-- cite: christiano2017, ouyang2022 -->

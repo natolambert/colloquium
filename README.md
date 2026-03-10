@@ -533,9 +533,19 @@ Optional box settings:
 |-----|---------|-------------|
 | `title` | unset | Bold heading shown at the top of the box |
 | `tone` | `accent` | Visual style: `accent`, `muted`, or `surface` |
+| `content` | unset | Optional markdown body below the title |
 | `size` | unset | Font scale as a positive numeric value like `0.9` or `1.05` |
 | `align` | unset | Text alignment inside the box: `left`, `center`, or `right` |
 | `compact` | `false` | Tighten paragraph and list spacing inside the box |
+
+`box` supports a title-only callout too:
+
+````markdown
+```box
+title: Core idea
+tone: accent
+```
+````
 
 The supported tones are:
 
