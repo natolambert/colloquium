@@ -37,7 +37,7 @@ jobs:
         run: uv pip install --system -e .
 
       - name: Build examples site
-        run: uv run python docs/build.py
+        run: python docs/build.py
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
