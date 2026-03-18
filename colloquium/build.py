@@ -124,9 +124,14 @@ def _get_year(entry) -> str:
     return entry.fields.get("year", "n.d.")
 
 
+def _normalize_bibtex_field(text: str) -> str:
+    """Drop BibTeX grouping braces while preserving escaped literal braces."""
+    return re.sub(r"(?<!\\)[{}]", "", text).strip()
+
+
 def _get_title(entry) -> str:
     """Extract title from a pybtex entry."""
-    return entry.fields.get("title", "Untitled").strip("{}")
+    return _normalize_bibtex_field(entry.fields.get("title", "Untitled"))
 
 
 def _format_citation_label(entry, key: str, style: str, number: int) -> str:
@@ -289,8 +294,8 @@ def _format_reference(entry, key: str, style: str, number: int) -> str:
     title = _get_title(entry)
     year = _get_year(entry)
     venue = entry.fields.get("journal", entry.fields.get("booktitle", entry.fields.get("publisher", "")))
-    venue = venue.strip("{}")
-    url = entry.fields.get("url", "").strip("{}")
+    venue = _normalize_bibtex_field(venue)
+    url = _normalize_bibtex_field(entry.fields.get("url", ""))
 
     prefix = f"[{number}] " if style == "numeric" else ""
 

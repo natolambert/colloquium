@@ -855,6 +855,29 @@ class TestCitationRendering:
             assert "A Great Paper" in result
             assert "2024" in result
 
+    def test_title_year_style_strips_inner_bibtex_braces(self):
+        bib_content = """@article{smith2024,
+  author = {Smith, John},
+  title = {{A} Paper About {GPT}-{4}},
+  journal = {Nature},
+  year = {2024},
+}
+"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bib_path = Path(tmpdir) / "refs.bib"
+            bib_path.write_text(bib_content)
+            bib_entries = _parse_bib_file(str(bib_path))
+            cited_keys = []
+
+            result = _process_citations(
+                "See [@smith2024] for details.",
+                bib_entries, "title-year", cited_keys,
+            )
+
+            assert "A Paper About GPT-4" in result
+            assert "{" not in result
+            assert "}" not in result
+
     def test_multiple_citations(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             bib_path = self._make_bib(tmpdir)
@@ -1077,6 +1100,30 @@ class TestCitationRendering:
             ref_html = "\n".join(ref_slides)
 
             assert "<em>Nature</em>" in ref_html
+
+    def test_reference_strips_inner_bibtex_braces_from_title_and_venue(self):
+        bib_content = """@article{smith2024,
+  author = {Smith, John},
+  title = {{A} Paper About {GPT}-{4}},
+  journal = {{Transactions on {ML}}},
+  year = {2024},
+}
+"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bib_path = Path(tmpdir) / "refs.bib"
+            bib_path.write_text(bib_content)
+            bib_entries = _parse_bib_file(str(bib_path))
+            cited_keys = ["smith2024"]
+
+            ref_slides = _build_references_slides_html(
+                bib_entries, cited_keys, "author-year", 5, 6, None,
+            )
+            ref_html = "\n".join(ref_slides)
+
+            assert "<em>A Paper About GPT-4</em>" in ref_html
+            assert "<em>Transactions on ML</em>" in ref_html
+            assert "{" not in ref_html
+            assert "}" not in ref_html
 
     def test_references_paginate(self):
         """Many references with long text should split across slides."""
