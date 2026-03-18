@@ -11,6 +11,7 @@ One line per PR for easy copy into GitHub releases.
 
 ## [Unreleased]
 
+- Fix KaTeX delimiter rendering on hidden slides ([#16](https://github.com/natolambert/colloquium/pull/16))
 - Enable typographic replacements: `--` to en-dash, `---` to em-dash, smart quotes ([#15](https://github.com/natolambert/colloquium/pull/15))
 
 ## [0.2.0] - 2026-03-10

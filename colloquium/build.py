@@ -970,14 +970,38 @@ window.colloquiumFitCaptionedFiguresIn = function(root) {
 // Render KaTeX math elements and highlight code after deferred scripts load
 window.addEventListener("load", function() {
     if (typeof katex !== "undefined") {
-        document.querySelectorAll(".math").forEach(function(el) {
-            var displayMode = el.tagName === "DIV";
-            katex.render(el.textContent, el, {
-                displayMode: displayMode,
-                throwOnError: false
+        var mathEls = document.querySelectorAll(".math");
+        if (mathEls.length > 0) {
+            // Temporarily show all slides so KaTeX can measure container
+            // dimensions for delimiter sizing (e.g. tall parentheses)
+            var mathSlides = document.querySelectorAll(".slide");
+            var mathOrigDisplay = [];
+            var mathOrigVisibility = [];
+            mathSlides.forEach(function(s) {
+                mathOrigDisplay.push(s.style.display);
+                mathOrigVisibility.push(s.style.visibility);
+                s.style.display = "flex";
+                if (!s.classList.contains("active")) {
+                    s.style.visibility = "hidden";
+                }
             });
-        });
-        window.colloquiumFitDisplayMathIn(document);
+
+            mathEls.forEach(function(el) {
+                var displayMode = el.tagName === "DIV";
+                katex.render(el.textContent, el, {
+                    displayMode: displayMode,
+                    throwOnError: false
+                });
+            });
+            window.colloquiumFitDisplayMathIn(document);
+
+            // Restore original slide display and visibility
+            mathSlides.forEach(function(s, i) {
+                s.style.display = mathOrigDisplay[i];
+                s.style.visibility = mathOrigVisibility[i];
+            });
+        }
+
         if (document.fonts && document.fonts.ready) {
             document.fonts.ready.then(function() {
                 window.colloquiumFitDisplayMathIn(document);
