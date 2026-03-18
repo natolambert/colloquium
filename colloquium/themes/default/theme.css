@@ -1655,3 +1655,11 @@ body:hover .colloquium-present {
         display: block !important;
     }
 }
+
+/* ===== Capture mode — hide UI chrome for headless screenshots ===== */
+.colloquium-capture .colloquium-present,
+.colloquium-capture .colloquium-progress,
+.colloquium-capture .colloquium-overflow-warn,
+.colloquium-capture .colloquium-picker-overlay {
+    display: none !important;
+}

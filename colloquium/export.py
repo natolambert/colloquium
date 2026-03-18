@@ -1,10 +1,11 @@
-"""PDF and PPTX export."""
+"""PDF, image, and PPTX export."""
 
 from __future__ import annotations
 
 import os
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 
 
@@ -98,6 +99,70 @@ def export_pdf(input_path: str, output_path: str | None = None) -> str | None:
             output_path = str(input_path_obj.with_suffix(".pdf"))
 
     return _export_pdf_from_html(html_path, output_path)
+
+
+def capture_slides(
+    input_path: str,
+    output_dir: str | None = None,
+    slide: int | None = None,
+) -> list[str] | None:
+    """Capture individual slides as PNG images.
+
+    Exports to PDF first (one Chrome launch), then splits pages to PNGs
+    using Ghostscript (``gs``).
+
+    Returns a list of output paths on success, or None if tools are missing.
+    If slide is specified (1-indexed), captures only that slide.
+    """
+    input_path = str(Path(input_path).resolve())
+
+    if output_dir is None:
+        output_dir = str(Path(input_path).parent / "slides")
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+    # Clear stale PNGs from previous runs
+    for stale in Path(output_dir).glob("slide-*.png"):
+        stale.unlink()
+
+    gs = shutil.which("gs")
+    if gs is None:
+        return None
+
+    # Step 1: Export to PDF (into a temp dir so we don't leave artifacts)
+    with tempfile.TemporaryDirectory() as tmp:
+        pdf_path = str(Path(tmp) / "deck.pdf")
+        result = export_pdf(input_path, pdf_path)
+        if result is None:
+            return None
+
+        # Step 2: Split PDF pages → PNGs with Ghostscript
+        # 128 DPI × 10in = 1280px, 128 DPI × 5.625in = 720px
+        #
+        # Future: other converters could be added here as fallbacks.
+        # Likely candidates (untested):
+        #   pdftoppm (poppler-utils): pdftoppm -png -r 128 [-f N -l N] in.pdf prefix
+        #   ffmpeg (if built with PDF support): ffmpeg -y -i in.pdf out-%02d.png
+        cmd = [
+            gs, "-sDEVICE=png16m", "-r128",
+            "-dBATCH", "-dNOPAUSE", "-dQUIET",
+            "-dTextAlphaBits=4", "-dGraphicsAlphaBits=4",
+        ]
+
+        if slide is not None:
+            cmd += [f"-dFirstPage={slide}", f"-dLastPage={slide}"]
+            cmd += [f"-sOutputFile={Path(output_dir) / f'slide-{slide:02d}.png'}"]
+        else:
+            cmd += [f"-sOutputFile={Path(output_dir) / 'slide-%02d.png'}"]
+
+        cmd.append(pdf_path)
+
+        try:
+            subprocess.run(cmd, capture_output=True, timeout=60, check=True)
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+            return None
+
+    pngs = sorted(str(p) for p in Path(output_dir).glob("slide-*.png"))
+    return pngs if pngs else None
 
 
 def _compress_pdf(pdf_path: str) -> None:

@@ -57,6 +57,7 @@ Build it:
 colloquium build slides.md        # → slides.html
 colloquium serve slides.md        # dev server with live reload
 colloquium export slides.md       # PDF via a headless Chromium-based browser
+colloquium capture slides.md      # per-slide PNGs for AI review
 ```
 
 ## CLI Commands
@@ -66,6 +67,7 @@ colloquium export slides.md       # PDF via a headless Chromium-based browser
 | `colloquium build <file.md>` | Build to self-contained HTML |
 | `colloquium serve <file.md>` | Dev server with live reload |
 | `colloquium export <file.md>` | PDF export (requires a Chromium-based browser) |
+| `colloquium capture <file.md>` | Capture slides as individual PNGs |
 
 ## Frontmatter Reference
 
@@ -611,6 +613,23 @@ Two options:
 
 1. **Browser**: Open the HTML file and `Cmd+P` / `Ctrl+P` — print CSS makes all slides visible with page breaks, footers with slide numbers included
 2. **CLI**: `colloquium export slides.md` uses a headless Chromium-based browser
+
+## Slide Capture
+
+Capture individual slides as 1280x720 PNG images — useful for AI agents to visually review slides, or for thumbnails and previews.
+
+```bash
+colloquium capture slides.md              # all slides → slides/ directory
+colloquium capture slides.md -o ./imgs/   # custom output directory
+colloquium capture slides.md --slide 3    # capture only slide 3
+```
+
+This exports to PDF first (one headless Chrome launch), then splits pages into PNGs with Ghostscript. Requires Chrome and `gs`:
+
+```bash
+brew install ghostscript   # macOS
+apt install ghostscript    # Linux
+```
 
 ## Output
 

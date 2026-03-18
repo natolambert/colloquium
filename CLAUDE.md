@@ -8,6 +8,7 @@ Colloquium is an agent-native slide creation tool for research talks. Markdown-b
 - `uv pip install -e .` to install in dev mode
 - `uv run colloquium build examples/hello/hello.md` to build slides
 - `uv run colloquium serve examples/hello/hello.md` for dev server
+- `uv run colloquium capture examples/hello/hello.md` to capture slides as PNGs
 - `uv run pytest` to run tests
 
 ## Architecture Patterns
@@ -43,6 +44,12 @@ Per-slide configuration via HTML comments:
 - CLI convenience: `colloquium export` tries system Chrome `--headless --print-to-pdf`
 - Optional ghostscript compression if `gs` is on PATH
 
+### Slide Capture
+- `colloquium capture` exports PDF then splits pages to 1280x720 PNGs
+- One Chrome launch for PDF, then Ghostscript (`gs`) splits pages
+- `?capture` URL param triggers CSS class that hides nav UI (progress bar, present button)
+- Useful for AI agents to visually inspect individual slides
+
 ### Dependencies
 - Only 3 runtime deps: markdown-it-py, mdit-py-plugins, pyyaml
 - Everything else is stdlib or browser-side CDN
@@ -59,7 +66,7 @@ colloquium/
 ├── parse.py          # Markdown → Slide data structures
 ├── build.py          # Slides → HTML generation
 ├── serve.py          # Dev server with live reload
-├── export.py         # PDF export (system Chrome + print CSS)
+├── export.py         # PDF export + slide capture (system Chrome + print CSS)
 ├── deck.py           # Deck class (agent-facing API)
 ├── slide.py          # Slide dataclass
 └── themes/default/

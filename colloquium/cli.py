@@ -73,6 +73,30 @@ def _export(args):
             print(f"Open it in a browser and use Cmd+P / Ctrl+P to print to PDF.")
 
 
+def _capture(args):
+    """Capture individual slides as PNG images."""
+    from colloquium.export import capture_slides
+
+    input_path = args.file
+    if not Path(input_path).exists():
+        print(f"Error: {input_path} not found", file=sys.stderr)
+        sys.exit(1)
+
+    result = capture_slides(input_path, args.output, slide=args.slide)
+
+    if result is None:
+        print("Slide capture requires a Chromium browser and Ghostscript (gs).")
+        print("  macOS:  brew install ghostscript")
+        print("  Linux:  apt install ghostscript")
+        sys.exit(1)
+    elif len(result) == 0:
+        print("No slides found to capture.", file=sys.stderr)
+        sys.exit(1)
+    else:
+        for path in result:
+            print(f"Captured: {path}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="colloquium",
@@ -104,6 +128,13 @@ def main():
     export_parser.add_argument("--pptx", action="store_true", help="Export as PPTX (requires: pip install colloquium[pptx])")
     export_parser.add_argument("-o", "--output", help="Output file path")
     export_parser.set_defaults(func=_export)
+
+    # capture
+    capture_parser = subparsers.add_parser("capture", help="Capture slides as PNG images")
+    capture_parser.add_argument("file", help="Input markdown file")
+    capture_parser.add_argument("-o", "--output", help="Output directory (default: slides/ next to input)")
+    capture_parser.add_argument("-s", "--slide", type=int, help="Capture a single slide (1-indexed)")
+    capture_parser.set_defaults(func=_capture)
 
     args = parser.parse_args()
 

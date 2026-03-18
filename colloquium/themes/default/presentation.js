@@ -14,6 +14,11 @@ class ColloquiumPresentation {
         this.width = 1280;
         this.height = 720;
 
+        // Capture mode — hide UI chrome for headless screenshots
+        if (new URLSearchParams(location.search).has('capture')) {
+            document.body.classList.add('colloquium-capture');
+        }
+
         if (this.totalSlides === 0) return;
 
         this.progressBar = document.querySelector('.colloquium-progress-bar');
