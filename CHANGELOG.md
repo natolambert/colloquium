@@ -11,7 +11,7 @@ One line per PR for easy copy into GitHub releases.
 
 ## [Unreleased]
 
-- Fix PDF export clipping for printed equations and captioned figures ([#18](https://github.com/natolambert/colloquium/pull/18))
+- Fix PDF export clipping and normalize BibTeX braces in citations/references ([#18](https://github.com/natolambert/colloquium/pull/18))
 - Fix KaTeX delimiter rendering on hidden slides ([#16](https://github.com/natolambert/colloquium/pull/16))
 - Enable typographic replacements: `--` to en-dash, `---` to em-dash, smart quotes ([#15](https://github.com/natolambert/colloquium/pull/15))
 
