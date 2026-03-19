@@ -124,9 +124,60 @@ def _get_year(entry) -> str:
     return entry.fields.get("year", "n.d.")
 
 
+def _normalize_bibtex_field(text: str) -> str:
+    """Drop plain BibTeX grouping braces while preserving LaTeX macro arguments."""
+    result: list[str] = []
+    preserve_stack: list[bool] = []
+    preserve_next_group = False
+    i = 0
+
+    while i < len(text):
+        char = text[i]
+
+        if char == "\\":
+            # Preserve control words like \textsc and control symbols like \%.
+            result.append(char)
+            i += 1
+            if i < len(text):
+                result.append(text[i])
+                if text[i].isalpha():
+                    i += 1
+                    while i < len(text) and text[i].isalpha():
+                        result.append(text[i])
+                        i += 1
+                    preserve_next_group = True
+                    continue
+                preserve_next_group = True
+            continue
+
+        if char == "{":
+            preserve_group = preserve_next_group or (preserve_stack[-1] if preserve_stack else False)
+            preserve_stack.append(preserve_group)
+            if preserve_group:
+                result.append(char)
+            preserve_next_group = False
+            i += 1
+            continue
+
+        if char == "}":
+            preserve_group = preserve_stack.pop() if preserve_stack else False
+            if preserve_group:
+                result.append(char)
+            preserve_next_group = False
+            i += 1
+            continue
+
+        if not char.isspace():
+            preserve_next_group = False
+        result.append(char)
+        i += 1
+
+    return "".join(result).strip()
+
+
 def _get_title(entry) -> str:
     """Extract title from a pybtex entry."""
-    return entry.fields.get("title", "Untitled").strip("{}")
+    return _normalize_bibtex_field(entry.fields.get("title", "Untitled"))
 
 
 def _format_citation_label(entry, key: str, style: str, number: int) -> str:
@@ -289,8 +340,8 @@ def _format_reference(entry, key: str, style: str, number: int) -> str:
     title = _get_title(entry)
     year = _get_year(entry)
     venue = entry.fields.get("journal", entry.fields.get("booktitle", entry.fields.get("publisher", "")))
-    venue = venue.strip("{}")
-    url = entry.fields.get("url", "").strip("{}")
+    venue = _normalize_bibtex_field(venue)
+    url = _normalize_bibtex_field(entry.fields.get("url", ""))
 
     prefix = f"[{number}] " if style == "numeric" else ""
 
