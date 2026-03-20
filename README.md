@@ -2,7 +2,7 @@
 
 Markdown-based slide creation tool for research talks. Git-friendly, AI-drivable, single-file HTML output.
 
-**[Website & examples](https://natolambert.github.io/colloquium/)** · **[Core Example (RLHF Book)](https://rlhfbook.com/course)** · **[PyPI](https://pypi.org/project/colloquium/)**
+**[Docs](https://natolambert.github.io/colloquium/)** · **[Core Example (RLHF Book)](https://rlhfbook.com/course)** · **[PyPI](https://pypi.org/project/colloquium/)**
 
 ## Install
 
