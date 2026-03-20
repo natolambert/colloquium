@@ -89,8 +89,18 @@ def process(yaml_str: str) -> str:
     }
 
     config_json = json.dumps(config)
+    # Escape for safe embedding in an HTML attribute.
+    # The attribute uses single quotes, so escape any single quotes in the JSON
+    # and also escape ampersands/angle brackets for HTML safety.
+    config_attr = (
+        config_json
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("'", "&#39;")
+    )
     return (
         f'<div class="colloquium-chart-container">'
-        f'<canvas id="{chart_id}" data-chart-config=\'{config_json}\'></canvas>'
+        f'<canvas id="{chart_id}" data-chart-config=\'{config_attr}\'></canvas>'
         f'</div>'
     )

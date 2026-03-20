@@ -1082,26 +1082,37 @@ window.addEventListener("load", function() {
             });
 
             chartCanvases.forEach(function(canvas) {
-                var config = JSON.parse(canvas.getAttribute("data-chart-config"));
-                // Convert tick prefix/suffix strings into real callbacks
-                var scales = config.options && config.options.scales;
-                if (scales) {
-                    Object.keys(scales).forEach(function(axis) {
-                        var ticks = scales[axis].ticks;
-                        if (!ticks) return;
-                        var pre = ticks.prefix || "";
-                        var suf = ticks.suffix || "";
-                        if (pre || suf) {
-                            delete ticks.prefix;
-                            delete ticks.suffix;
-                            ticks.callback = function(v) { return pre + v + suf; };
-                        }
-                    });
+                try {
+                    var config = JSON.parse(canvas.getAttribute("data-chart-config"));
+                    // Convert tick prefix/suffix strings into real callbacks
+                    var scales = config.options && config.options.scales;
+                    if (scales) {
+                        Object.keys(scales).forEach(function(axis) {
+                            var ticks = scales[axis].ticks;
+                            if (!ticks) return;
+                            var pre = ticks.prefix || "";
+                            var suf = ticks.suffix || "";
+                            if (pre || suf) {
+                                delete ticks.prefix;
+                                delete ticks.suffix;
+                                ticks.callback = function(v) { return pre + v + suf; };
+                            }
+                        });
+                    }
+                    new Chart(canvas, config);
+                } catch(e) {
+                    var slideEl = canvas.closest(".slide");
+                    var slideNum = slideEl ? (slideEl.getAttribute("data-index") || "?") : "?";
+                    var chartId = canvas.id || "unknown";
+                    console.error(
+                        "Colloquium: failed to render chart '" + chartId +
+                        "' on slide " + (parseInt(slideNum, 10) + 1) + ": " + e.message
+                    );
                 }
-                new Chart(canvas, config);
             });
 
-            // After a frame, capture each chart as a static image for print
+            // After a frame, capture each chart as a static image for print,
+            // then always restore slide visibility (even if chart rendering failed).
             requestAnimationFrame(function() {
                 chartCanvases.forEach(function(canvas) {
                     try {
