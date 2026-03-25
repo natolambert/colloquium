@@ -12,6 +12,11 @@ Colloquium is an agent-native slide creation tool for research talks. Markdown-b
 - `uv run colloquium capture examples/hello/hello.md` to capture slides as PNGs
 - `uv run pytest` to run tests
 
+## Changelog
+- Update `CHANGELOG.md` with every PR — **one line per PR**, not per commit
+- Format: `- Short summary of all changes in the PR ([#N](https://github.com/natolambert/colloquium/pull/N))`
+- Add under `## [Unreleased]`
+
 ## Architecture Patterns
 
 ### CSS
