@@ -11,6 +11,8 @@ One line per PR for easy copy into GitHub releases.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-03-25
+
 - Fix chart rendering breaking slide navigation when data contains single quotes ([#20](https://github.com/natolambert/colloquium/pull/20))
 - Normalize BibTeX braces in citations and references ([#19](https://github.com/natolambert/colloquium/pull/19))
 - Add `colloquium capture` command for per-slide PNG export via Ghostscript ([#17](https://github.com/natolambert/colloquium/pull/17))
