@@ -1,10 +1,10 @@
 #!/bin/bash
-# Reminds Claude to update CHANGELOG.md when committing
+# Reminds Claude to update CHANGELOG.md before committing or opening a PR
 
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
 
-if echo "$COMMAND" | grep -q 'git commit'; then
+if echo "$COMMAND" | grep -qE 'git commit|git push|gh pr create'; then
   echo "Reminder: Update CHANGELOG.md with a one-line summary and PR link before committing." >&2
 fi
 
