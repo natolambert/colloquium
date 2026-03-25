@@ -59,7 +59,7 @@ class TestBuildDeck:
         html = build_deck(deck)
 
         assert ".slide pre code {" in html
-        assert "white-space: pre;" in html
+        assert "white-space: pre-wrap;" in html
         assert "from colloquium import Deck" in html
         assert "deck = Deck" in html
 
