@@ -12,8 +12,13 @@ One line per PR for easy copy into GitHub releases.
 ## [Unreleased]
 
 - Add fragment-based animations: `<!-- animate: bullets|blocks -->` and `<!-- step -->` for incremental reveal ([#25](https://github.com/natolambert/colloquium/pull/25))
+
+## [0.2.1] - 2026-03-25
+
+- Fix chart rendering breaking slide navigation when data contains single quotes ([#20](https://github.com/natolambert/colloquium/pull/20))
 - Normalize BibTeX braces in citations and references ([#19](https://github.com/natolambert/colloquium/pull/19))
 - Add `colloquium capture` command for per-slide PNG export via Ghostscript ([#17](https://github.com/natolambert/colloquium/pull/17))
+- Fix code block scrollbars and add changelog commit hook ([#23](https://github.com/natolambert/colloquium/pull/23))
 - Fix PDF export clipping for printed equations and captioned figures ([#18](https://github.com/natolambert/colloquium/pull/18))
 - Fix KaTeX delimiter rendering on hidden slides ([#16](https://github.com/natolambert/colloquium/pull/16))
 - Enable typographic replacements: `--` to en-dash, `---` to em-dash, smart quotes ([#15](https://github.com/natolambert/colloquium/pull/15))

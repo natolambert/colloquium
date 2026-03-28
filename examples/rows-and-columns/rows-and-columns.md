@@ -108,3 +108,37 @@ Middle right can hold a parallel point or comparison.
 ===
 
 Bottom row can close with a summary, citation, or next step.
+
+---
+
+<!-- columns: 48/52 -->
+## Code blocks in columns
+
+**Python code:**
+
+```python
+messages = [
+    {
+        "role": "system",
+        "content": "You are a friendly chatbot who always responds in the style of a pirate",
+    },
+    {
+        "role": "user",
+        "content": "How many helicopters can a human eat in one sitting?",
+    },
+]
+```
+
+|||
+
+**Template text:**
+
+```text
+<|im_start|>system
+You are a friendly chatbot who always responds in the style of a pirate<|im_end|>
+<|im_start|>user
+How many helicopters can a human eat in one sitting?<|im_end|>
+<|im_start|>assistant
+```
+
+`tokenizer.apply_chat_template(messages)` performs this conversion before tokenization.
