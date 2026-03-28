@@ -287,3 +287,30 @@ Some math: $E = mc^2$
         text = "---\ntitle: Talk\nfigure_captions: true\n---\n\n## S1\n\n![Caption](image.png)"
         deck = parse_markdown(text)
         assert deck.figure_captions is True
+
+
+class TestAnimateDirective:
+    def test_animate_stored_in_metadata(self):
+        slide = parse_slide("## Title\n<!-- animate: bullets -->\n\n- A\n- B")
+        assert slide.metadata["animate"] == "bullets"
+
+    def test_animate_removed_from_content(self):
+        slide = parse_slide("## Title\n<!-- animate: bullets -->\n\n- A\n- B")
+        assert "animate" not in slide.content
+        assert "<!--" not in slide.content
+
+    def test_animate_blocks_stored(self):
+        slide = parse_slide("## Title\n<!-- animate: blocks -->\n\nParagraph")
+        assert slide.metadata["animate"] == "blocks"
+
+    def test_step_marker_not_consumed(self):
+        """Step markers have no colon so should NOT match the directive regex."""
+        slide = parse_slide("## Title\n\nBefore\n\n<!-- step -->\n\nAfter")
+        assert "<!-- step -->" in slide.content
+
+    def test_animate_and_step_coexist(self):
+        slide = parse_slide(
+            "## Title\n<!-- animate: bullets -->\n\n- A\n\n<!-- step -->\n\nText"
+        )
+        assert slide.metadata["animate"] == "bullets"
+        assert "<!-- step -->" in slide.content

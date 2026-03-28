@@ -89,6 +89,150 @@ def _render_figure_captions(rendered: str, md: MarkdownIt) -> str:
     return _STANDALONE_IMAGE_PARAGRAPH_RE.sub(_replace, rendered)
 
 
+# ===== Fragment processing (incremental reveal) =====
+
+_STEP_MARKER_RE = re.compile(r"\s*<!--\s*step\s*-->\s*")
+_FRAGMENT_CLASS_RE = re.compile(r'class="fragment"')
+_FRAGMENT_BLOCK_TAGS = frozenset(
+    ("p", "ul", "ol", "pre", "blockquote", "table", "figure")
+)
+
+
+def _process_step_markers(html: str) -> list[tuple[str, bool]]:
+    """Split rendered HTML at ``<!-- step -->`` markers.
+
+    Returns a list of *(html_chunk, is_fragment)* tuples.
+    The first chunk (before any step marker) has *is_fragment=False*.
+    """
+    parts = _STEP_MARKER_RE.split(html)
+    result = []
+    for i, part in enumerate(parts):
+        part = part.strip()
+        if part:
+            result.append((part, i > 0))
+    return result
+
+
+def _wrap_blocks_as_fragments(html: str) -> str:
+    """Wrap each top-level block element as a fragment div.
+
+    Uses depth tracking so nested block elements (e.g. ``<blockquote>``
+    containing ``<p>``) are treated as a single top-level block.
+    """
+    open_re = re.compile(
+        r"<(" + "|".join(_FRAGMENT_BLOCK_TAGS) + r")[\s>]"
+    )
+    close_re = re.compile(
+        r"</(" + "|".join(_FRAGMENT_BLOCK_TAGS) + r")>"
+    )
+
+    lines = html.split("\n")
+    blocks: list[str] = []
+    current: list[str] = []
+    depth = 0
+
+    for line in lines:
+        opens = sum(1 for _ in open_re.finditer(line))
+        closes = sum(1 for _ in close_re.finditer(line))
+
+        if depth == 0 and opens == 0 and not current:
+            # Non-block content outside any block — pass through
+            if line.strip():
+                blocks.append(line)
+            continue
+
+        current.append(line)
+        depth += opens - closes
+
+        if depth <= 0:
+            depth = 0
+            block_html = "\n".join(current)
+            if block_html.strip():
+                blocks.append(f'<div class="fragment">{block_html}</div>')
+            current = []
+
+    if current:
+        block_html = "\n".join(current)
+        if block_html.strip():
+            blocks.append(f'<div class="fragment">{block_html}</div>')
+
+    return "\n".join(blocks)
+
+
+def _apply_auto_animate(html: str, animate_type: str) -> str:
+    """Add ``class="fragment"`` to elements based on *animate_type*.
+
+    * ``bullets`` / ``items`` — each ``<li>`` becomes a fragment.
+    * ``blocks`` — each top-level block element becomes a fragment.
+    """
+    if animate_type in ("bullets", "items"):
+        # Handle <li class="..."> first (prepend fragment to existing class)
+        html = re.sub(r'<li class="', '<li class="fragment ', html)
+        # Then handle plain <li> (add fragment class)
+        html = re.sub(r"<li>", '<li class="fragment">', html)
+        return html
+    if animate_type == "blocks":
+        return _wrap_blocks_as_fragments(html)
+    return html
+
+
+def _number_fragments(html: str) -> tuple[str, int]:
+    """Add sequential ``data-fragment-index`` to all fragment elements.
+
+    Returns *(processed_html, total_fragment_count)*.
+    """
+    count = 0
+
+    def _replace(m: re.Match) -> str:
+        nonlocal count
+        count += 1
+        return f'class="fragment" data-fragment-index="{count}"'
+
+    result = _FRAGMENT_CLASS_RE.sub(_replace, html)
+    return result, count
+
+
+def _process_fragments(
+    html: str, animate_type: str | None,
+) -> tuple[str, int]:
+    """Process step markers and auto-animate to produce fragment markup.
+
+    Returns *(processed_html, fragment_count)*.
+    """
+    if not animate_type and "<!-- step" not in html:
+        return html, 0
+
+    # Split at step markers
+    groups = _process_step_markers(html)
+    if not groups:
+        return html, 0
+
+    # No step markers — single group, just apply auto-animate
+    if len(groups) == 1 and not groups[0][1]:
+        if animate_type:
+            result = _apply_auto_animate(groups[0][0], animate_type)
+            return _number_fragments(result)
+        return html, 0
+
+    # Multiple groups (step markers present)
+    parts = []
+    for chunk, is_fragment in groups:
+        if animate_type:
+            chunk = _apply_auto_animate(chunk, animate_type)
+
+        if is_fragment:
+            # If auto-animate already added fragments inside, don't double-wrap
+            if 'class="fragment"' in chunk:
+                parts.append(chunk)
+            else:
+                parts.append(f'<div class="fragment">{chunk}</div>')
+        else:
+            parts.append(chunk)
+
+    result = "\n".join(parts)
+    return _number_fragments(result)
+
+
 # ===== Citation processing =====
 
 _CITATION_RE = re.compile(r'\[@([\w:.\-]+(?:\s*;\s*@[\w:.\-]+)*)\]')
@@ -810,6 +954,7 @@ def _build_slide_html(
         bib_entries = {}
     if cited_keys is None:
         cited_keys = []
+    fragment_count = 0
 
     # CSS classes
     classes = ["slide", f"slide--{slide.layout}"]
@@ -841,10 +986,12 @@ def _build_slide_html(
             inline_footnote_side,
         )
 
+    animate_type = slide.metadata.get("animate")
     if slide_content:
         figure_captions = _slide_uses_figure_captions(slide.classes, deck_figure_captions)
         if has_rows:
             rendered = _build_rows_html(slide_content, md, figure_captions=figure_captions)
+            rendered, fragment_count = _process_fragments(rendered, animate_type)
             rows_spec = _extract_grid_spec(slide.classes, "rows-")
             rows_style = _grid_template_style(rows_spec or "", "rows")
             content_style_attr = f' style="{rows_style}"' if rows_style else ""
@@ -860,6 +1007,7 @@ def _build_slide_html(
                 content_classes.append("colloquium-grid")
                 content_style = _grid_template_style(cols_spec or "", "columns")
                 rendered = _split_columns_from_rendered(rendered)
+            rendered, fragment_count = _process_fragments(rendered, animate_type)
             content_style_attr = f' style="{content_style}"' if content_style else ""
             parts.append(f'<div class="{" ".join(content_classes)}"{content_style_attr}>{rendered}</div>')
 
@@ -901,7 +1049,8 @@ def _build_slide_html(
 
     inner = "\n".join(parts)
 
-    return f'<section class="{class_str}"{slide_style_attr} data-index="{index}">\n{inner}\n</section>'
+    fragment_attr = f' data-fragment-count="{fragment_count}"' if fragment_count > 0 else ""
+    return f'<section class="{class_str}"{slide_style_attr} data-index="{index}"{fragment_attr}>\n{inner}\n</section>'
 
 
 # HTML template — uses $-style substitution
