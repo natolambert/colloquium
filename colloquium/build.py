@@ -113,11 +113,16 @@ def _process_step_markers(html: str) -> list[tuple[str, bool]]:
     return result
 
 
-def _wrap_blocks_as_fragments(html: str) -> str:
+def _wrap_blocks_as_fragments(
+    html: str, preserve_column_markers: bool = False,
+) -> str:
     """Wrap each top-level block element as a fragment div.
 
     Uses depth tracking so nested block elements (e.g. ``<blockquote>``
     containing ``<p>``) are treated as a single top-level block.
+
+    When *preserve_column_markers* is True, ``<p>|||</p>`` markers are
+    passed through unwrapped so that column splitting can find them later.
     """
     open_re = re.compile(
         r"<(" + "|".join(_FRAGMENT_BLOCK_TAGS) + r")[\s>]"
@@ -147,8 +152,12 @@ def _wrap_blocks_as_fragments(html: str) -> str:
         if depth <= 0:
             depth = 0
             block_html = "\n".join(current)
-            if block_html.strip():
-                blocks.append(f'<div class="fragment">{block_html}</div>')
+            stripped = block_html.strip()
+            if stripped:
+                if preserve_column_markers and stripped == "<p>|||</p>":
+                    blocks.append(block_html)
+                else:
+                    blocks.append(f'<div class="fragment">{block_html}</div>')
             current = []
 
     if current:
@@ -177,11 +186,18 @@ def _apply_auto_animate(html: str, animate_type: str) -> str:
 
 
 def _wrap_non_fragment_blocks(html: str) -> str:
-    """Wrap top-level block elements that don't already contain fragments.
+    """Wrap top-level block elements that aren't already fully fragmentized.
 
     Used for step groups where auto-animate (bullets/items) has fragmentized
-    ``<li>`` elements but left other block content (paragraphs, etc.) without
-    a fragment wrapper, which would make them visible before the step click.
+    ``<li>`` elements but left other block content (paragraphs, blockquotes,
+    etc.) without a fragment wrapper.
+
+    Skip rules:
+    * ``<div class="fragment ...">`` — already a fragment wrapper.
+    * ``<ul>``/``<ol>`` where every ``<li>`` has ``class="fragment"`` — the
+      list is fully animated, wrapping it would add a redundant empty-list
+      reveal step.
+    * Everything else is wrapped so it stays hidden until the step click.
     """
     open_re = re.compile(
         r"<(" + "|".join(_FRAGMENT_BLOCK_TAGS) + r")[\s>]"
@@ -194,6 +210,22 @@ def _wrap_non_fragment_blocks(html: str) -> str:
     blocks: list[str] = []
     current: list[str] = []
     depth = 0
+
+    def _emit_block(block_html: str) -> None:
+        stripped = block_html.strip()
+        if not stripped:
+            return
+        # Already a fragment wrapper div — skip
+        if stripped.startswith('<div class="fragment'):
+            blocks.append(block_html)
+            return
+        # Fully-animated list (all <li> are fragments) — skip
+        is_list = stripped.startswith(("<ul", "<ol"))
+        if is_list and "<li>" not in block_html and 'class="fragment' in block_html:
+            blocks.append(block_html)
+            return
+        # Wrap everything else
+        blocks.append(f'<div class="fragment">{block_html}</div>')
 
     for line in lines:
         opens = sum(1 for _ in open_re.finditer(line))
@@ -209,22 +241,11 @@ def _wrap_non_fragment_blocks(html: str) -> str:
 
         if depth <= 0:
             depth = 0
-            block_html = "\n".join(current)
-            if block_html.strip():
-                if 'class="fragment' in block_html:
-                    # Block already has fragment elements — leave as-is
-                    blocks.append(block_html)
-                else:
-                    blocks.append(f'<div class="fragment">{block_html}</div>')
+            _emit_block("\n".join(current))
             current = []
 
     if current:
-        block_html = "\n".join(current)
-        if block_html.strip():
-            if 'class="fragment' in block_html:
-                blocks.append(block_html)
-            else:
-                blocks.append(f'<div class="fragment">{block_html}</div>')
+        _emit_block("\n".join(current))
 
     return "\n".join(blocks)
 
@@ -254,9 +275,17 @@ def _process_fragments(
 ) -> tuple[str, int]:
     """Process step markers and auto-animate to produce fragment markup.
 
+    *animate_type* should be ``"bullets"``/``"items"`` or ``None``.
+    ``"blocks"`` mode is applied earlier in the pipeline (before
+    column/row splitting) so it should not be passed here.
+
+    Pre-existing ``class="fragment"`` elements (e.g. from an earlier
+    blocks-wrapping pass) are numbered even when *animate_type* is None.
+
     Returns *(processed_html, fragment_count)*.
     """
-    if not animate_type and "<!-- step" not in html:
+    has_existing = 'class="fragment' in html
+    if not animate_type and "<!-- step" not in html and not has_existing:
         return html, 0
 
     # Split at step markers
@@ -269,6 +298,9 @@ def _process_fragments(
         if animate_type:
             result = _apply_auto_animate(groups[0][0], animate_type)
             return _number_fragments(result)
+        # Number any pre-existing fragments (e.g. from blocks wrapping)
+        if has_existing:
+            return _number_fragments(html)
         return html, 0
 
     # Multiple groups (step markers present)
@@ -280,9 +312,9 @@ def _process_fragments(
         if is_fragment:
             has_inner = 'class="fragment' in chunk
             if has_inner:
-                # Auto-animate added fragments to some elements (e.g. <li>).
-                # Wrap remaining non-fragment blocks so they are also hidden
-                # until the step is reached (e.g. a <p> after a <ul>).
+                # Some elements are already fragments (auto-animate or
+                # pre-existing blocks wrapping).  Wrap any remaining
+                # non-fragment blocks so they stay hidden until the step.
                 chunk = _wrap_non_fragment_blocks(chunk)
                 parts.append(chunk)
             else:
@@ -977,7 +1009,10 @@ def _write_text_atomic(output_path: str, text: str) -> None:
     tmp_path.replace(output)
 
 
-def _build_rows_html(content: str, md: MarkdownIt, figure_captions: bool = False) -> str:
+def _build_rows_html(
+    content: str, md: MarkdownIt, figure_captions: bool = False,
+    animate_type: str | None = None,
+) -> str:
     """Build a row-based slide body with optional nested columns in each row."""
     row_blocks = [block.strip() for block in _ROW_SPLIT_RE.split(content) if block.strip()]
     rows_html = []
@@ -994,7 +1029,13 @@ def _build_rows_html(content: str, md: MarkdownIt, figure_captions: bool = False
         rendered = _render_markdown(block.strip(), md)
         if figure_captions:
             rendered = _render_figure_captions(rendered, md)
-        if any(cls.startswith("cols-") for cls in row_classes):
+        # Apply blocks wrapping per-row BEFORE column splitting
+        has_row_cols = any(cls.startswith("cols-") for cls in row_classes)
+        if animate_type == "blocks":
+            rendered = _wrap_blocks_as_fragments(
+                rendered, preserve_column_markers=has_row_cols,
+            )
+        if has_row_cols:
             rendered = _split_columns_from_rendered(rendered)
 
         style_attr = f' style="{row_style}"' if row_style else ""
@@ -1048,11 +1089,18 @@ def _build_slide_html(
         )
 
     animate_type = slide.metadata.get("animate")
+    # blocks wrapping runs before column/row splitting (it targets raw
+    # block-level elements which get obscured by wrapper divs); bullets
+    # and step markers run after splitting and are passed to _process_fragments.
+    frag_animate = animate_type if animate_type in ("bullets", "items") else None
     if slide_content:
         figure_captions = _slide_uses_figure_captions(slide.classes, deck_figure_captions)
         if has_rows:
-            rendered = _build_rows_html(slide_content, md, figure_captions=figure_captions)
-            rendered, fragment_count = _process_fragments(rendered, animate_type)
+            rendered = _build_rows_html(
+                slide_content, md, figure_captions=figure_captions,
+                animate_type=animate_type,
+            )
+            rendered, fragment_count = _process_fragments(rendered, frag_animate)
             rows_spec = _extract_grid_spec(slide.classes, "rows-")
             rows_style = _grid_template_style(rows_spec or "", "rows")
             content_style_attr = f' style="{rows_style}"' if rows_style else ""
@@ -1061,6 +1109,11 @@ def _build_slide_html(
             rendered = _render_markdown(slide_content, md)
             if figure_captions:
                 rendered = _render_figure_captions(rendered, md)
+            # Apply blocks wrapping before column splitting
+            if animate_type == "blocks":
+                rendered = _wrap_blocks_as_fragments(
+                    rendered, preserve_column_markers=has_columns,
+                )
             content_classes = ["slide-content"]
             content_style = ""
             if has_columns:
@@ -1068,7 +1121,7 @@ def _build_slide_html(
                 content_classes.append("colloquium-grid")
                 content_style = _grid_template_style(cols_spec or "", "columns")
                 rendered = _split_columns_from_rendered(rendered)
-            rendered, fragment_count = _process_fragments(rendered, animate_type)
+            rendered, fragment_count = _process_fragments(rendered, frag_animate)
             content_style_attr = f' style="{content_style}"' if content_style else ""
             parts.append(f'<div class="{" ".join(content_classes)}"{content_style_attr}>{rendered}</div>')
 

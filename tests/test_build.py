@@ -1593,3 +1593,46 @@ class TestFragments:
         html = build_deck(deck)
         # 2 bullets in the step group, no extra paragraph to wrap
         assert 'data-fragment-count="2"' in html
+
+    def test_blocks_with_columns(self):
+        """Blocks mode must wrap paragraphs inside each column, not across."""
+        deck = Deck(title="Test")
+        slide = Slide(
+            title="Cols",
+            content="P1\n\nP2\n\n|||\n\nP3\n\nP4",
+            classes=["cols-2"],
+            metadata={"animate": "blocks"},
+        )
+        deck.slides.append(slide)
+        html = build_deck(deck)
+        assert 'data-fragment-count="4"' in html
+        # Each paragraph wrapped individually inside its column div
+        assert '<div class="col"><div class="fragment"' in html
+
+    def test_blocks_with_rows(self):
+        """Blocks mode must wrap paragraphs inside each row, not across."""
+        deck = Deck(title="Test")
+        slide = Slide(
+            title="Rows",
+            content="P1\n\nP2\n\n===\n\nP3\n\nP4",
+            classes=["rows-2"],
+            metadata={"animate": "blocks"},
+        )
+        deck.slides.append(slide)
+        html = build_deck(deck)
+        assert 'data-fragment-count="4"' in html
+        assert '<div class="colloquium-row"><div class="fragment"' in html
+
+    def test_step_blockquote_with_nested_bullets(self):
+        """Step group with a blockquote containing fragments must wrap the blockquote."""
+        deck = Deck(title="Test")
+        slide = Slide(
+            title="BQ",
+            content="Intro.\n\n<!-- step -->\n\n> Note\n>\n> - A\n> - B",
+            metadata={"animate": "bullets"},
+        )
+        deck.slides.append(slide)
+        html = build_deck(deck)
+        # blockquote (frag 1) wraps the <p> and bullets (frags 2, 3)
+        assert 'data-fragment-count="3"' in html
+        assert '<div class="fragment" data-fragment-index="1"><blockquote>' in html
