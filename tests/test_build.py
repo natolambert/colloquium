@@ -1555,3 +1555,41 @@ class TestFragments:
         html = build_deck(deck)
         assert "fragmentStates" in html
         assert "_updateFragments" in html
+
+    def test_li_with_existing_class_gets_fragment_index(self):
+        """Bullets with extra classes must still get data-fragment-index."""
+        from colloquium.build import _apply_auto_animate, _number_fragments
+        html = '<ul>\n<li class="highlight">A</li>\n<li>B</li>\n</ul>'
+        html = _apply_auto_animate(html, "bullets")
+        html, count = _number_fragments(html)
+        assert count == 2
+        assert 'class="fragment highlight" data-fragment-index="1"' in html
+        assert 'class="fragment" data-fragment-index="2"' in html
+
+    def test_step_mixed_content_wraps_non_fragment_blocks(self):
+        """Step groups with bullets + paragraphs must hide paragraphs too."""
+        deck = Deck(title="Test")
+        slide = Slide(
+            title="Mixed",
+            content="- A\n- B\n\n<!-- step -->\n\n- C\n\nConclusion.",
+            metadata={"animate": "bullets"},
+        )
+        deck.slides.append(slide)
+        html = build_deck(deck)
+        # The conclusion paragraph should be in a fragment div
+        assert '<div class="fragment" data-fragment-index=' in html
+        # 2 bullets before step + 1 bullet after + 1 paragraph = 4
+        assert 'data-fragment-count="4"' in html
+
+    def test_step_only_bullets_no_extra_wrapper(self):
+        """Step group with only bullets should not add redundant wrappers."""
+        deck = Deck(title="Test")
+        slide = Slide(
+            title="Pure",
+            content="Intro.\n\n<!-- step -->\n\n- A\n- B",
+            metadata={"animate": "bullets"},
+        )
+        deck.slides.append(slide)
+        html = build_deck(deck)
+        # 2 bullets in the step group, no extra paragraph to wrap
+        assert 'data-fragment-count="2"' in html

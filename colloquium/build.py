@@ -92,7 +92,7 @@ def _render_figure_captions(rendered: str, md: MarkdownIt) -> str:
 # ===== Fragment processing (incremental reveal) =====
 
 _STEP_MARKER_RE = re.compile(r"\s*<!--\s*step\s*-->\s*")
-_FRAGMENT_CLASS_RE = re.compile(r'class="fragment"')
+_FRAGMENT_CLASS_RE = re.compile(r'class="fragment\b([^"]*)"')
 _FRAGMENT_BLOCK_TAGS = frozenset(
     ("p", "ul", "ol", "pre", "blockquote", "table", "figure")
 )
@@ -176,8 +176,64 @@ def _apply_auto_animate(html: str, animate_type: str) -> str:
     return html
 
 
+def _wrap_non_fragment_blocks(html: str) -> str:
+    """Wrap top-level block elements that don't already contain fragments.
+
+    Used for step groups where auto-animate (bullets/items) has fragmentized
+    ``<li>`` elements but left other block content (paragraphs, etc.) without
+    a fragment wrapper, which would make them visible before the step click.
+    """
+    open_re = re.compile(
+        r"<(" + "|".join(_FRAGMENT_BLOCK_TAGS) + r")[\s>]"
+    )
+    close_re = re.compile(
+        r"</(" + "|".join(_FRAGMENT_BLOCK_TAGS) + r")>"
+    )
+
+    lines = html.split("\n")
+    blocks: list[str] = []
+    current: list[str] = []
+    depth = 0
+
+    for line in lines:
+        opens = sum(1 for _ in open_re.finditer(line))
+        closes = sum(1 for _ in close_re.finditer(line))
+
+        if depth == 0 and opens == 0 and not current:
+            if line.strip():
+                blocks.append(line)
+            continue
+
+        current.append(line)
+        depth += opens - closes
+
+        if depth <= 0:
+            depth = 0
+            block_html = "\n".join(current)
+            if block_html.strip():
+                if 'class="fragment' in block_html:
+                    # Block already has fragment elements — leave as-is
+                    blocks.append(block_html)
+                else:
+                    blocks.append(f'<div class="fragment">{block_html}</div>')
+            current = []
+
+    if current:
+        block_html = "\n".join(current)
+        if block_html.strip():
+            if 'class="fragment' in block_html:
+                blocks.append(block_html)
+            else:
+                blocks.append(f'<div class="fragment">{block_html}</div>')
+
+    return "\n".join(blocks)
+
+
 def _number_fragments(html: str) -> tuple[str, int]:
     """Add sequential ``data-fragment-index`` to all fragment elements.
+
+    Handles both ``class="fragment"`` and ``class="fragment extra-cls"``
+    (elements with additional classes).
 
     Returns *(processed_html, total_fragment_count)*.
     """
@@ -186,7 +242,8 @@ def _number_fragments(html: str) -> tuple[str, int]:
     def _replace(m: re.Match) -> str:
         nonlocal count
         count += 1
-        return f'class="fragment" data-fragment-index="{count}"'
+        extra = m.group(1)  # "" or " extra-class ..."
+        return f'class="fragment{extra}" data-fragment-index="{count}"'
 
     result = _FRAGMENT_CLASS_RE.sub(_replace, html)
     return result, count
@@ -221,8 +278,12 @@ def _process_fragments(
             chunk = _apply_auto_animate(chunk, animate_type)
 
         if is_fragment:
-            # If auto-animate already added fragments inside, don't double-wrap
-            if 'class="fragment"' in chunk:
+            has_inner = 'class="fragment' in chunk
+            if has_inner:
+                # Auto-animate added fragments to some elements (e.g. <li>).
+                # Wrap remaining non-fragment blocks so they are also hidden
+                # until the step is reached (e.g. a <p> after a <ul>).
+                chunk = _wrap_non_fragment_blocks(chunk)
                 parts.append(chunk)
             else:
                 parts.append(f'<div class="fragment">{chunk}</div>')
