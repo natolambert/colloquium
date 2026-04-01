@@ -1516,9 +1516,11 @@ class TestFragments:
         # The section tag should not have data-fragment-count
         import re
         section = re.search(r'<section[^>]*data-index="0"[^>]*>', html).group()
+        section_start = html.index(section)
+        section_html = html[section_start:html.index("</section>", section_start)]
         assert "data-fragment-count" not in section
-        assert 'data-fragment-index' not in html.split("<script>")[0]
-        assert 'class="fragment"' not in html.split("<script>")[0]
+        assert 'data-fragment-index' not in section_html
+        assert 'class="fragment"' not in section_html
 
     def test_fragment_css_present(self):
         deck = Deck(title="Test")
@@ -1529,8 +1531,10 @@ class TestFragments:
         )
         deck.slides.append(slide)
         html = build_deck(deck)
-        assert ".fragment {" in html
-        assert ".fragment.visible {" in html
+        assert ".fragment[data-fragment-index] {" in html
+        assert ".fragment[data-fragment-index].visible {" in html
+        assert "pointer-events: none" in html
+        assert "pointer-events: auto" in html
 
     def test_print_css_shows_fragments(self):
         deck = Deck(title="Test")
@@ -1539,7 +1543,7 @@ class TestFragments:
         assert "@media print" in html
         # Print block should force fragments visible
         print_idx = html.index("@media print")
-        closing_brace = html.index("}", html.index(".fragment", print_idx))
+        closing_brace = html.index("}", html.index(".fragment[data-fragment-index]", print_idx))
         print_fragment_section = html[print_idx:closing_brace]
         assert "opacity: 1" in print_fragment_section
 
@@ -1547,7 +1551,7 @@ class TestFragments:
         deck = Deck(title="Test")
         deck.add_slide(title="S", content="text")
         html = build_deck(deck)
-        assert ".colloquium-capture .fragment" in html
+        assert ".colloquium-capture .fragment[data-fragment-index]" in html
 
     def test_fragment_js_present(self):
         deck = Deck(title="Test")
@@ -1556,15 +1560,36 @@ class TestFragments:
         assert "fragmentStates" in html
         assert "_updateFragments" in html
 
-    def test_li_with_existing_class_gets_fragment_index(self):
-        """Bullets with extra classes must still get data-fragment-index."""
+    def test_li_with_arbitrary_attributes_gets_fragment_index(self):
+        """Bullets with any attribute order must still get data-fragment-index."""
         from colloquium.build import _apply_auto_animate, _number_fragments
-        html = '<ul>\n<li class="highlight">A</li>\n<li>B</li>\n</ul>'
+        html = (
+            '<ul>\n'
+            '<li id="first" class="highlight">A</li>\n'
+            '<li data-id="2">B</li>\n'
+            '</ul>'
+        )
         html = _apply_auto_animate(html, "bullets")
         html, count = _number_fragments(html)
         assert count == 2
-        assert 'class="fragment highlight" data-fragment-index="1"' in html
-        assert 'class="fragment" data-fragment-index="2"' in html
+        assert '<li id="first" class="fragment highlight" data-fragment-index="1">' in html
+        assert '<li data-id="2" class="fragment" data-fragment-index="2">' in html
+
+    def test_custom_fragment_class_without_animation_is_untouched(self):
+        deck = Deck(title="Test")
+        slide = Slide(
+            title="Plain",
+            content='<div class="fragment">Visible custom fragment</div>',
+        )
+        deck.slides.append(slide)
+        html = build_deck(deck)
+        import re
+        section = re.search(r'<section[^>]*data-index="0"[^>]*>', html).group()
+        section_start = html.index(section)
+        section_html = html[section_start:html.index("</section>", section_start)]
+        assert "data-fragment-count" not in section
+        assert 'data-fragment-index' not in section_html
+        assert 'class="fragment">Visible custom fragment</div>' in section_html
 
     def test_step_mixed_content_wraps_non_fragment_blocks(self):
         """Step groups with bullets + paragraphs must hide paragraphs too."""

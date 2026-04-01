@@ -92,10 +92,22 @@ def _render_figure_captions(rendered: str, md: MarkdownIt) -> str:
 # ===== Fragment processing (incremental reveal) =====
 
 _STEP_MARKER_RE = re.compile(r"\s*<!--\s*step\s*-->\s*")
-_FRAGMENT_CLASS_RE = re.compile(r'class="fragment\b([^"]*)"')
+_CLASS_ATTR_RE = re.compile(r'\sclass=(["\'])(.*?)\1')
+_LI_TAG_RE = re.compile(r"<li\b([^>]*)>")
+_GENERATED_FRAGMENT_RE = re.compile(r'\sdata-colloquium-fragment="1"')
 _FRAGMENT_BLOCK_TAGS = frozenset(
     ("p", "ul", "ol", "pre", "blockquote", "table", "figure")
 )
+
+
+def _wrap_fragment_html(content: str) -> str:
+    """Wrap *content* in a generated fragment container."""
+    return f'<div class="fragment" data-colloquium-fragment="1">{content}</div>'
+
+
+def _contains_generated_fragments(html: str) -> bool:
+    """Return True when *html* contains generated fragment markers."""
+    return _GENERATED_FRAGMENT_RE.search(html) is not None
 
 
 def _process_step_markers(html: str) -> list[tuple[str, bool]]:
@@ -157,13 +169,13 @@ def _wrap_blocks_as_fragments(
                 if preserve_column_markers and stripped == "<p>|||</p>":
                     blocks.append(block_html)
                 else:
-                    blocks.append(f'<div class="fragment">{block_html}</div>')
+                    blocks.append(_wrap_fragment_html(block_html))
             current = []
 
     if current:
         block_html = "\n".join(current)
         if block_html.strip():
-            blocks.append(f'<div class="fragment">{block_html}</div>')
+            blocks.append(_wrap_fragment_html(block_html))
 
     return "\n".join(blocks)
 
@@ -175,10 +187,24 @@ def _apply_auto_animate(html: str, animate_type: str) -> str:
     * ``blocks`` — each top-level block element becomes a fragment.
     """
     if animate_type in ("bullets", "items"):
-        # Handle <li class="..."> first (prepend fragment to existing class)
-        html = re.sub(r'<li class="', '<li class="fragment ', html)
-        # Then handle plain <li> (add fragment class)
-        html = re.sub(r"<li>", '<li class="fragment">', html)
+        def _fragmentize(match: re.Match[str]) -> str:
+            attrs = match.group(1)
+            class_match = _CLASS_ATTR_RE.search(attrs)
+            if class_match:
+                classes = class_match.group(2).split()
+                classes = ["fragment", *(cls for cls in classes if cls != "fragment")]
+                attrs = _CLASS_ATTR_RE.sub(
+                    f' class="{" ".join(classes)}"',
+                    attrs,
+                    count=1,
+                )
+            else:
+                attrs = f'{attrs} class="fragment"'
+            if not _contains_generated_fragments(attrs):
+                attrs = f'{attrs} data-colloquium-fragment="1"'
+            return f"<li{attrs}>"
+
+        html = _LI_TAG_RE.sub(_fragmentize, html)
         return html
     if animate_type == "blocks":
         return _wrap_blocks_as_fragments(html)
@@ -216,16 +242,16 @@ def _wrap_non_fragment_blocks(html: str) -> str:
         if not stripped:
             return
         # Already a fragment wrapper div — skip
-        if stripped.startswith('<div class="fragment'):
+        if stripped.startswith('<div class="fragment" data-colloquium-fragment="1">'):
             blocks.append(block_html)
             return
         # Fully-animated list (all <li> are fragments) — skip
         is_list = stripped.startswith(("<ul", "<ol"))
-        if is_list and "<li>" not in block_html and 'class="fragment' in block_html:
+        if is_list and "<li>" not in block_html and _contains_generated_fragments(block_html):
             blocks.append(block_html)
             return
         # Wrap everything else
-        blocks.append(f'<div class="fragment">{block_html}</div>')
+        blocks.append(_wrap_fragment_html(block_html))
 
     for line in lines:
         opens = sum(1 for _ in open_re.finditer(line))
@@ -260,13 +286,12 @@ def _number_fragments(html: str) -> tuple[str, int]:
     """
     count = 0
 
-    def _replace(m: re.Match) -> str:
+    def _replace(m: re.Match[str]) -> str:
         nonlocal count
         count += 1
-        extra = m.group(1)  # "" or " extra-class ..."
-        return f'class="fragment{extra}" data-fragment-index="{count}"'
+        return f' data-fragment-index="{count}"'
 
-    result = _FRAGMENT_CLASS_RE.sub(_replace, html)
+    result = _GENERATED_FRAGMENT_RE.sub(_replace, html)
     return result, count
 
 
@@ -284,7 +309,7 @@ def _process_fragments(
 
     Returns *(processed_html, fragment_count)*.
     """
-    has_existing = 'class="fragment' in html
+    has_existing = _contains_generated_fragments(html)
     if not animate_type and "<!-- step" not in html and not has_existing:
         return html, 0
 
@@ -310,7 +335,7 @@ def _process_fragments(
             chunk = _apply_auto_animate(chunk, animate_type)
 
         if is_fragment:
-            has_inner = 'class="fragment' in chunk
+            has_inner = _contains_generated_fragments(chunk)
             if has_inner:
                 # Some elements are already fragments (auto-animate or
                 # pre-existing blocks wrapping).  Wrap any remaining
@@ -318,7 +343,7 @@ def _process_fragments(
                 chunk = _wrap_non_fragment_blocks(chunk)
                 parts.append(chunk)
             else:
-                parts.append(f'<div class="fragment">{chunk}</div>')
+                parts.append(_wrap_fragment_html(chunk))
         else:
             parts.append(chunk)
 
