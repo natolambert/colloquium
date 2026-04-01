@@ -945,6 +945,17 @@ html, body {
     margin-top: 0;
 }
 
+/* ===== Fragments (incremental reveal) ===== */
+.fragment[data-fragment-index] {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease;
+}
+.fragment[data-fragment-index].visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
 /* ===== Footer (inside each slide) ===== */
 .colloquium-footer {
     position: absolute;
@@ -1655,6 +1666,13 @@ body:hover .colloquium-present {
     .colloquium-chart-print {
         display: block !important;
     }
+
+    /* Show all fragments in print */
+    .fragment[data-fragment-index] {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        transition: none !important;
+    }
 }
 
 /* ===== Capture mode — hide UI chrome for headless screenshots ===== */
@@ -1663,4 +1681,11 @@ body:hover .colloquium-present {
 .colloquium-capture .colloquium-overflow-warn,
 .colloquium-capture .colloquium-picker-overlay {
     display: none !important;
+}
+
+/* Show all fragments in capture mode */
+.colloquium-capture .fragment[data-fragment-index] {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transition: none !important;
 }

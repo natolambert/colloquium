@@ -1402,3 +1402,262 @@ class TestCitationRendering:
         assert "\\left[" in html
         assert "\\right]" in html
         assert "colloquium-slide-footnote-text" in html
+
+
+class TestFragments:
+    """Tests for the fragment / incremental reveal system."""
+
+    def test_animate_bullets_adds_fragment_class(self):
+        deck = Deck(title="Test")
+        slide = Slide(
+            title="Bullets",
+            content="- A\n- B\n- C",
+            metadata={"animate": "bullets"},
+        )
+        deck.slides.append(slide)
+        html = build_deck(deck)
+        assert 'class="fragment" data-fragment-index="1"' in html
+        assert 'class="fragment" data-fragment-index="2"' in html
+        assert 'class="fragment" data-fragment-index="3"' in html
+
+    def test_animate_bullets_sets_fragment_count(self):
+        deck = Deck(title="Test")
+        slide = Slide(
+            title="Bullets",
+            content="- A\n- B\n- C",
+            metadata={"animate": "bullets"},
+        )
+        deck.slides.append(slide)
+        html = build_deck(deck)
+        assert 'data-fragment-count="3"' in html
+
+    def test_animate_items_alias(self):
+        deck = Deck(title="Test")
+        slide = Slide(
+            title="Items",
+            content="- X\n- Y",
+            metadata={"animate": "items"},
+        )
+        deck.slides.append(slide)
+        html = build_deck(deck)
+        assert 'data-fragment-count="2"' in html
+
+    def test_animate_blocks_wraps_elements(self):
+        deck = Deck(title="Test")
+        slide = Slide(
+            title="Blocks",
+            content="Para one.\n\nPara two.\n\nPara three.",
+            metadata={"animate": "blocks"},
+        )
+        deck.slides.append(slide)
+        html = build_deck(deck)
+        assert 'data-fragment-count="3"' in html
+        assert '<div class="fragment" data-fragment-index="1"><p>' in html
+
+    def test_step_markers_create_fragments(self):
+        deck = Deck(title="Test")
+        slide = Slide(
+            title="Steps",
+            content="Visible.\n\n<!-- step -->\n\nRevealed.",
+        )
+        deck.slides.append(slide)
+        html = build_deck(deck)
+        assert 'data-fragment-count="1"' in html
+        assert '<div class="fragment" data-fragment-index="1">' in html
+        # Initial content should NOT be in a fragment div
+        assert '<p>Visible.</p>' in html
+
+    def test_step_initial_content_not_wrapped(self):
+        deck = Deck(title="Test")
+        slide = Slide(
+            title="Steps",
+            content="Initial.\n\n<!-- step -->\n\nLater.",
+        )
+        deck.slides.append(slide)
+        html = build_deck(deck)
+        # The initial paragraph should not be wrapped in a fragment div
+        section_start = html.index('class="slide-content"')
+        fragment_start = html.index('class="fragment"', section_start)
+        initial_p = html.index("<p>Initial.</p>", section_start)
+        assert initial_p < fragment_start
+
+    def test_multiple_step_markers(self):
+        deck = Deck(title="Test")
+        slide = Slide(
+            title="Steps",
+            content="A.\n\n<!-- step -->\n\nB.\n\n<!-- step -->\n\nC.",
+        )
+        deck.slides.append(slide)
+        html = build_deck(deck)
+        assert 'data-fragment-count="2"' in html
+        assert 'data-fragment-index="1"' in html
+        assert 'data-fragment-index="2"' in html
+
+    def test_step_and_animate_compose(self):
+        deck = Deck(title="Test")
+        slide = Slide(
+            title="Composed",
+            content="- A\n- B\n\n<!-- step -->\n\nConclusion.",
+            metadata={"animate": "bullets"},
+        )
+        deck.slides.append(slide)
+        html = build_deck(deck)
+        # 2 bullets + 1 step group = 3 fragments
+        assert 'data-fragment-count="3"' in html
+        assert 'data-fragment-index="1"' in html
+        assert 'data-fragment-index="2"' in html
+        assert 'data-fragment-index="3"' in html
+
+    def test_no_animate_no_step_no_fragments(self):
+        deck = Deck(title="Test")
+        slide = Slide(title="Plain", content="Just text.")
+        deck.slides.append(slide)
+        html = build_deck(deck)
+        # The section tag should not have data-fragment-count
+        import re
+        section = re.search(r'<section[^>]*data-index="0"[^>]*>', html).group()
+        section_start = html.index(section)
+        section_html = html[section_start:html.index("</section>", section_start)]
+        assert "data-fragment-count" not in section
+        assert 'data-fragment-index' not in section_html
+        assert 'class="fragment"' not in section_html
+
+    def test_fragment_css_present(self):
+        deck = Deck(title="Test")
+        slide = Slide(
+            title="Bullets",
+            content="- A",
+            metadata={"animate": "bullets"},
+        )
+        deck.slides.append(slide)
+        html = build_deck(deck)
+        assert ".fragment[data-fragment-index] {" in html
+        assert ".fragment[data-fragment-index].visible {" in html
+        assert "pointer-events: none" in html
+        assert "pointer-events: auto" in html
+
+    def test_print_css_shows_fragments(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="S", content="text")
+        html = build_deck(deck)
+        assert "@media print" in html
+        # Print block should force fragments visible
+        print_idx = html.index("@media print")
+        closing_brace = html.index("}", html.index(".fragment[data-fragment-index]", print_idx))
+        print_fragment_section = html[print_idx:closing_brace]
+        assert "opacity: 1" in print_fragment_section
+
+    def test_capture_mode_shows_fragments(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="S", content="text")
+        html = build_deck(deck)
+        assert ".colloquium-capture .fragment[data-fragment-index]" in html
+
+    def test_fragment_js_present(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="S", content="text")
+        html = build_deck(deck)
+        assert "fragmentStates" in html
+        assert "_updateFragments" in html
+
+    def test_li_with_arbitrary_attributes_gets_fragment_index(self):
+        """Bullets with any attribute order must still get data-fragment-index."""
+        from colloquium.build import _apply_auto_animate, _number_fragments
+        html = (
+            '<ul>\n'
+            '<li id="first" class="highlight">A</li>\n'
+            '<li data-id="2">B</li>\n'
+            '</ul>'
+        )
+        html = _apply_auto_animate(html, "bullets")
+        html, count = _number_fragments(html)
+        assert count == 2
+        assert '<li id="first" class="fragment highlight" data-fragment-index="1">' in html
+        assert '<li data-id="2" class="fragment" data-fragment-index="2">' in html
+
+    def test_custom_fragment_class_without_animation_is_untouched(self):
+        deck = Deck(title="Test")
+        slide = Slide(
+            title="Plain",
+            content='<div class="fragment">Visible custom fragment</div>',
+        )
+        deck.slides.append(slide)
+        html = build_deck(deck)
+        import re
+        section = re.search(r'<section[^>]*data-index="0"[^>]*>', html).group()
+        section_start = html.index(section)
+        section_html = html[section_start:html.index("</section>", section_start)]
+        assert "data-fragment-count" not in section
+        assert 'data-fragment-index' not in section_html
+        assert 'class="fragment">Visible custom fragment</div>' in section_html
+
+    def test_step_mixed_content_wraps_non_fragment_blocks(self):
+        """Step groups with bullets + paragraphs must hide paragraphs too."""
+        deck = Deck(title="Test")
+        slide = Slide(
+            title="Mixed",
+            content="- A\n- B\n\n<!-- step -->\n\n- C\n\nConclusion.",
+            metadata={"animate": "bullets"},
+        )
+        deck.slides.append(slide)
+        html = build_deck(deck)
+        # The conclusion paragraph should be in a fragment div
+        assert '<div class="fragment" data-fragment-index=' in html
+        # 2 bullets before step + 1 bullet after + 1 paragraph = 4
+        assert 'data-fragment-count="4"' in html
+
+    def test_step_only_bullets_no_extra_wrapper(self):
+        """Step group with only bullets should not add redundant wrappers."""
+        deck = Deck(title="Test")
+        slide = Slide(
+            title="Pure",
+            content="Intro.\n\n<!-- step -->\n\n- A\n- B",
+            metadata={"animate": "bullets"},
+        )
+        deck.slides.append(slide)
+        html = build_deck(deck)
+        # 2 bullets in the step group, no extra paragraph to wrap
+        assert 'data-fragment-count="2"' in html
+
+    def test_blocks_with_columns(self):
+        """Blocks mode must wrap paragraphs inside each column, not across."""
+        deck = Deck(title="Test")
+        slide = Slide(
+            title="Cols",
+            content="P1\n\nP2\n\n|||\n\nP3\n\nP4",
+            classes=["cols-2"],
+            metadata={"animate": "blocks"},
+        )
+        deck.slides.append(slide)
+        html = build_deck(deck)
+        assert 'data-fragment-count="4"' in html
+        # Each paragraph wrapped individually inside its column div
+        assert '<div class="col"><div class="fragment"' in html
+
+    def test_blocks_with_rows(self):
+        """Blocks mode must wrap paragraphs inside each row, not across."""
+        deck = Deck(title="Test")
+        slide = Slide(
+            title="Rows",
+            content="P1\n\nP2\n\n===\n\nP3\n\nP4",
+            classes=["rows-2"],
+            metadata={"animate": "blocks"},
+        )
+        deck.slides.append(slide)
+        html = build_deck(deck)
+        assert 'data-fragment-count="4"' in html
+        assert '<div class="colloquium-row"><div class="fragment"' in html
+
+    def test_step_blockquote_with_nested_bullets(self):
+        """Step group with a blockquote containing fragments must wrap the blockquote."""
+        deck = Deck(title="Test")
+        slide = Slide(
+            title="BQ",
+            content="Intro.\n\n<!-- step -->\n\n> Note\n>\n> - A\n> - B",
+            metadata={"animate": "bullets"},
+        )
+        deck.slides.append(slide)
+        html = build_deck(deck)
+        # blockquote (frag 1) wraps the <p> and bullets (frags 2, 3)
+        assert 'data-fragment-count="3"' in html
+        assert '<div class="fragment" data-fragment-index="1"><blockquote>' in html

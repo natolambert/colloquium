@@ -10,6 +10,12 @@ class ColloquiumPresentation {
         this.currentIndex = 0;
         this.totalSlides = this.slides.length;
 
+        // Fragment state: current revealed fragment index per slide (0 = none)
+        this.fragmentStates = this.slides.map(() => 0);
+        this.fragmentCounts = this.slides.map(
+            s => parseInt(s.getAttribute('data-fragment-count') || '0', 10)
+        );
+
         // Reference dimensions (16:9)
         this.width = 1280;
         this.height = 720;
@@ -92,12 +98,20 @@ class ColloquiumPresentation {
         }
     }
 
-    goTo(index) {
+    goTo(index, showAllFragments = false) {
         if (index < 0 || index >= this.totalSlides) return;
 
         this.slides[this.currentIndex].classList.remove('active');
         this.currentIndex = index;
         this.slides[this.currentIndex].classList.add('active');
+
+        // Set fragment state
+        if (showAllFragments) {
+            this.fragmentStates[index] = this.fragmentCounts[index];
+        } else {
+            this.fragmentStates[index] = 0;
+        }
+        this._updateFragments(index);
 
         if (window.colloquiumFitDisplayMathIn) {
             requestAnimationFrame(() => {
@@ -125,11 +139,24 @@ class ColloquiumPresentation {
     }
 
     next() {
-        this.goTo(this.currentIndex + 1);
+        const fc = this.fragmentCounts[this.currentIndex];
+        const fs = this.fragmentStates[this.currentIndex];
+        if (fc > 0 && fs < fc) {
+            this.fragmentStates[this.currentIndex] = fs + 1;
+            this._updateFragments(this.currentIndex);
+        } else {
+            this.goTo(this.currentIndex + 1);
+        }
     }
 
     prev() {
-        this.goTo(this.currentIndex - 1);
+        const fs = this.fragmentStates[this.currentIndex];
+        if (fs > 0) {
+            this.fragmentStates[this.currentIndex] = fs - 1;
+            this._updateFragments(this.currentIndex);
+        } else {
+            this.goTo(this.currentIndex - 1, true);
+        }
     }
 
     first() {
@@ -137,7 +164,19 @@ class ColloquiumPresentation {
     }
 
     last() {
-        this.goTo(this.totalSlides - 1);
+        this.goTo(this.totalSlides - 1, true);
+    }
+
+    // --- Fragment Management ---
+
+    _updateFragments(slideIndex) {
+        const slide = this.slides[slideIndex];
+        const currentStep = this.fragmentStates[slideIndex];
+        const fragments = slide.querySelectorAll('[data-fragment-index]');
+        fragments.forEach(el => {
+            const idx = parseInt(el.getAttribute('data-fragment-index'), 10);
+            el.classList.toggle('visible', idx <= currentStep);
+        });
     }
 
     // --- Slide Picker ---
