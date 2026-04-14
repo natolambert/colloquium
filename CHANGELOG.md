@@ -11,6 +11,8 @@ One line per PR for easy copy into GitHub releases.
 
 ## [Unreleased]
 
+- Upgrade the locked Pillow dependency to 12.2.0 and refresh `uv.lock` metadata ([#27](https://github.com/natolambert/colloquium/pull/27))
+
 ## [0.2.1] - 2026-03-25
 
 - Fix chart rendering breaking slide navigation when data contains single quotes ([#20](https://github.com/natolambert/colloquium/pull/20))
