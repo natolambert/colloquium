@@ -29,14 +29,18 @@ def _build(args):
 
 def _serve(args):
     """Serve a presentation with live reload."""
-    from colloquium.serve import serve
+    from colloquium.serve import PortUnavailableError, serve
 
     input_path = args.file
     if not Path(input_path).exists():
         print(f"Error: {input_path} not found", file=sys.stderr)
         sys.exit(1)
 
-    serve(input_path, port=args.port)
+    try:
+        serve(input_path, port=args.port)
+    except PortUnavailableError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 def _export(args):
@@ -119,7 +123,7 @@ def main():
     # serve
     serve_parser = subparsers.add_parser("serve", help="Dev server with live reload")
     serve_parser.add_argument("file", help="Input markdown file")
-    serve_parser.add_argument("-p", "--port", type=int, default=8080, help="Port (default: 8080)")
+    serve_parser.add_argument("-p", "--port", type=int, default=8090, help="Port (default: 8090)")
     serve_parser.set_defaults(func=_serve)
 
     # export
