@@ -12,6 +12,7 @@ One line per PR for easy copy into GitHub releases.
 ## [Unreleased]
 
 - Bind dev server to loopback, change default port to 8090, and error on port conflicts ([#28](https://github.com/natolambert/colloquium/pull/28))
+- Upgrade locked Pillow to 12.2.0 to fix CVE-2026-40192 ([#29](https://github.com/natolambert/colloquium/pull/29))
 
 ## [0.2.1] - 2026-03-25
 
