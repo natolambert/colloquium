@@ -11,6 +11,8 @@ One line per PR for easy copy into GitHub releases.
 
 ## [Unreleased]
 
+- Bind dev server to loopback, change default port to 8090, and error on port conflicts ([#28](https://github.com/natolambert/colloquium/pull/28))
+
 ## [0.2.1] - 2026-03-25
 
 - Fix chart rendering breaking slide navigation when data contains single quotes ([#20](https://github.com/natolambert/colloquium/pull/20))
