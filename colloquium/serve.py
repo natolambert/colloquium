@@ -116,6 +116,15 @@ def _build_snapshot_html(input_path: str, text: str) -> str:
 # After this many seconds of "unstable", build anyway to avoid getting
 # permanently stuck.
 _MAX_STABLE_WAIT = 3.0
+_DEFAULT_HOST = "127.0.0.1"
+
+
+class PortUnavailableError(RuntimeError):
+    """Raised when the dev server cannot bind to the requested port."""
+
+    def __init__(self, port: int, cause: OSError):
+        detail = cause.strerror or str(cause)
+        super().__init__(f"Port {port} is unavailable: {detail}")
 
 
 def _watch_and_rebuild(input_path: str, output_path: str, stop_event: threading.Event):
@@ -180,7 +189,23 @@ def _watch_and_rebuild(input_path: str, output_path: str, stop_event: threading.
         stop_event.wait(timeout=0.15)
 
 
-def serve(input_path: str, port: int = 8080, output_dir: str | None = None):
+def _create_http_server(port: int, handler):
+    """Create the HTTP server bound to loopback with address reuse enabled.
+
+    This preserves immediate restarts after ``TIME_WAIT`` while still
+    rejecting the macOS overlap case caused by wildcard binds.
+    """
+
+    class PresentationTCPServer(socketserver.TCPServer):
+        allow_reuse_address = True
+
+    try:
+        return PresentationTCPServer((_DEFAULT_HOST, port), handler)
+    except OSError as exc:
+        raise PortUnavailableError(port, exc) from exc
+
+
+def serve(input_path: str, port: int = 8090, output_dir: str | None = None):
     """Serve a presentation with live rebuilding on file changes."""
     from colloquium.build import build_file
 
@@ -211,19 +236,14 @@ def serve(input_path: str, port: int = 8080, output_dir: str | None = None):
     # Serve from the output directory
     os.chdir(serve_dir)
 
-    handler = http.server.SimpleHTTPRequestHandler
-
     # Suppress request logging
-    class QuietHandler(handler):
+    class QuietHandler(http.server.SimpleHTTPRequestHandler):
         def log_message(self, format, *args):
             pass
 
-    class ReusableTCPServer(socketserver.TCPServer):
-        allow_reuse_address = True
-
     try:
-        with ReusableTCPServer(("", port), QuietHandler) as httpd:
-            url = f"http://localhost:{port}/{stem}.html"
+        with _create_http_server(port, QuietHandler) as httpd:
+            url = f"http://{_DEFAULT_HOST}:{port}/{stem}.html"
             print(f"  Serving at {url}")
             print(f"  Watching for changes... (Ctrl+C to stop)")
             httpd.serve_forever()

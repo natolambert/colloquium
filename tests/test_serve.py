@@ -1,13 +1,21 @@
 """Tests for live-reload stability checks."""
 
+import http.server
+import socket
+import socketserver
+
+import pytest
+
 from colloquium.serve import (
     _build_snapshot_html,
+    _create_http_server,
     _has_unclosed_fenced_code_block,
     _has_unclosed_html_comment,
     _read_quiescent_source,
     _read_stable_source_snapshot,
     _render_matches_deck_structure,
     _source_text_is_stable_for_rebuild,
+    PortUnavailableError,
 )
 from colloquium.parse import parse_markdown
 
@@ -113,3 +121,29 @@ class TestServeStabilityChecks:
     def test_unclosed_tilde_fences(self):
         text = "~~~python\nprint('hi')\n\n## Slide"
         assert _has_unclosed_fenced_code_block(text)
+
+
+class TestServePortBinding:
+    def test_create_http_server_binds_loopback_with_so_reuseaddr_enabled(self):
+        httpd = _create_http_server(0, http.server.SimpleHTTPRequestHandler)
+
+        try:
+            assert httpd.allow_reuse_address is True
+            assert httpd.server_address[0] == "127.0.0.1"
+            assert httpd.socket.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR) != 0
+        finally:
+            httpd.server_close()
+
+    def test_create_http_server_rejects_port_already_in_use(self):
+        class NoopHandler(socketserver.BaseRequestHandler):
+            def handle(self):
+                pass
+
+        with socketserver.TCPServer(("127.0.0.1", 0), NoopHandler) as existing:
+            port = existing.server_address[1]
+
+            with pytest.raises(
+                PortUnavailableError,
+                match=rf"Port {port} is unavailable",
+            ):
+                _create_http_server(port, http.server.SimpleHTTPRequestHandler)
