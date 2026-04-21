@@ -14,6 +14,7 @@ One line per PR for easy copy into GitHub releases.
 - Bind dev server to loopback, change default port to 8090, and error on port conflicts ([#28](https://github.com/natolambert/colloquium/pull/28))
 - Upgrade locked Pillow to 12.2.0 to fix CVE-2026-40192 ([#29](https://github.com/natolambert/colloquium/pull/29))
 - Upgrade locked pytest to 9.0.3 and Pygments to 2.20.0 to fix CVE-2025-71176 and CVE-2026-4539 ([#30](https://github.com/natolambert/colloquium/pull/30))
+- Upgrade locked lxml to 6.1.0 to fix CVE-2026-41066 (XXE in iterparse/ETCompatXMLParser) ([#31](https://github.com/natolambert/colloquium/pull/31))
 
 ## [0.2.1] - 2026-03-25
 
