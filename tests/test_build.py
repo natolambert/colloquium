@@ -2131,3 +2131,21 @@ class TestImgTallRightUtility:
         build_file(str(src), str(out))
         html = out.read_text()
         assert "img-tall-right" in html
+
+
+class TestEyebrow:
+    def test_eyebrow_renders_before_heading(self):
+        from colloquium.parse import parse_markdown
+
+        deck = parse_markdown("---\ntitle: T\n---\n\n<!-- eyebrow: Part *1* -->\n\n## Heading\n")
+        html = build_deck(deck)
+        assert '<div class="slide-eyebrow">Part <em>1</em></div>\n<h2>Heading</h2>' in html
+
+    def test_reference_does_not_double_initial_period(self, tmp_path):
+        bib = tmp_path / "refs.bib"
+        bib.write_text("@misc{a,\n  title = {T},\n  author = {Doe, Jane},\n  year = {2026}\n}\n")
+        entries = _parse_bib_file(str(bib))
+        from colloquium.build import _format_reference
+
+        assert "Doe, J.. " not in _format_reference(entries["a"], "a", "author-year", 1)
+        assert "Doe, J. " in _format_reference(entries["a"], "a", "author-year", 1)

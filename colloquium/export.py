@@ -494,11 +494,15 @@ def _resolve_image_path(src: str, base_dir: Path) -> Path | None:
     return None
 
 
-def export_pptx(input_path: str, output_path: str | None = None) -> str:
+def export_pptx(
+    input_path: str, output_path: str | None = None, template: str | None = None,
+) -> str:
     """Export a presentation to PPTX.
 
-    Requires the `python-pptx` package (install with `pip install colloquium[pptx]`).
-    Returns the output path.
+    With a template (``template`` argument or ``pptx.template`` in the
+    frontmatter), slides are built on the template's layouts; see
+    ``colloquium.pptx_template``. Requires the `python-pptx` package
+    (install with `pip install colloquium[pptx]`). Returns the output path.
     """
     try:
         from pptx import Presentation
@@ -521,6 +525,12 @@ def export_pptx(input_path: str, output_path: str | None = None) -> str:
 
     if output_path is None:
         output_path = str(Path(input_path).with_suffix(".pptx"))
+
+    if template or (deck.pptx or {}).get("template"):
+        from colloquium.pptx_template import export_pptx_with_template, parse_template_config
+
+        cfg = parse_template_config(deck.pptx or {}, base_dir, template_override=template)
+        return export_pptx_with_template(deck, base_dir, output_path, cfg)
 
     prs = Presentation()
     prs.slide_width = Inches(13.333)

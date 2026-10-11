@@ -107,6 +107,7 @@ custom_css: ".slide h2 { color: red; }"   # inline CSS overrides
 | `footer.center` | `""` | Center footer zone |
 | `footer.right` | `"auto"` | Right footer zone (`"auto"` = slide numbers) |
 | `custom_css` | `""` | Additional CSS injected into the page |
+| `pptx` | — | PPTX template export settings; see [PPTX Export](#pptx-export-experimental) |
 
 Footer text supports `{n}` (slide number) and `{N}` (total slides) for custom counters, e.g. `"Lambert {n}/{N}"` → `"Lambert 6/23"`.
 
@@ -270,6 +271,7 @@ At the slide root, use either `columns:` or `rows:`. For nested layouts, use `ro
 | `<!-- class: name1 name2 -->` | Add CSS classes to the slide |
 | `<!-- style: css-here -->` | Inline CSS on the slide element |
 | `<!-- notes: text -->` | Speaker notes (hidden in presentation) |
+| `<!-- eyebrow: text -->` | Small uppercase label above the slide heading (e.g. `Part 1` on a section break); fills a template's eyebrow slot in PPTX export |
 | `<!-- after: references -->` | Move this slide after generated bibliography slides; it is excluded from the footer `{N}` total |
 | `<!-- class: figure-captions -->` | Turn standalone markdown images on that slide into numbered figures with captions taken from `![alt](...)` |
 | `<!-- class: no-figure-captions -->` | Disable deck-wide figure captions for a specific slide |
@@ -631,6 +633,34 @@ colloquium export --pptx slides.md  # → slides.pptx
 ```
 
 This produces a reasonable starting point, but some colloquium features lose fidelity: citations are flattened, math renders as raw LaTeX, and custom themes/CSS aren't applied. Charts and tables become native editable PPTX objects.
+
+### Exporting onto an event's template
+
+When a conference hands you a `.pptx` speaker template, keep writing in markdown and build native, editable slides on the template's own layouts — backgrounds, logos, and heading styles come from the template:
+
+```yaml
+pptx:
+  template: "~/Downloads/Event Speaker Template.pptx"  # relative to the .md, or ~/absolute
+  layouts:                     # colloquium layout -> template slide number (1-based)
+    title: {slide: 4, eyebrow: 3, subtitle: 2, photo: 4, name: 6, affiliation: 5}
+    section-break: {slide: 9, eyebrow: 2}
+    content: {slide: 22, eyebrow: 3}
+  font: "Inter"                # body text font; headings keep the template's
+  colors: {text: "280016", muted: "706666", accent: "FF0073", link: "D10060"}
+  image_background: "FFFFFF"   # optional rounded card behind figures
+```
+
+```bash
+colloquium export --pptx talk.md                         # uses pptx.template
+colloquium export talk.md --template other-template.pptx # override the template
+```
+
+- **Layouts** pick a template slide whose *layout* each colloquium layout is built on. `content` is required; title slides fall back to `title`, everything else to `content`. Pick clean layouts (background + logo) — shapes baked into a layout (cards, divider lines) appear on every slide that uses it.
+- **Roles** map content onto that layout's placeholders by `idx` (the heading is `idx` 0 unless `heading:` is set). Title slides fill `eyebrow`/`name`/`affiliation`/`subtitle` from the `colloquium-title-*` components and `photo` from the first image; any slide fills `eyebrow` from `<!-- eyebrow: ... -->`. Placeholders left empty are removed.
+- **Body content** (paragraphs, bold/italic/links, bullet and numbered lists, `|||` columns, images, tables as text) is laid out natively under the heading, shrinking text uniformly when a slide is dense. Simple HTML blocks become small text, with empty color-styled `<span>`s rendered as colored swatches (handy for plot legends). Consecutive leading `##` lines become one multi-line title. `cite:` directives, a References slide, `{n}/{N}` footer text, and speaker notes carry over; animations, charts, and math do not.
+- Unused template layouts are pruned, so the output doesn't carry the template's sample media. Fonts the template embeds stay embedded.
+
+Find placeholder `idx` values by opening the template with python-pptx (`[(ph.placeholder_format.idx, ph.name) for ph in prs.slides[3].placeholders]`).
 
 ## PDF Export
 

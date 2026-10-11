@@ -696,7 +696,8 @@ def _format_reference(entry, key: str, style: str, number: int) -> str:
     prefix = f"[{number}] " if style == "numeric" else ""
 
     # Build: Authors. "Title." Venue, Year.
-    parts = [f'{prefix}{html_module.escape(author_line)}.']
+    # Initials already end the author line with "." -- don't double it.
+    parts = [f'{prefix}{html_module.escape(author_line.rstrip("."))}.']
     parts.append(f' &ldquo;<em>{html_module.escape(title)}</em>.&rdquo;')
     if venue:
         parts.append(f' <em>{html_module.escape(venue)}</em>,')
@@ -1226,6 +1227,9 @@ def _build_slide_html(
 
     # Slide content
     parts = []
+    eyebrow = slide.metadata.get("eyebrow")
+    if eyebrow:
+        parts.append(f'<div class="slide-eyebrow">{_render_inline_markdown(eyebrow, md)}</div>')
     if slide.title:
         tag = "h1" if slide.is_title_slide else "h2"
         title_html = _render_inline_markdown(slide.title, md)

@@ -16,6 +16,7 @@ dependencies = [
 [package.optional-dependencies]
 dev = [
     { name = "pytest" },
+    { name = "python-pptx" },
 ]
 pptx = [
     { name = "python-pptx" },
@@ -27,6 +28,7 @@ requires-dist = [
     { name = "mdit-py-plugins", specifier = ">=0.4" },
     { name = "pybtex", specifier = ">=0.24" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0" },
+    { name = "python-pptx", marker = "extra == 'dev'", specifier = ">=1.0" },
     { name = "python-pptx", marker = "extra == 'pptx'", specifier = ">=1.0" },
     { name = "pyyaml", specifier = ">=6.0" },
 ]

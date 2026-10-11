@@ -31,6 +31,8 @@ class Slide:
             parts.append(f"<!-- class: {' '.join(self.classes)} -->")
         if self.style:
             parts.append(f"<!-- style: {self.style} -->")
+        if self.metadata.get("eyebrow"):
+            parts.append(f"<!-- eyebrow: {self.metadata['eyebrow']} -->")
 
         if self.title:
             prefix = "# " if self.is_title_slide else "## "

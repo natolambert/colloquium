@@ -466,6 +466,25 @@ html, body {
     margin-bottom: 1.1em;
 }
 
+/* Per-slide eyebrow label above the heading (<!-- eyebrow: ... -->) */
+.slide-eyebrow {
+    font-size: 0.6em;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    line-height: 1.3;
+    text-transform: uppercase;
+    color: var(--colloquium-accent);
+    margin-bottom: 0.7em;
+}
+
+.slide--title-sidebar .slide-eyebrow {
+    grid-column: 1;
+}
+
+.slide--section-break .slide-eyebrow {
+    color: rgba(255, 255, 255, 0.85);
+}
+
 .colloquium-title-rule {
     width: 84px;
     height: 4px;

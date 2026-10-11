@@ -319,3 +319,14 @@ class TestAnimateDirective:
         )
         assert slide.metadata["animate"] == "bullets"
         assert "<!-- step -->" in slide.content
+
+
+class TestEyebrowDirective:
+    def test_eyebrow_is_parsed_into_metadata(self):
+        from colloquium.parse import parse_slide
+
+        slide = parse_slide("<!-- eyebrow: Part 1 -->\n\n## Section")
+        assert slide.metadata["eyebrow"] == "Part 1"
+        assert slide.title == "Section"
+        assert "eyebrow" not in slide.content
+        assert "<!-- eyebrow: Part 1 -->" in slide.to_markdown()
