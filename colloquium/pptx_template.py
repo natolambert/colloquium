@@ -788,7 +788,8 @@ def export_pptx_with_template(deck, base_dir: Path, output_path: str, cfg: Templ
 
     cited: list[str] = []
     if bib_entries:
-        for s in deck.slides:
+        # Discover in rendered order so numeric citations follow first appearance.
+        for s in main + post:
             keys = s.metadata.get("cite_left", []) + s.metadata.get("cite_right", [])
             for m in _CITATION_RE.finditer(s.content + " " + s.title):
                 keys += [k.strip().lstrip("@") for k in m.group(1).split(";")]
@@ -811,7 +812,9 @@ def export_pptx_with_template(deck, base_dir: Path, output_path: str, cfg: Templ
         ref_slides.append(Slide(title="References", content="\n".join(lines)))
 
     ordered_slides = main + ref_slides + post
-    total = len(ordered_slides)
+    # Like the HTML footer, {N} counts main + reference slides; appendix
+    # slides after the references are numbered past it.
+    total = len(main) + len(ref_slides)
     used_layouts = set()
 
     for index, src in enumerate(ordered_slides):

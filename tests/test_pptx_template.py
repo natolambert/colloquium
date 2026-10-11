@@ -196,3 +196,37 @@ Claim
     refs = prs.slides[1]
     assert refs.placeholders[0].text_frame.text == "References"
     assert any("Doe, J., and Roe, R. “A Paper.” 2026." in t for t in _texts(refs))
+
+
+def test_post_reference_slides_follow_html_numbering(tmp_path):
+    (tmp_path / "refs.bib").write_text(
+        "@misc{a2026,\n  title = {A},\n  author = {Ay, Ann},\n  year = {2026}\n}\n"
+        "@misc{b2026,\n  title = {B},\n  author = {Bee, Bob},\n  year = {2026}\n}\n"
+    )
+    md = _write_deck(tmp_path, """<!-- after: references -->
+## Appendix
+
+Backup [@b2026]
+
+---
+
+## Main
+
+Claim [@a2026]
+""")
+    text = md.read_text().replace(
+        "title: Talk\n", "title: Talk\nbibliography: refs.bib\ncitation_style: numeric\n"
+    )
+    md.write_text(text)
+    prs = Presentation(export_pptx(str(md)))
+    main, refs, appendix = prs.slides
+    assert main.placeholders[0].text_frame.text == "Main"
+    assert appendix.placeholders[0].text_frame.text == "Appendix"
+    # The main slide is rendered first, so it gets [1] even though the
+    # appendix comes first in the source.
+    assert any("Claim [1]" in t for t in _texts(main))
+    assert any("Backup [2]" in t for t in _texts(appendix))
+    # {N} excludes post-reference slides, matching the HTML footer.
+    assert "Me 1/2" in _texts(main)
+    assert "Me 2/2" in _texts(refs)
+    assert "Me 3/2" in _texts(appendix)
