@@ -31,6 +31,8 @@ class Slide:
             parts.append(f"<!-- class: {' '.join(self.classes)} -->")
         if self.style:
             parts.append(f"<!-- style: {self.style} -->")
+        if "chapter" in self.metadata:
+            parts.append(f"<!-- chapter: {self.metadata['chapter']} -->")
 
         if self.title:
             prefix = "# " if self.is_title_slide else "## "

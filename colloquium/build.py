@@ -786,8 +786,12 @@ def _build_references_slides_html(
     bib_entries: dict, cited_keys: list, style: str,
     start_index: int, total: int, footer: dict | None,
     citation_order: str = "auto", citation_numbers: dict[str, int] | None = None,
+    chapter: int | None = None,
 ) -> list[str]:
-    """Generate one or more References <section> elements, paginated."""
+    """Generate one or more References <section> elements, paginated.
+
+    When ``chapter`` is given, the pages form a chapter titled "References".
+    """
     refs = []
     ordered_keys = _ordered_citation_keys(cited_keys, bib_entries, style, citation_order, citation_numbers)
     for key in ordered_keys:
@@ -815,11 +819,37 @@ def _build_references_slides_html(
         )
 
         classes = "slide slide--content"
+        chapter_attr = _chapter_attr(chapter, "References" if page_num == 0 else None)
         slides.append(
-            f'<section class="{classes}" data-index="{slide_index}">\n{content}\n</section>'
+            f'<section class="{classes}" data-index="{slide_index}"{chapter_attr}>\n{content}\n</section>'
         )
 
     return slides
+
+
+def _chapter_start_title(slide: Slide) -> str | None:
+    """Return the chapter title a slide opens, or None if it opens no chapter.
+
+    An explicit ``<!-- chapter: ... -->`` directive opens a chapter; section-break
+    slides open one implicitly. An empty title means "use the slide's heading".
+    """
+    if "chapter" in slide.metadata:
+        return slide.metadata["chapter"]
+    if slide.layout == "section-break":
+        return ""
+    return None
+
+
+def _chapter_attr(chapter: int | None, start_title: str | None) -> str:
+    """Build the data-chapter attributes for a slide <section>."""
+    if chapter is None:
+        return ""
+    attr = f' data-chapter="{chapter}"'
+    if start_title is not None:
+        attr += " data-chapter-start"
+        if start_title:
+            attr += f' data-chapter-title="{html_module.escape(start_title, quote=True)}"'
+    return attr
 
 
 _IMAGE_URL_RE = re.compile(r"\.(png|jpg|jpeg|gif|svg|webp)$|^https?://", re.IGNORECASE)
@@ -1204,7 +1234,7 @@ def _build_slide_html(
     footer: dict | None, bib_entries: dict | None = None,
     citation_style: str = "author-year", cited_keys: list | None = None,
     citation_order: str = "auto", citation_numbers: dict[str, int] | None = None,
-    deck_figure_captions: bool = False,
+    deck_figure_captions: bool = False, chapter_attr: str = "",
 ) -> str:
     """Build the HTML for a single slide."""
     if bib_entries is None:
@@ -1326,7 +1356,7 @@ def _build_slide_html(
     # and unicode pitfalls of carrying raw markdown in an attribute.
     md_source = base64.b64encode(slide.to_markdown().encode("utf-8")).decode("ascii")
     md_attr = f' data-colloquium-md="{md_source}"'
-    return f'<section class="{class_str}"{slide_style_attr} data-index="{index}"{fragment_attr}{md_attr}>\n{inner}\n</section>'
+    return f'<section class="{class_str}"{slide_style_attr} data-index="{index}"{chapter_attr}{fragment_attr}{md_attr}>\n{inner}\n</section>'
 
 
 # HTML template — uses $-style substitution
@@ -1635,6 +1665,22 @@ def build_deck(deck: Deck) -> str:
     ]
     render_order_slides = main_slides + post_reference_slides
 
+    # Chapters group slides in the picker. A chapter runs from the slide that
+    # opens it to the next opener; slides before the first opener are ungrouped.
+    use_chapters = deck.chapters and any(
+        _chapter_start_title(slide) is not None for slide in render_order_slides
+    )
+    current_chapter: int | None = None
+
+    def chapter_attr_for(slide: Slide) -> str:
+        nonlocal current_chapter
+        if not use_chapters:
+            return ""
+        start_title = _chapter_start_title(slide)
+        if start_title is not None:
+            current_chapter = 0 if current_chapter is None else current_chapter + 1
+        return _chapter_attr(current_chapter, start_title)
+
     # First pass: build slides and discover cited keys
     cited_keys: list[str] = []
     total = len(main_slides)
@@ -1676,6 +1722,7 @@ def build_deck(deck: Deck) -> str:
             citation_order=citation_order,
             citation_numbers=citation_numbers,
             deck_figure_captions=deck.figure_captions,
+            chapter_attr=chapter_attr_for(slide),
         )
         if bib_entries:
             slide_html = _process_citations(
@@ -1685,10 +1732,16 @@ def build_deck(deck: Deck) -> str:
 
     # Append references slides if we have citations
     if bib_entries and cited_keys:
+        references_chapter = None
+        if use_chapters:
+            references_chapter = 0 if current_chapter is None else current_chapter + 1
         ref_slides = _build_references_slides_html(
             bib_entries, cited_keys, citation_style,
             len(main_slides), total, deck.footer, citation_order, citation_numbers,
+            chapter=references_chapter,
         )
+        if ref_slides and references_chapter is not None:
+            current_chapter = references_chapter
         slides_html_parts.extend(ref_slides)
 
     post_reference_start = len(main_slides)
@@ -1705,6 +1758,7 @@ def build_deck(deck: Deck) -> str:
             citation_order=citation_order,
             citation_numbers=citation_numbers,
             deck_figure_captions=deck.figure_captions,
+            chapter_attr=chapter_attr_for(slide),
         )
         if bib_entries:
             slide_html = _process_citations(

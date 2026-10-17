@@ -31,6 +31,7 @@ Colloquium is an agent-native slide creation tool for research talks. Markdown-b
 - Touch swipe support
 - Hash-based URL routing (#1, #2, ...)
 - Slide counter + progress bar
+- Slide picker groups slides into collapsible chapters (`data-chapter` on each `<section>`, `window.colloquium.chapters`); section-break slides and `<!-- chapter: ... -->` start chapters
 
 ### Slide Directives
 Per-slide configuration via HTML comments:

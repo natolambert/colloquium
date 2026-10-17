@@ -319,3 +319,23 @@ class TestAnimateDirective:
         )
         assert slide.metadata["animate"] == "bullets"
         assert "<!-- step -->" in slide.content
+
+
+class TestChapterDirective:
+    def test_chapter_stored_in_metadata(self):
+        slide = parse_slide("<!-- chapter: Measuring progress -->\n\n## Downloads\n\nBody")
+        assert slide.metadata["chapter"] == "Measuring progress"
+        assert "<!--" not in slide.content
+
+    def test_chapter_round_trips_through_markdown(self):
+        slide = parse_slide("<!-- chapter: Measuring progress -->\n\n## Downloads")
+        assert "<!-- chapter: Measuring progress -->" in slide.to_markdown()
+
+    def test_chapters_default_on(self):
+        deck = parse_markdown("---\ntitle: Talk\n---\n\n## S1")
+        assert deck.chapters is True
+
+    def test_chapters_false_frontmatter(self):
+        deck = parse_markdown("---\ntitle: Talk\nchapters: false\n---\n\n## S1")
+        assert deck.chapters is False
+        assert "chapters: false" in deck.to_markdown()

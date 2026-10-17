@@ -271,6 +271,7 @@ At the slide root, use either `columns:` or `rows:`. For nested layouts, use `ro
 | `<!-- style: css-here -->` | Inline CSS on the slide element |
 | `<!-- notes: text -->` | Speaker notes (hidden in presentation) |
 | `<!-- after: references -->` | Move this slide after generated bibliography slides; it is excluded from the footer `{N}` total |
+| `<!-- chapter: Title -->` | Start a new chapter at this slide (see [Chapters](#chapters)) |
 | `<!-- class: figure-captions -->` | Turn standalone markdown images on that slide into numbered figures with captions taken from `![alt](...)` |
 | `<!-- class: no-figure-captions -->` | Disable deck-wide figure captions for a specific slide |
 | `<!-- img-align: center -->` | Align images only (`left`, `center`, `right`) — title unaffected |
@@ -308,6 +309,27 @@ Extra material
 ```
 
 These post-reference slides render after the references section, but they do not contribute to the footer `{N}` total. If the main talk plus generated references totals 30 slides, the first post-reference slide is numbered `31/30`.
+
+### Chapters
+
+Long decks can be split into chapters, which group slides in the slide picker. Every `section-break` slide starts a chapter named after its heading. To start a chapter on any other slide, or to give a section break a shorter name, add a directive:
+
+```markdown
+<!-- layout: section-break -->
+<!-- chapter: Measuring progress -->
+
+## Part 2: Measuring the open model ecosystem
+```
+
+A chapter runs until the next one starts. Slides before the first chapter (title, outline) stay ungrouped at the top of the picker. Generated references form their own "References" chapter, and `after: references` slides join it unless they start a chapter of their own.
+
+When the picker opens, only the current chapter is expanded. Click any chapter to show or hide its slides. Each slide's `<section>` carries `data-chapter="N"`, the first slide of each chapter also has `data-chapter-start`, and `window.colloquium.chapters` lists `{title, start, end}` for every chapter. Custom CSS and scripts can use these.
+
+To turn chapters off and keep a flat picker, set this in the frontmatter:
+
+```yaml
+chapters: false
+```
 
 ## Content Features
 
@@ -619,7 +641,7 @@ A **References** slide is automatically appended with only the cited works.
 | F | Toggle fullscreen |
 | Escape | Cancel typed number / close picker / exit fullscreen (while fullscreen, the browser always exits fullscreen on Esc — that part can't be deferred) |
 
-Click the slide counter to open the slide picker. Click left 1/3 of screen to go back, right 2/3 to go forward.
+Click the slide counter to open the slide picker (grouped by [chapter](#chapters) when the deck has any). Click left 1/3 of screen to go back, right 2/3 to go forward.
 
 ## PPTX Export (Experimental)
 

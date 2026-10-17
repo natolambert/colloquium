@@ -13,6 +13,11 @@ from colloquium.slide import Slide
 from colloquium.elements.conversation import process as process_conversation, PATTERN as CONV_PATTERN
 
 
+def _section_tags(html: str) -> list[str]:
+    """Return each slide's opening <section> tag, in render order."""
+    return re.findall(r"<section [^>]*>", html)
+
+
 class TestBuildDeck:
     def test_basic_output(self):
         deck = Deck(title="Test")
@@ -1490,6 +1495,34 @@ class TestCitationRendering:
             assert 'data-index="2"' in html[html.index("<h2>Appendix</h2>") - 80:html.index("<h2>Appendix</h2>")]
             assert "3 / 2" in html
 
+    def test_references_form_their_own_chapter_when_deck_has_chapters(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bib_path = self._make_bib(tmpdir)
+            deck = Deck(title="Test", bibliography=bib_path)
+            deck.slides.append(Slide(title="Part 1", layout="section-break"))
+            deck.slides.append(Slide(title="Intro", content="See [@smith2024]."))
+            deck.slides.append(
+                Slide(title="Appendix", content="Extra.", metadata={"after": "references"})
+            )
+
+            tags = _section_tags(build_deck(deck))
+
+            assert 'data-chapter="0"' in tags[1]
+            assert 'data-chapter="1" data-chapter-start data-chapter-title="References"' in tags[2]
+            # Post-reference slides stay in the references chapter unless they open one.
+            assert 'data-chapter="1"' in tags[3]
+            assert "data-chapter-start" not in tags[3]
+
+    def test_references_get_no_chapter_when_deck_has_none(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bib_path = self._make_bib(tmpdir)
+            deck = Deck(title="Test", bibliography=bib_path)
+            deck.slides.append(Slide(title="Intro", content="See [@smith2024]."))
+
+            tags = _section_tags(build_deck(deck))
+
+            assert not any("data-chapter" in tag for tag in tags)
+
     def test_after_references_citations_use_render_order(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             bib_path = self._make_bib(tmpdir)
@@ -2131,3 +2164,70 @@ class TestImgTallRightUtility:
         build_file(str(src), str(out))
         html = out.read_text()
         assert "img-tall-right" in html
+
+
+class TestChapters:
+    def test_section_breaks_open_chapters(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="Talk", layout="title")
+        deck.add_slide(title="Part 1", layout="section-break")
+        deck.add_slide(title="A", content="a")
+        deck.add_slide(title="Part 2", layout="section-break")
+        deck.add_slide(title="B", content="b")
+
+        tags = _section_tags(build_deck(deck))
+
+        assert "data-chapter" not in tags[0]
+        assert 'data-chapter="0" data-chapter-start' in tags[1]
+        assert "data-chapter-title" not in tags[1]
+        assert 'data-chapter="0"' in tags[2]
+        assert "data-chapter-start" not in tags[2]
+        assert 'data-chapter="1" data-chapter-start' in tags[3]
+        assert 'data-chapter="1"' in tags[4]
+
+    def test_chapter_directive_opens_titled_chapter(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="Overview", content="x", chapter='Results & "caveats"')
+        deck.add_slide(title="Detail", content="y")
+
+        tags = _section_tags(build_deck(deck))
+
+        assert (
+            'data-chapter="0" data-chapter-start '
+            'data-chapter-title="Results &amp; &quot;caveats&quot;"'
+        ) in tags[0]
+        assert 'data-chapter="0"' in tags[1]
+
+    def test_chapter_directive_overrides_section_break_title(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="Part 1: A long heading", layout="section-break", chapter="Part 1")
+
+        tags = _section_tags(build_deck(deck))
+
+        assert 'data-chapter-title="Part 1"' in tags[0]
+
+    def test_deck_without_chapter_openers_has_no_chapter_attributes(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="A", content="a")
+        deck.add_slide(title="B", content="b")
+
+        tags = _section_tags(build_deck(deck))
+
+        assert not any("data-chapter" in tag for tag in tags)
+
+    def test_chapters_can_be_disabled(self):
+        deck = Deck(title="Test", chapters=False)
+        deck.add_slide(title="Part 1", layout="section-break")
+        deck.add_slide(title="A", content="a", chapter="Explicit")
+
+        tags = _section_tags(build_deck(deck))
+
+        assert not any("data-chapter" in tag for tag in tags)
+
+    def test_picker_groups_slides_by_chapter(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="Part 1", layout="section-break")
+        html = build_deck(deck)
+
+        assert "_readChapters()" in html
+        assert "colloquium-picker-chapter-header" in html

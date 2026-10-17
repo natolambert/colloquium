@@ -1163,6 +1163,72 @@ html, body {
     color: var(--colloquium-accent);
 }
 
+/* Chapters: collapsible groups; only the current chapter opens by default */
+.colloquium-picker-chapter + .colloquium-picker-chapter,
+.colloquium-picker-item + .colloquium-picker-chapter {
+    border-top: 1px solid var(--colloquium-border);
+}
+
+.colloquium-picker-chapter-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 20px;
+    border: none;
+    background: none;
+    font-family: var(--colloquium-font-body);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--colloquium-heading);
+    cursor: pointer;
+    text-align: left;
+}
+
+.colloquium-picker-chapter-header:hover {
+    background: var(--colloquium-code-bg);
+}
+
+.colloquium-picker-chapter-header.current {
+    color: var(--colloquium-accent);
+}
+
+.colloquium-picker-chapter-toggle {
+    min-width: 28px;
+    text-align: right;
+    color: var(--colloquium-muted);
+}
+
+.colloquium-picker-chapter-toggle::before {
+    content: "\25B8";
+    display: inline-block;
+    transition: transform 0.15s;
+}
+
+.colloquium-picker-chapter.expanded .colloquium-picker-chapter-toggle::before {
+    transform: rotate(90deg);
+}
+
+.colloquium-picker-chapter-range {
+    color: var(--colloquium-muted);
+    font-size: 13px;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+}
+
+.colloquium-picker-chapter-slides {
+    display: none;
+    padding-bottom: 4px;
+}
+
+.colloquium-picker-chapter.expanded .colloquium-picker-chapter-slides {
+    display: block;
+}
+
+.colloquium-picker-chapter-slides .colloquium-picker-item {
+    padding-left: 32px;
+}
+
 /* ===== Picker Trigger ===== */
 .colloquium-picker-trigger {
     position: fixed;
