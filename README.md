@@ -331,6 +331,8 @@ To turn chapters off and keep a flat picker, set this in the frontmatter:
 chapters: false
 ```
 
+See [`examples/chapters/`](./examples/chapters/) for a small deck that uses each pattern.
+
 ## Content Features
 
 **Math** (KaTeX) — inline `$E=mc^2$` and display `$$\sum_{i=1}^n x_i$$`
