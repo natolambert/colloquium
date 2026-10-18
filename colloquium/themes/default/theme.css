@@ -1172,7 +1172,7 @@ html, body {
 }
 
 .colloquium-picker-num {
-    min-width: 28px;
+    min-width: 20px;
     color: var(--colloquium-muted);
     font-variant-numeric: tabular-nums;
     font-size: 13px;
@@ -1214,8 +1214,8 @@ html, body {
 }
 
 .colloquium-picker-chapter-toggle {
-    min-width: 28px;
-    text-align: right;
+    min-width: 20px;
+    text-align: left;
     color: var(--colloquium-muted);
 }
 
@@ -1245,9 +1245,6 @@ html, body {
     display: block;
 }
 
-.colloquium-picker-chapter-slides .colloquium-picker-item {
-    padding-left: 32px;
-}
 
 /* ===== Chapter Bar (frontmatter chapter_bar, <!-- chapter-bar: ... -->) =====
    One labeled segment per chapter along the slide's bottom edge. Each
