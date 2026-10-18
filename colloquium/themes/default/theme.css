@@ -1171,12 +1171,19 @@ html, body {
     font-weight: 600;
 }
 
+/* Slide numbers and chapter ranges share one right-aligned column */
 .colloquium-picker-num {
-    min-width: 20px;
+    flex: none;
     color: var(--colloquium-muted);
     font-variant-numeric: tabular-nums;
     font-size: 13px;
+    font-weight: 400;
     text-align: right;
+}
+
+/* Rows align their titles with chapter titles: edge + caret column + gap */
+.colloquium-picker--chapters .colloquium-picker-item {
+    padding-left: 40px;
 }
 
 .colloquium-picker-item.current .colloquium-picker-num {
@@ -1192,7 +1199,7 @@ html, body {
 .colloquium-picker-chapter-header {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     width: 100%;
     padding: 10px 20px;
     border: none;
@@ -1214,7 +1221,8 @@ html, body {
 }
 
 .colloquium-picker-chapter-toggle {
-    min-width: 20px;
+    flex: none;
+    width: 10px;
     text-align: left;
     color: var(--colloquium-muted);
 }

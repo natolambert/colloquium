@@ -347,6 +347,8 @@ class ColloquiumPresentation {
 
         const picker = document.createElement('div');
         picker.className = 'colloquium-picker';
+        // With chapters, slide rows keep the caret column empty so every title aligns.
+        if (this.chapters.length) picker.classList.add('colloquium-picker--chapters');
 
         this.pickerItems = [];
         this.pickerChapters = [];
@@ -355,8 +357,8 @@ class ColloquiumPresentation {
             const btn = document.createElement('button');
             btn.className = 'colloquium-picker-item';
             btn.innerHTML =
-                '<span class="colloquium-picker-num">' + (i + 1) + '</span>' +
-                '<span class="colloquium-picker-title">' + this._getSlideTitle(slide, i) + '</span>';
+                '<span class="colloquium-picker-title">' + this._getSlideTitle(slide, i) + '</span>' +
+                '<span class="colloquium-picker-num">' + (i + 1) + '</span>';
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.goTo(i, true);
