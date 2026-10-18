@@ -10,13 +10,14 @@ import tempfile
 from pathlib import Path
 from string import Template
 
+import yaml
 from markdown_it import MarkdownIt
 from mdit_py_plugins.dollarmath import dollarmath_plugin
 
 from colloquium.md import create_base_md
 
 from colloquium import elements
-from colloquium.deck import Deck
+from colloquium.deck import CHAPTER_BAR_DEFAULTS, Deck
 from colloquium.slide import Slide
 
 
@@ -787,8 +788,13 @@ def _build_references_slides_html(
     bib_entries: dict, cited_keys: list, style: str,
     start_index: int, total: int, footer: dict | None,
     citation_order: str = "auto", citation_numbers: dict[str, int] | None = None,
+    chapter: int | None = None, chapter_bars: list[str] | None = None,
 ) -> list[str]:
-    """Generate one or more References <section> elements, paginated."""
+    """Generate one or more References <section> elements, paginated.
+
+    When ``chapter`` is given, the pages form a chapter titled "References".
+    ``chapter_bars`` holds each page's chapter-bar HTML ("" for no bar).
+    """
     refs = []
     ordered_keys = _ordered_citation_keys(cited_keys, bib_entries, style, citation_order, citation_numbers)
     for key in ordered_keys:
@@ -809,21 +815,186 @@ def _build_references_slides_html(
         if len(pages) > 1:
             heading = f"References ({page_num + 1}/{len(pages)})"
 
+        chapter_bar = chapter_bars[page_num] if chapter_bars else ""
         content = (
             f'<h2>{heading}</h2>\n'
             f'<div class="slide-content colloquium-references-slide">{refs_html}</div>\n'
+            f'{chapter_bar}'
             f'{_build_footer_html(footer, slide_index, total)}'
         )
 
         classes = "slide slide--content"
+        if chapter_bar:
+            classes += " has-chapter-bar"
+        chapter_attr = _chapter_attr(chapter, "References" if page_num == 0 else None)
         slides.append(
-            f'<section class="{classes}" data-index="{slide_index}">\n{content}\n</section>'
+            f'<section class="{classes}" data-index="{slide_index}"{chapter_attr}>\n{content}\n</section>'
         )
 
     return slides
 
 
+def _chapter_start_title(slide: Slide) -> str | None:
+    """Return the chapter title a slide opens, or None if it opens no chapter.
+
+    An explicit ``<!-- chapter: ... -->`` directive opens a chapter; section-break
+    slides open one implicitly. An empty title means "use the slide's heading".
+    """
+    if "chapter" in slide.metadata:
+        return slide.metadata["chapter"]
+    if slide.layout == "section-break":
+        return ""
+    return None
+
+
+def _chapter_attr(chapter: int | None, start_title: str | None) -> str:
+    """Build the data-chapter attributes for a slide <section>."""
+    if chapter is None:
+        return ""
+    attr = f' data-chapter="{chapter}"'
+    if start_title is not None:
+        attr += " data-chapter-start"
+        if start_title:
+            attr += f' data-chapter-title="{html_module.escape(start_title, quote=True)}"'
+    return attr
+
+
+def _plan_chapters(
+    openers: list[tuple[Slide | None, str | None]], md: MarkdownIt,
+) -> tuple[list[int | None], list[dict]]:
+    """Assign every rendered slide to a chapter.
+
+    ``openers`` has one ``(slide, start_title)`` pair per slide in render order;
+    ``slide`` is None for generated References pages. Returns the chapter index
+    of each slide (None before the first chapter) and the chapters as
+    ``{"title", "short", "start", "end", "references"}`` dicts with inclusive
+    indices; ``short`` is the chapter bar label from ``<!-- chapter-short -->``.
+    """
+    slide_chapters: list[int | None] = []
+    chapters: list[dict] = []
+    for i, (slide, start_title) in enumerate(openers):
+        if start_title is not None:
+            title = start_title
+            if not title and slide is not None and slide.title:
+                heading_html = _render_inline_markdown(slide.title, md)
+                title = html_module.unescape(_HTML_TAG_RE.sub("", heading_html)).strip()
+            short = slide.metadata.get("chapter_short", "") if slide is not None else ""
+            chapters.append({
+                "title": title or f"Slide {i + 1}",
+                "short": short,
+                "start": i,
+                "end": i,
+                "references": slide is None,
+            })
+        if chapters:
+            chapters[-1]["end"] = i
+        slide_chapters.append(len(chapters) - 1 if chapters else None)
+    return slide_chapters, chapters
+
+
+def _chapter_state(chapter_index: int, current: int | None) -> str:
+    """Classify a chapter relative to the current one: done, current, or upcoming."""
+    if current is None or chapter_index > current:
+        return "upcoming"
+    return "current" if chapter_index == current else "done"
+
+
+def _build_chapter_bar_html(
+    chapters: list[dict], index: int, current: int | None,
+    labels: bool = True, progress: str = "slides",
+) -> str:
+    """Build the chapter navigation bar for the slide at ``index``.
+
+    One segment per chapter (generated References excluded). Finished chapters
+    are fully shaded and later ones stay empty. With ``progress="slides"`` the
+    current chapter fills as its slides advance; with ``"chapters"`` it is shown
+    whole, and the CSS tells it apart from finished chapters. Segments are
+    labeled with the chapter's short name when it has one; ``labels=False``
+    draws the tracks alone.
+    """
+    items = []
+    for chapter_index, chapter in enumerate(chapters):
+        if chapter["references"]:
+            continue
+        state = _chapter_state(chapter_index, current)
+        if state == "done" or (state == "current" and progress == "chapters"):
+            fill = 100.0
+        elif state == "current":
+            span = chapter["end"] - chapter["start"] + 1
+            fill = 100.0 * (index - chapter["start"] + 1) / span
+        else:
+            fill = 0.0
+        title = html_module.escape(chapter["title"], quote=True)
+        label = html_module.escape(chapter["short"] or chapter["title"])
+        label_html = f'<span class="colloquium-chapter-bar-label">{label}</span>' if labels else ""
+        aria_current = ' aria-current="step"' if state == "current" else ""
+        items.append(
+            f'<a class="colloquium-chapter-bar-item {state}" href="#{chapter["start"] + 1}"'
+            f' title="{title}" style="--chapter-progress: {fill:g}%"{aria_current}>'
+            f'{label_html}</a>'
+        )
+    if not items:
+        return ""
+    classes = "colloquium-chapter-bar"
+    if not labels:
+        classes += " colloquium-chapter-bar--bars"
+    if progress == "chapters":
+        classes += " colloquium-chapter-bar--chapters"
+    return f'<nav class="{classes}" aria-label="Chapters">{"".join(items)}</nav>\n'
+
+
+_TOC_RE = re.compile(r'<pre><code class="language-toc">(.*?)</code></pre>', re.DOTALL)
+
+
+def _build_toc_html(options_text: str, chapters: list[dict], current: int | None) -> str:
+    """Build a table-of-contents list of the deck's chapters.
+
+    The chapter containing the slide is marked current, so a TOC repeated at
+    the start of each chapter works as an agenda. Options (YAML in the block):
+    ``numbered`` (default true) chooses an ordered or plain list.
+    """
+    try:
+        options = yaml.safe_load(html_module.unescape(options_text)) or {}
+    except yaml.YAMLError:
+        options = {}
+    if not isinstance(options, dict):
+        options = {}
+    tag = "ol" if options.get("numbered", True) is not False else "ul"
+
+    items = []
+    for chapter_index, chapter in enumerate(chapters):
+        if chapter["references"]:
+            continue
+        state = _chapter_state(chapter_index, current)
+        title = html_module.escape(chapter["title"])
+        items.append(
+            f'<li class="colloquium-toc-item {state}">'
+            f'<a href="#{chapter["start"] + 1}">{title}</a></li>'
+        )
+    if not items:
+        return ""
+    classes = "colloquium-toc"
+    if current is not None:
+        classes += " colloquium-toc--has-current"
+    return f'<{tag} class="{classes}">{"".join(items)}</{tag}>'
+
+
+def _replace_toc_blocks(slide_html: str, chapters: list[dict], current: int | None) -> str:
+    """Swap every ```toc block in a built slide for the chapter list."""
+    return _TOC_RE.sub(lambda m: _build_toc_html(m.group(1), chapters, current), slide_html)
+
+
 _IMAGE_URL_RE = re.compile(r"\.(png|jpg|jpeg|gif|svg|webp)$|^https?://", re.IGNORECASE)
+
+
+def _footer_for_slide(footer: dict | None, slide: Slide) -> dict | None:
+    """Apply ``footer.section_break`` zone overrides on section-break slides."""
+    if not footer:
+        return footer
+    overrides = footer.get("section_break")
+    if slide.layout != "section-break" or not isinstance(overrides, dict):
+        return footer
+    return {**footer, **overrides}
 
 
 def _build_footer_html(footer: dict | None, index: int, total: int) -> str:
@@ -1205,7 +1376,8 @@ def _build_slide_html(
     footer: dict | None, bib_entries: dict | None = None,
     citation_style: str = "author-year", cited_keys: list | None = None,
     citation_order: str = "auto", citation_numbers: dict[str, int] | None = None,
-    deck_figure_captions: bool = False,
+    deck_figure_captions: bool = False, chapter_attr: str = "",
+    chapter_bar_html: str = "",
 ) -> str:
     """Build the HTML for a single slide."""
     if bib_entries is None:
@@ -1219,6 +1391,8 @@ def _build_slide_html(
     if index == 0:
         classes.append("active")
     classes.extend(slide.classes)
+    if chapter_bar_html:
+        classes.append("has-chapter-bar")
 
     class_str = " ".join(classes)
 
@@ -1320,7 +1494,9 @@ def _build_slide_html(
     if right_meta:
         parts.append(right_meta)
 
-    parts.append(_build_footer_html(footer, index, total))
+    if chapter_bar_html:
+        parts.append(chapter_bar_html.rstrip("\n"))
+    parts.append(_build_footer_html(_footer_for_slide(footer, slide), index, total))
 
     inner = "\n".join(parts)
 
@@ -1330,7 +1506,7 @@ def _build_slide_html(
     # and unicode pitfalls of carrying raw markdown in an attribute.
     md_source = base64.b64encode(slide.to_markdown().encode("utf-8")).decode("ascii")
     md_attr = f' data-colloquium-md="{md_source}"'
-    return f'<section class="{class_str}"{slide_style_attr} data-index="{index}"{fragment_attr}{md_attr}>\n{inner}\n</section>'
+    return f'<section class="{class_str}"{slide_style_attr} data-index="{index}"{chapter_attr}{fragment_attr}{md_attr}>\n{inner}\n</section>'
 
 
 # HTML template — uses $-style substitution
@@ -1360,7 +1536,7 @@ $font_css
 $custom_css
 </style>
 </head>
-<body>
+<body$body_attr>
 <div class="colloquium-deck">
 $slides_html
 </div>
@@ -1638,6 +1814,7 @@ def build_deck(deck: Deck) -> str:
         if slide.metadata.get("after") == "references"
     ]
     render_order_slides = main_slides + post_reference_slides
+    ref_slide_count = 0
 
     # First pass: build slides and discover cited keys
     cited_keys: list[str] = []
@@ -1670,53 +1847,96 @@ def build_deck(deck: Deck) -> str:
         # Reset counters for the real build pass
         elements.reset()
 
-    slides_html_parts = []
-    for i, slide in enumerate(main_slides):
+    # Chapters group slides in the picker, the chapter bar, and ```toc blocks.
+    # A chapter runs from the slide that opens it to the next opener; slides
+    # before the first opener are ungrouped. Generated References pages form
+    # their own chapter, but only when the deck's own slides open chapters.
+    openers: list[tuple[Slide | None, str | None]] = [
+        (slide, _chapter_start_title(slide)) for slide in main_slides
+    ]
+    openers += [(None, "References" if page == 0 else None) for page in range(ref_slide_count)]
+    openers += [(slide, _chapter_start_title(slide)) for slide in post_reference_slides]
+    use_chapters = deck.chapters and any(
+        _chapter_start_title(slide) is not None for slide in render_order_slides
+    )
+    if use_chapters:
+        slide_chapters, chapters = _plan_chapters(openers, md)
+    else:
+        slide_chapters, chapters = [None] * len(openers), []
+
+    def chapter_attr_at(index: int) -> str:
+        return _chapter_attr(slide_chapters[index], openers[index][1])
+
+    bar = deck.chapter_bar
+
+    def chapter_bar_at(index: int, slide: Slide | None) -> str:
+        """Resolve the deck's chapter_bar settings and any per-slide override."""
+        if not chapters:
+            return ""
+        tokens = slide.metadata.get("chapter_bar", "").split() if slide is not None else []
+        if "hide" in tokens or (slide is not None and "no-chapter-bar" in slide.classes):
+            return ""
+        if tokens:
+            # A chapter-bar directive shows the bar on this slide, restyled by its tokens.
+            options = dict(bar or CHAPTER_BAR_DEFAULTS)
+            for token in tokens:
+                if token in ("labels", "bars"):
+                    options["labels"] = token == "labels"
+                elif token in ("slides", "chapters"):
+                    options["progress"] = token
+        else:
+            if not bar or (slide is not None and slide.is_title_slide):
+                return ""
+            if bar["slides"] == "section-breaks" and (slide is None or slide.layout != "section-break"):
+                return ""
+            options = bar
+        return _build_chapter_bar_html(
+            chapters, index, slide_chapters[index],
+            labels=options["labels"], progress=options["progress"],
+        )
+
+    def build_one(slide: Slide, index: int) -> str:
         slide_html = _build_slide_html(
-            slide, i, total, md, deck.footer,
+            slide, index, total, md, deck.footer,
             bib_entries=bib_entries,
             citation_style=citation_style,
             cited_keys=cited_keys,
             citation_order=citation_order,
             citation_numbers=citation_numbers,
             deck_figure_captions=deck.figure_captions,
+            chapter_attr=chapter_attr_at(index),
+            chapter_bar_html=chapter_bar_at(index, slide),
         )
         if bib_entries:
             slide_html = _process_citations(
                 slide_html, bib_entries, citation_style, cited_keys, citation_order, citation_numbers,
             )
-        slides_html_parts.append(slide_html)
+        return _replace_toc_blocks(slide_html, chapters, slide_chapters[index])
+
+    slides_html_parts = [build_one(slide, i) for i, slide in enumerate(main_slides)]
 
     # Append references slides if we have citations
+    post_reference_start = len(main_slides)
     if bib_entries and cited_keys:
+        ref_indices = range(len(main_slides), len(main_slides) + ref_slide_count)
         ref_slides = _build_references_slides_html(
             bib_entries, cited_keys, citation_style,
             len(main_slides), total, deck.footer, citation_order, citation_numbers,
+            chapter=slide_chapters[len(main_slides)] if ref_slide_count else None,
+            chapter_bars=[chapter_bar_at(i, None) for i in ref_indices],
         )
         slides_html_parts.extend(ref_slides)
+        post_reference_start += ref_slide_count
 
-    post_reference_start = len(main_slides)
-    if bib_entries and cited_keys:
-        post_reference_start += _count_references_slides(
-            cited_keys, bib_entries, citation_style, citation_order, citation_numbers,
-        )
     for offset, slide in enumerate(post_reference_slides):
-        slide_html = _build_slide_html(
-            slide, post_reference_start + offset, total, md, deck.footer,
-            bib_entries=bib_entries,
-            citation_style=citation_style,
-            cited_keys=cited_keys,
-            citation_order=citation_order,
-            citation_numbers=citation_numbers,
-            deck_figure_captions=deck.figure_captions,
-        )
-        if bib_entries:
-            slide_html = _process_citations(
-                slide_html, bib_entries, citation_style, cited_keys, citation_order, citation_numbers,
-            )
-        slides_html_parts.append(slide_html)
+        slides_html_parts.append(build_one(slide, post_reference_start + offset))
 
     slides_html = "\n\n".join(slides_html_parts)
+
+    # The window-edge progress line is redundant only when every slide has a bar.
+    body_attr = ""
+    if bar and chapters and bar["slides"] == "all":
+        body_attr = ' class="colloquium-has-chapter-bar"'
 
     return _HTML_TEMPLATE.substitute(
         title=deck.title,
@@ -1727,6 +1947,7 @@ def build_deck(deck: Deck) -> str:
         slides_html=slides_html,
         total_slides=str(total),
         presentation_js=presentation_js,
+        body_attr=body_attr,
     )
 
 

@@ -22,6 +22,7 @@
     --colloquium-slide-width: 1280;
     --colloquium-slide-height: 720;
     --colloquium-slide-padding: 60px;
+    --colloquium-chapter-bar-height: 30px;
 }
 
 /* ===== Reset & Base ===== */
@@ -1180,6 +1181,254 @@ html, body {
 
 .colloquium-picker-item.current .colloquium-picker-num {
     color: var(--colloquium-accent);
+}
+
+/* Chapters: collapsible groups; only the current chapter opens by default */
+.colloquium-picker-chapter + .colloquium-picker-chapter,
+.colloquium-picker-item + .colloquium-picker-chapter {
+    border-top: 1px solid var(--colloquium-border);
+}
+
+.colloquium-picker-chapter-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 20px;
+    border: none;
+    background: none;
+    font-family: var(--colloquium-font-body);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--colloquium-heading);
+    cursor: pointer;
+    text-align: left;
+}
+
+.colloquium-picker-chapter-header:hover {
+    background: var(--colloquium-code-bg);
+}
+
+.colloquium-picker-chapter-header.current {
+    color: var(--colloquium-accent);
+}
+
+.colloquium-picker-chapter-toggle {
+    min-width: 28px;
+    text-align: right;
+    color: var(--colloquium-muted);
+}
+
+.colloquium-picker-chapter-toggle::before {
+    content: "\25B8";
+    display: inline-block;
+    transition: transform 0.15s;
+}
+
+.colloquium-picker-chapter.expanded .colloquium-picker-chapter-toggle::before {
+    transform: rotate(90deg);
+}
+
+.colloquium-picker-chapter-range {
+    color: var(--colloquium-muted);
+    font-size: 13px;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+}
+
+.colloquium-picker-chapter-slides {
+    display: none;
+    padding-bottom: 4px;
+}
+
+.colloquium-picker-chapter.expanded .colloquium-picker-chapter-slides {
+    display: block;
+}
+
+.colloquium-picker-chapter-slides .colloquium-picker-item {
+    padding-left: 32px;
+}
+
+/* ===== Chapter Bar (frontmatter chapter_bar, <!-- chapter-bar: ... -->) =====
+   One labeled segment per chapter along the slide's bottom edge. Each
+   segment's track fills to --chapter-progress: done chapters are full, the
+   current one fills as its slides advance. The footer and anything pinned
+   above it shift up by --colloquium-chapter-bar-offset, and the content area
+   shrinks by --colloquium-chapter-bar-height. The unlabeled `bars` style only
+   lifts the footer off the tracks; the content area keeps its full height. */
+.slide.has-chapter-bar {
+    --colloquium-chapter-bar-offset: var(--colloquium-chapter-bar-height);
+    padding-bottom: calc(var(--colloquium-slide-padding) + var(--colloquium-chapter-bar-height));
+}
+
+.slide.has-chapter-bar:has(> .colloquium-chapter-bar--bars) {
+    --colloquium-chapter-bar-height: 0px;
+    --colloquium-chapter-bar-offset: 12px;
+}
+
+.slide.has-chapter-bar .colloquium-footer {
+    bottom: var(--colloquium-chapter-bar-offset);
+}
+
+.slide.has-chapter-bar .colloquium-slide-meta,
+.slide.has-chapter-bar .colloquium-overflow-warn {
+    bottom: calc(40px + var(--colloquium-chapter-bar-offset));
+}
+
+.slide.img-tall-right.has-chapter-bar .colloquium-grid > .col:last-child > figure.colloquium-figure:first-child:last-child {
+    bottom: calc(42px + var(--colloquium-chapter-bar-offset));
+}
+
+.colloquium-chapter-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: var(--colloquium-chapter-bar-height);
+    display: flex;
+    gap: 6px;
+    padding: 0 24px 8px;
+    text-align: left;
+    z-index: 3;
+    user-select: none;
+}
+
+.slide a.colloquium-chapter-bar-item {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 4px;
+    font-family: var(--colloquium-font-body);
+    font-size: 11px;
+    line-height: 1.2;
+    color: var(--colloquium-muted);
+    border-bottom: none;
+}
+
+.slide a.colloquium-chapter-bar-item::after {
+    content: "";
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(
+        to right,
+        var(--colloquium-progress-fill) var(--chapter-progress, 0%),
+        var(--colloquium-progress-bg) var(--chapter-progress, 0%)
+    );
+}
+
+.slide a.colloquium-chapter-bar-item.done {
+    color: var(--colloquium-text);
+}
+
+.slide a.colloquium-chapter-bar-item.current {
+    color: var(--colloquium-heading);
+    font-weight: 600;
+}
+
+.slide a.colloquium-chapter-bar-item:hover {
+    color: var(--colloquium-accent);
+}
+
+.colloquium-chapter-bar--bars {
+    height: auto;
+    padding-bottom: 6px;
+}
+
+/* progress: chapters — whole-chapter states: finished tracks are dimmed,
+   the current one is solid with a bold label, upcoming ones stay empty */
+.slide .colloquium-chapter-bar--chapters a.colloquium-chapter-bar-item.done::after {
+    opacity: 0.45;
+}
+
+.slide--section-break .colloquium-chapter-bar--chapters a.colloquium-chapter-bar-item.done::after {
+    opacity: 0.6;
+}
+
+.slide .colloquium-chapter-bar--chapters a.colloquium-chapter-bar-item.upcoming {
+    opacity: 0.7;
+}
+
+/* Keep a usable click target above the thin track */
+.slide .colloquium-chapter-bar--bars a.colloquium-chapter-bar-item {
+    padding-top: 6px;
+}
+
+.colloquium-chapter-bar-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Section breaks sit on the accent color, so the bar switches to white */
+.slide--section-break a.colloquium-chapter-bar-item,
+.slide--section-break a.colloquium-chapter-bar-item.done {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.slide--section-break a.colloquium-chapter-bar-item.current,
+.slide--section-break a.colloquium-chapter-bar-item:hover {
+    color: #ffffff;
+}
+
+.slide--section-break a.colloquium-chapter-bar-item::after {
+    background: linear-gradient(
+        to right,
+        #ffffff var(--chapter-progress, 0%),
+        rgba(255, 255, 255, 0.3) var(--chapter-progress, 0%)
+    );
+}
+
+/* The bar already shows progress, so drop the window-edge progress line */
+.colloquium-has-chapter-bar .colloquium-progress {
+    display: none;
+}
+
+/* ===== Table of Contents (```toc block) ===== */
+.colloquium-toc {
+    margin: 0.4em 0;
+    padding-left: 1.4em;
+}
+
+ul.colloquium-toc {
+    list-style: none;
+    padding-left: 0;
+}
+
+.colloquium-toc-item {
+    margin: 0.35em 0;
+}
+
+.slide .colloquium-toc a {
+    color: inherit;
+    border-bottom: none;
+}
+
+.slide .colloquium-toc a:hover {
+    color: var(--colloquium-accent);
+}
+
+/* Inside a chapter, the TOC acts as an agenda: highlight the current chapter */
+.colloquium-toc--has-current .colloquium-toc-item,
+.colloquium-toc--has-current .colloquium-toc-item::marker {
+    color: var(--colloquium-muted);
+}
+
+.colloquium-toc--has-current .colloquium-toc-item.current,
+.colloquium-toc--has-current .colloquium-toc-item.current::marker {
+    color: var(--colloquium-accent);
+    font-weight: 600;
+}
+
+.slide--section-break .colloquium-toc--has-current .colloquium-toc-item,
+.slide--section-break .colloquium-toc--has-current .colloquium-toc-item::marker {
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.slide--section-break .colloquium-toc--has-current .colloquium-toc-item.current,
+.slide--section-break .colloquium-toc--has-current .colloquium-toc-item.current::marker {
+    color: #ffffff;
 }
 
 /* ===== Picker Trigger ===== */

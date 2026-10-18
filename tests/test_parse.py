@@ -330,3 +330,64 @@ class TestEyebrowDirective:
         assert slide.title == "Section"
         assert "eyebrow" not in slide.content
         assert "<!-- eyebrow: Part 1 -->" in slide.to_markdown()
+
+
+class TestChapterDirective:
+    def test_chapter_stored_in_metadata(self):
+        slide = parse_slide("<!-- chapter: Measuring progress -->\n\n## Downloads\n\nBody")
+        assert slide.metadata["chapter"] == "Measuring progress"
+        assert "<!--" not in slide.content
+
+    def test_chapter_round_trips_through_markdown(self):
+        slide = parse_slide("<!-- chapter: Measuring progress -->\n\n## Downloads")
+        assert "<!-- chapter: Measuring progress -->" in slide.to_markdown()
+
+    def test_chapters_default_on(self):
+        deck = parse_markdown("---\ntitle: Talk\n---\n\n## S1")
+        assert deck.chapters is True
+
+    def test_chapters_false_frontmatter(self):
+        deck = parse_markdown("---\ntitle: Talk\nchapters: false\n---\n\n## S1")
+        assert deck.chapters is False
+        assert "chapters: false" in deck.to_markdown()
+
+    def test_chapter_bar_default_off(self):
+        deck = parse_markdown("---\ntitle: Talk\n---\n\n## S1")
+        assert deck.chapter_bar is None
+        assert "chapter_bar" not in deck.to_markdown()
+
+    def test_chapter_short_round_trips(self):
+        slide = parse_slide("<!-- chapter-short: Why care -->\n\n## Why should we care?")
+        assert slide.metadata["chapter_short"] == "Why care"
+        assert "chapter" not in slide.metadata
+        assert "<!-- chapter-short: Why care -->" in slide.to_markdown()
+
+    def test_chapter_bar_bars_frontmatter_round_trips(self):
+        deck = parse_markdown("---\ntitle: Talk\nchapter_bar: bars\n---\n\n## S1")
+        assert deck.chapter_bar == {"labels": False, "slides": "all", "progress": "slides"}
+        assert "chapter_bar: bars" in deck.to_markdown()
+
+    def test_chapter_bar_mapping_round_trips(self):
+        deck = parse_markdown(
+            "---\ntitle: Talk\nchapter_bar:\n  slides: section-breaks\n"
+            "  progress: chapters\n  bogus: 1\n---\n\n## S1"
+        )
+        assert deck.chapter_bar == {"labels": True, "slides": "section-breaks", "progress": "chapters"}
+        assert parse_markdown(deck.to_markdown()).chapter_bar == deck.chapter_bar
+
+    def test_chapter_bar_directive_round_trips(self):
+        slide = parse_slide("<!-- chapter-bar: bars chapters -->\n\n## S1")
+        assert slide.metadata["chapter_bar"] == "bars chapters"
+        assert "<!-- chapter-bar: bars chapters -->" in slide.to_markdown()
+
+    def test_footer_section_break_round_trips(self):
+        deck = parse_markdown(
+            '---\ntitle: Talk\nfooter:\n  left: "logo.png"\n'
+            '  section_break:\n    left: "logo-white.png"\n---\n\n## S1'
+        )
+        assert parse_markdown(deck.to_markdown()).footer == deck.footer
+
+    def test_chapter_bar_frontmatter_round_trips(self):
+        deck = parse_markdown("---\ntitle: Talk\nchapter_bar: true\n---\n\n## S1")
+        assert deck.chapter_bar == {"labels": True, "slides": "all", "progress": "slides"}
+        assert "chapter_bar: true" in deck.to_markdown()

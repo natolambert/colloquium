@@ -1,7 +1,7 @@
 /**
  * Colloquium Presentation Engine
  * 16:9 scaled canvas, keyboard/click/touch navigation, hash routing, fullscreen
- * Slide picker + per-slide footer
+ * Slide picker (grouped by chapter) + per-slide footer
  */
 class ColloquiumPresentation {
     constructor() {
@@ -9,6 +9,7 @@ class ColloquiumPresentation {
         this.slides = Array.from(document.querySelectorAll('.slide'));
         this.currentIndex = 0;
         this.totalSlides = this.slides.length;
+        this.chapters = this._readChapters();
         this._iframeKeyboardRelayDocuments = new WeakSet();
         this.slideNumberBuffer = '';
         this.slideNumberTimer = null;
@@ -160,6 +161,7 @@ class ColloquiumPresentation {
         }
 
         this._updatePickerTrigger();
+        if (this.pickerOpen) this._syncPicker();
     }
 
     next() {
@@ -313,6 +315,32 @@ class ColloquiumPresentation {
         return 'Slide ' + (i + 1);
     }
 
+    // --- Chapters ---
+
+    // Chapters come from data-chapter attributes written at build time:
+    // [{ title, start, end }] with inclusive 0-based slide indices.
+    _readChapters() {
+        const chapters = [];
+        this.slides.forEach((slide, i) => {
+            const chapterIndex = this._chapterOf(slide);
+            if (chapterIndex < 0) return;
+            if (!chapters[chapterIndex]) {
+                chapters[chapterIndex] = {
+                    title: slide.getAttribute('data-chapter-title') || this._getSlideTitle(slide, i),
+                    start: i,
+                    end: i,
+                };
+            }
+            chapters[chapterIndex].end = i;
+        });
+        return chapters;
+    }
+
+    _chapterOf(slide) {
+        const value = slide.getAttribute('data-chapter');
+        return value === null ? -1 : parseInt(value, 10);
+    }
+
     _createPicker() {
         this.overlay = document.createElement('div');
         this.overlay.className = 'colloquium-picker-overlay';
@@ -321,6 +349,7 @@ class ColloquiumPresentation {
         picker.className = 'colloquium-picker';
 
         this.pickerItems = [];
+        this.pickerChapters = [];
 
         this.slides.forEach((slide, i) => {
             const btn = document.createElement('button');
@@ -334,7 +363,17 @@ class ColloquiumPresentation {
                 this._closePicker();
             });
             this.pickerItems.push(btn);
-            picker.appendChild(btn);
+
+            const chapterIndex = this._chapterOf(slide);
+            if (chapterIndex < 0) {
+                picker.appendChild(btn);
+                return;
+            }
+            if (!this.pickerChapters[chapterIndex]) {
+                this.pickerChapters[chapterIndex] = this._createPickerChapter(chapterIndex);
+                picker.appendChild(this.pickerChapters[chapterIndex].group);
+            }
+            this.pickerChapters[chapterIndex].list.appendChild(btn);
         });
 
         this.overlay.appendChild(picker);
@@ -348,19 +387,71 @@ class ColloquiumPresentation {
         });
     }
 
+    _createPickerChapter(chapterIndex) {
+        const chapter = this.chapters[chapterIndex];
+        const group = document.createElement('div');
+        group.className = 'colloquium-picker-chapter';
+
+        const header = document.createElement('button');
+        header.className = 'colloquium-picker-chapter-header';
+        header.setAttribute('aria-expanded', 'false');
+
+        const toggle = document.createElement('span');
+        toggle.className = 'colloquium-picker-chapter-toggle';
+        toggle.setAttribute('aria-hidden', 'true');
+        const title = document.createElement('span');
+        title.className = 'colloquium-picker-title';
+        title.textContent = chapter.title;
+        const range = document.createElement('span');
+        range.className = 'colloquium-picker-chapter-range';
+        range.textContent = chapter.start === chapter.end
+            ? String(chapter.start + 1)
+            : (chapter.start + 1) + '–' + (chapter.end + 1);
+        header.append(toggle, title, range);
+
+        const list = document.createElement('div');
+        list.className = 'colloquium-picker-chapter-slides';
+
+        header.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this._setPickerChapterExpanded(chapterIndex, !group.classList.contains('expanded'));
+        });
+
+        group.append(header, list);
+        return { group, header, list };
+    }
+
+    _setPickerChapterExpanded(chapterIndex, expanded) {
+        const entry = this.pickerChapters[chapterIndex];
+        if (!entry) return;
+        entry.group.classList.toggle('expanded', expanded);
+        entry.header.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    }
+
     _openPicker() {
         // Opening the picker cancels a pending numeric jump — otherwise the
         // stale timer fires mid-browse, closing the picker and jumping away.
         this._clearSlideNumberBuffer();
 
-        // Highlight current slide
+        this.overlay.classList.add('active');
+        this.pickerOpen = true;
+        this._syncPicker();
+    }
+
+    // Highlight the current slide, expand only its chapter, and scroll it into
+    // view. Runs on open and after every navigation while the picker is open,
+    // since keyboard navigation stays live behind it.
+    _syncPicker() {
         this.pickerItems.forEach((btn, i) => {
             btn.classList.toggle('current', i === this.currentIndex);
         });
-        this.overlay.classList.add('active');
-        this.pickerOpen = true;
 
-        // Scroll current item into view
+        const currentChapter = this._chapterOf(this.slides[this.currentIndex]);
+        this.pickerChapters.forEach((entry, chapterIndex) => {
+            this._setPickerChapterExpanded(chapterIndex, chapterIndex === currentChapter);
+            entry.header.classList.toggle('current', chapterIndex === currentChapter);
+        });
+
         const current = this.pickerItems[this.currentIndex];
         if (current) {
             current.scrollIntoView({ block: 'center' });
