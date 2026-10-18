@@ -7,6 +7,31 @@ from pathlib import Path
 
 from colloquium.slide import Slide
 
+CHAPTER_BAR_DEFAULTS = {"labels": True, "slides": "all", "progress": "slides"}
+_CHAPTER_BAR_CHOICES = {"slides": ("all", "section-breaks"), "progress": ("slides", "chapters")}
+
+
+def normalize_chapter_bar(value) -> dict | None:
+    """Normalize ``chapter_bar`` settings to None (off) or a full options dict.
+
+    Accepts ``True``/``"labels"`` (defaults), ``"bars"`` (no labels), or a
+    mapping with ``labels``, ``slides``, and ``progress`` keys. Unknown values
+    fall back to the defaults.
+    """
+    if value is True or value == "labels":
+        return dict(CHAPTER_BAR_DEFAULTS)
+    if value == "bars":
+        return {**CHAPTER_BAR_DEFAULTS, "labels": False}
+    if not isinstance(value, dict):
+        return None
+    options = dict(CHAPTER_BAR_DEFAULTS)
+    if value.get("labels") is False:
+        options["labels"] = False
+    for key, choices in _CHAPTER_BAR_CHOICES.items():
+        if value.get(key) in choices:
+            options[key] = value[key]
+    return options
+
 
 class Deck:
     """A presentation deck composed of slides."""
@@ -26,6 +51,7 @@ class Deck:
         citation_order: str = "auto",
         figure_captions: bool = False,
         chapters: bool = True,
+        chapter_bar: bool | str | dict = False,
     ):
         self.title = title
         self.author = author
@@ -40,6 +66,7 @@ class Deck:
         self.citation_order = citation_order
         self.figure_captions = figure_captions
         self.chapters = chapters
+        self.chapter_bar = normalize_chapter_bar(chapter_bar)
         self.slides: list[Slide] = []
 
     def add_slide(
@@ -146,6 +173,12 @@ class Deck:
             for key in ("left", "center", "right"):
                 if key in self.footer:
                     lines.append(f"  {key}: \"{self.footer[key]}\"")
+            section_break = self.footer.get("section_break")
+            if isinstance(section_break, dict):
+                lines.append("  section_break:")
+                for key in ("left", "center", "right"):
+                    if key in section_break:
+                        lines.append(f"    {key}: \"{section_break[key]}\"")
         if self.fonts:
             lines.append("fonts:")
             for key in ("heading", "body"):
@@ -161,6 +194,16 @@ class Deck:
             lines.append("figure_captions: true")
         if not self.chapters:
             lines.append("chapters: false")
+        if self.chapter_bar == CHAPTER_BAR_DEFAULTS:
+            lines.append("chapter_bar: true")
+        elif self.chapter_bar == {**CHAPTER_BAR_DEFAULTS, "labels": False}:
+            lines.append("chapter_bar: bars")
+        elif self.chapter_bar:
+            lines.append("chapter_bar:")
+            for key, default in CHAPTER_BAR_DEFAULTS.items():
+                value = self.chapter_bar[key]
+                if value != default:
+                    lines.append(f"  {key}: {str(value).lower() if isinstance(value, bool) else value}")
         lines.append("---")
 
         for slide in self.slides:

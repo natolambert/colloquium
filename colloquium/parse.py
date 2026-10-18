@@ -12,7 +12,7 @@ from colloquium.slide import Slide
 
 # Directive patterns: <!-- key: value -->
 _DIRECTIVE_RE = re.compile(
-    r"<!--\s*(layout|class|style|notes|title|align|valign|columns|rows|padding|size|cite|cite-left|cite-right|footnote|footnote-right|footnotes|img-align|img-valign|img-fill|img-overflow|animate|after|chapter)\s*:\s*(.*?)\s*-->",
+    r"<!--\s*(layout|class|style|notes|title|align|valign|columns|rows|padding|size|cite|cite-left|cite-right|footnote|footnote-right|footnotes|img-align|img-valign|img-fill|img-overflow|animate|after|chapter|chapter-short|chapter-bar)\s*:\s*(.*?)\s*-->",
     re.DOTALL,
 )
 
@@ -113,6 +113,10 @@ def parse_slide(text: str) -> Slide:
             metadata["after"] = value
         elif key == "chapter":
             metadata["chapter"] = value
+        elif key == "chapter-short":
+            metadata["chapter_short"] = value
+        elif key == "chapter-bar":
+            metadata["chapter_bar"] = value
         elif key == "columns":
             spec = _normalize_grid_spec(value)
             if spec:
@@ -171,6 +175,7 @@ def parse_markdown(text: str) -> Deck:
         citation_order=metadata.get("citation_order", "auto"),
         figure_captions=bool(metadata.get("figure_captions", False)),
         chapters=metadata.get("chapters", True) is not False,
+        chapter_bar=metadata.get("chapter_bar", False),
     )
 
     # Split on --- slide separators (horizontal rules)

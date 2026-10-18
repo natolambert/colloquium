@@ -32,6 +32,7 @@ Colloquium is an agent-native slide creation tool for research talks. Markdown-b
 - Hash-based URL routing (#1, #2, ...)
 - Slide counter + progress bar
 - Slide picker groups slides into collapsible chapters (`data-chapter` on each `<section>`, `window.colloquium.chapters`); section-break slides and `<!-- chapter: ... -->` start chapters
+- Chapter bar (`chapter_bar: true | bars | {labels, slides, progress}`, normalized by `deck.normalize_chapter_bar`; per-slide `<!-- chapter-bar: ... -->` and `<!-- chapter-short: ... -->`; `no-chapter-bar` class), `footer.section_break` overrides, and ```` ```toc ```` blocks are rendered at build time in `build.py` (`_plan_chapters`, `_build_chapter_bar_html`, `_replace_toc_blocks`), not in JS, so they appear in PDF export and capture too
 
 ### Slide Directives
 Per-slide configuration via HTML comments:

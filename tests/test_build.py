@@ -1513,6 +1513,22 @@ class TestCitationRendering:
             assert 'data-chapter="1"' in tags[3]
             assert "data-chapter-start" not in tags[3]
 
+    def test_chapter_bar_and_toc_leave_out_references(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bib_path = self._make_bib(tmpdir)
+            deck = Deck(title="Test", bibliography=bib_path, chapter_bar=True)
+            deck.slides.append(Slide(title="Part 1", layout="section-break"))
+            deck.slides.append(Slide(title="Intro", content="See [@smith2024].\n\n```toc\n```"))
+
+            sections = _slide_sections(build_deck(deck))
+
+            references_page = sections[2]
+            assert "<h2>References</h2>" in references_page
+            assert "has-chapter-bar" in references_page
+            assert 'item done" href="#1" title="Part 1"' in references_page
+            assert 'chapter-bar-label">References' not in references_page
+            assert ">References</a>" not in sections[1]
+
     def test_references_get_no_chapter_when_deck_has_none(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             bib_path = self._make_bib(tmpdir)
@@ -2231,3 +2247,202 @@ class TestChapters:
 
         assert "_readChapters()" in html
         assert "colloquium-picker-chapter-header" in html
+
+
+def _slide_sections(html: str) -> list[str]:
+    """Return each slide's full <section> element, in render order."""
+    return re.findall(r"<section [^>]*>.*?</section>", html, re.DOTALL)
+
+
+def _chapter_bar_deck(**deck_kwargs) -> Deck:
+    deck = Deck(title="Test", **deck_kwargs)
+    deck.add_slide(title="Talk", layout="title")
+    deck.add_slide(title="Part 1", layout="section-break")
+    deck.add_slide(title="A", content="a")
+    deck.add_slide(title="A2", content="a2")
+    deck.add_slide(title="Part 2", layout="section-break")
+    deck.add_slide(title="B", content="b")
+    return deck
+
+
+class TestChapterBar:
+    def test_off_by_default(self):
+        html = build_deck(_chapter_bar_deck())
+
+        assert '<nav class="colloquium-chapter-bar"' not in html
+        assert "<body>" in html
+
+    def test_shades_done_current_and_upcoming_chapters(self):
+        sections = _slide_sections(build_deck(_chapter_bar_deck(chapter_bar=True)))
+
+        # Slide 3 is the second of three slides in chapter 1.
+        assert (
+            'class="colloquium-chapter-bar-item current" href="#2" title="Part 1" '
+            'style="--chapter-progress: 66.6667%" aria-current="step"'
+        ) in sections[2]
+        assert (
+            'class="colloquium-chapter-bar-item upcoming" href="#5" title="Part 2" '
+            'style="--chapter-progress: 0%"'
+        ) in sections[2]
+        # On the Part 2 section break, Part 1 is done and Part 2 is half through.
+        assert 'item done" href="#2" title="Part 1" style="--chapter-progress: 100%"' in sections[4]
+        assert 'item current" href="#5" title="Part 2" style="--chapter-progress: 50%"' in sections[4]
+
+    def test_skips_title_and_opted_out_slides(self):
+        deck = _chapter_bar_deck(chapter_bar=True)
+        deck.add_slide(title="Full bleed", content="x", classes=["no-chapter-bar"])
+
+        html = build_deck(deck)
+        sections = _slide_sections(html)
+
+        assert '<body class="colloquium-has-chapter-bar">' in html
+        assert "colloquium-chapter-bar" not in sections[0]
+        assert "colloquium-chapter-bar" not in sections[-1]
+        assert "has-chapter-bar" in _section_tags(html)[1]
+        assert "has-chapter-bar" not in _section_tags(html)[0]
+
+    def test_sits_before_footer(self):
+        section = _slide_sections(build_deck(_chapter_bar_deck(chapter_bar=True)))[2]
+
+        assert section.index('<nav class="colloquium-chapter-bar"') < section.index('class="colloquium-footer"')
+
+    def test_labels_use_plain_heading_text(self):
+        deck = Deck(title="Test", chapter_bar=True)
+        deck.add_slide(title="Why **open** models?", layout="section-break")
+
+        html = build_deck(deck)
+
+        assert '<span class="colloquium-chapter-bar-label">Why open models?</span>' in html
+
+    def test_chapter_short_sets_the_bar_label_only(self):
+        deck = Deck(title="Test", chapter_bar=True)
+        deck.add_slide(title="Outline", content="```toc\n```")
+        deck.add_slide(
+            title="Why should we care about open models?",
+            layout="section-break",
+            chapter_short="Why care",
+        )
+
+        html = build_deck(deck)
+        tags = _section_tags(html)
+
+        assert '<span class="colloquium-chapter-bar-label">Why care</span>' in html
+        assert 'title="Why should we care about open models?"' in html
+        # The picker and the table of contents keep the full title.
+        assert "data-chapter-title" not in tags[1]
+        assert '<a href="#2">Why should we care about open models?</a>' in html
+
+    def test_bars_mode_drops_labels(self):
+        html = build_deck(_chapter_bar_deck(chapter_bar="bars"))
+
+        assert '<nav class="colloquium-chapter-bar colloquium-chapter-bar--bars"' in html
+        assert '<span class="colloquium-chapter-bar-label">' not in html
+        assert 'title="Part 1"' in html
+
+    def test_section_breaks_scope_with_chapter_progress(self):
+        deck = _chapter_bar_deck(chapter_bar={"slides": "section-breaks", "progress": "chapters"})
+
+        html = build_deck(deck)
+        sections = _slide_sections(html)
+
+        assert [("colloquium-chapter-bar" in section) for section in sections] == [
+            False, True, False, False, True, False,
+        ]
+        # Whole-chapter progress: the current chapter is full, not 1/n.
+        assert 'colloquium-chapter-bar--chapters' in sections[4]
+        assert 'item done" href="#2" title="Part 1" style="--chapter-progress: 100%"' in sections[4]
+        assert 'item current" href="#5" title="Part 2" style="--chapter-progress: 100%"' in sections[4]
+        # Other slides keep the window-edge progress line.
+        assert "<body>" in html
+
+    def test_slide_directive_restyles_shows_and_hides(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="Part 1", layout="section-break")
+        deck.add_slide(title="A", content="a", chapter_bar="bars chapters")
+        deck.add_slide(title="B", content="b")
+        deck.add_slide(title="C", content="c", chapter_bar="hide")
+
+        sections = _slide_sections(build_deck(deck))
+
+        # The deck has no chapter_bar, but the directive shows one on slide A.
+        assert "colloquium-chapter-bar" not in sections[0]
+        assert (
+            '<nav class="colloquium-chapter-bar colloquium-chapter-bar--bars '
+            'colloquium-chapter-bar--chapters"'
+        ) in sections[1]
+        assert "colloquium-chapter-bar" not in sections[2]
+
+        deck.chapter_bar = {"labels": True, "slides": "all", "progress": "slides"}
+        sections = _slide_sections(build_deck(deck))
+        assert "colloquium-chapter-bar" in sections[2]
+        assert "colloquium-chapter-bar" not in sections[3]
+
+    def test_needs_chapters(self):
+        deck = Deck(title="Test", chapter_bar=True)
+        deck.add_slide(title="A", content="a")
+
+        html = build_deck(deck)
+
+        assert '<nav class="colloquium-chapter-bar"' not in html
+        assert "<body>" in html
+
+
+class TestSectionBreakFooter:
+    def test_section_break_zones_override_the_footer(self):
+        deck = Deck(
+            title="Test",
+            footer={"left": "logo.png", "right": "auto", "section_break": {"left": "logo-white.png"}},
+        )
+        deck.add_slide(title="Part 1", layout="section-break")
+        deck.add_slide(title="A", content="a")
+
+        sections = _slide_sections(build_deck(deck))
+
+        assert 'src="logo-white.png"' in sections[0]
+        assert 'src="logo.png"' not in sections[0]
+        assert 'src="logo.png"' in sections[1]
+        assert "1 / 2" in sections[0]
+
+
+class TestTocBlock:
+    def _deck(self, toc_slide_chapter: bool = False, toc: str = "```toc\n```") -> Deck:
+        deck = Deck(title="Test")
+        deck.add_slide(title="Outline", content=toc)
+        deck.add_slide(title="Why open models?", layout="section-break")
+        deck.add_slide(title="Measuring use", content="x", chapter="Adoption")
+        if toc_slide_chapter:
+            deck.add_slide(title="Agenda", content=toc)
+        return deck
+
+    def test_lists_chapters_with_links(self):
+        sections = _slide_sections(build_deck(self._deck()))
+
+        assert (
+            '<ol class="colloquium-toc">'
+            '<li class="colloquium-toc-item upcoming"><a href="#2">Why open models?</a></li>'
+            '<li class="colloquium-toc-item upcoming"><a href="#3">Adoption</a></li>'
+            "</ol>"
+        ) in sections[0]
+        assert "language-toc" not in sections[0]
+
+    def test_marks_the_chapter_it_sits_in(self):
+        sections = _slide_sections(build_deck(self._deck(toc_slide_chapter=True)))
+
+        assert '<ol class="colloquium-toc colloquium-toc--has-current">' in sections[3]
+        assert '<li class="colloquium-toc-item done"><a href="#2">' in sections[3]
+        assert '<li class="colloquium-toc-item current"><a href="#3">Adoption</a></li>' in sections[3]
+
+    def test_unnumbered_option(self):
+        html = build_deck(self._deck(toc="```toc\nnumbered: false\n```"))
+
+        assert '<ul class="colloquium-toc">' in html
+        assert '<ol class="colloquium-toc"' not in html
+
+    def test_renders_nothing_without_chapters(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="Outline", content="```toc\n```")
+
+        section = _slide_sections(build_deck(deck))[0]
+
+        assert "colloquium-toc" not in section
+        assert "language-toc" not in section

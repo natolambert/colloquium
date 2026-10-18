@@ -107,6 +107,9 @@ custom_css: ".slide h2 { color: red; }"   # inline CSS overrides
 | `footer.center` | `""` | Center footer zone |
 | `footer.right` | `"auto"` | Right footer zone (`"auto"` = slide numbers) |
 | `custom_css` | `""` | Additional CSS injected into the page |
+| `chapters` | `true` | Group slides into [chapters](#chapters); `false` keeps a flat picker |
+| `chapter_bar` | `false` | Show the [chapter bar](#chapter-bar): `true`, `bars`, or a mapping of `labels`, `slides`, `progress` |
+| `footer.section_break` | — | Footer zones to use on section-break slides (see [Section-break footer](#section-break-footer)) |
 
 Footer text supports `{n}` (slide number) and `{N}` (total slides) for custom counters, e.g. `"Lambert {n}/{N}"` → `"Lambert 6/23"`.
 
@@ -272,6 +275,8 @@ At the slide root, use either `columns:` or `rows:`. For nested layouts, use `ro
 | `<!-- notes: text -->` | Speaker notes (hidden in presentation) |
 | `<!-- after: references -->` | Move this slide after generated bibliography slides; it is excluded from the footer `{N}` total |
 | `<!-- chapter: Title -->` | Start a new chapter at this slide (see [Chapters](#chapters)) |
+| `<!-- chapter-short: Label -->` | Shorter label for this slide's chapter in the [chapter bar](#chapter-bar) |
+| `<!-- chapter-bar: bars chapters -->` | Restyle, show, or `hide` the [chapter bar](#chapter-bar) on this slide |
 | `<!-- class: figure-captions -->` | Turn standalone markdown images on that slide into numbered figures with captions taken from `![alt](...)` |
 | `<!-- class: no-figure-captions -->` | Disable deck-wide figure captions for a specific slide |
 | `<!-- img-align: center -->` | Align images only (`left`, `center`, `right`) — title unaffected |
@@ -331,7 +336,85 @@ To turn chapters off and keep a flat picker, set this in the frontmatter:
 chapters: false
 ```
 
-See [`examples/chapters/`](./examples/chapters/) for a small deck that uses each pattern.
+#### Chapter bar
+
+Set `chapter_bar: true` in the frontmatter to add a bar along the bottom of each slide, with one labeled segment per chapter. Finished chapters are fully shaded, the current chapter fills as you advance through its slides, and later chapters stay empty. Click a segment to jump to the start of that chapter; hover it to see the chapter's full title.
+
+```yaml
+chapter_bar: true    # labeled segments on every slide
+chapter_bar: bars    # the same, as thin tracks without labels
+```
+
+For more control, give `chapter_bar` a mapping. Each key is optional:
+
+```yaml
+chapter_bar:
+  labels: true            # false: tracks without labels
+  slides: section-breaks  # all (default): every slide; section-breaks: only section breaks
+  progress: chapters      # slides (default): the current chapter fills slide by slide
+                          # chapters: whole-chapter states (done dimmed, current solid, upcoming empty)
+```
+
+`slides: section-breaks` with `progress: chapters` gives a quiet "where are we" indicator on each section break and leaves every other slide alone.
+
+Restyle the bar on one slide with a `chapter-bar` directive, whose tokens override the deck settings for that slide. A directive also shows the bar on its slide when the deck has no `chapter_bar` setting, or when `slides: section-breaks` would leave it out:
+
+```markdown
+<!-- chapter-bar: bars chapters -->   tracks only, whole-chapter states
+<!-- chapter-bar: labels slides -->   labels, slide-by-slide fill
+<!-- chapter-bar: hide -->            no bar on this slide
+```
+
+Give a segment a shorter label with `chapter-short` on the slide that opens the chapter. The picker and table of contents keep the full title:
+
+```markdown
+<!-- layout: section-break -->
+<!-- chapter-short: Why care -->
+
+## Why should we care about open models?
+```
+
+- The bar never appears on title slides. Besides `chapter-bar: hide`, the `no-chapter-bar` class also hides it on one slide.
+- Segments have equal widths, and long titles are cut off with an ellipsis, so use `chapter-short` when names are long.
+- Keep the footer light when the bar has labels: a logo and the slide counter in the corners, with `footer.center` empty. Center text sits directly above the labels and looks crowded. Tracks without labels leave more room.
+- The generated References chapter gets no segment.
+- With labels, the footer moves up to sit above the bar, and slides lose `--colloquium-chapter-bar-height` (default `30px`) of content height. Tracks without labels only lift the footer slightly and keep the full content height. When the bar is on every slide, the thin progress line at the bottom of the window is hidden.
+- The bar is built into each slide, so it also appears in PDF exports and captures. It uses the `--colloquium-progress-fill` and `--colloquium-progress-bg` colors, and turns white on section breaks.
+
+#### Section-break footer
+
+Section breaks sit on the accent color, so a dark logo can disappear. `footer.section_break` overrides any footer zone on section-break slides only:
+
+```yaml
+footer:
+  left: "assets/logo.png"
+  right: "auto"
+  section_break:
+    left: "assets/logo-white.png"
+```
+
+#### Table of contents
+
+A `toc` block lists the deck's chapters, each linked to its first slide:
+
+````markdown
+## Outline
+
+```toc
+```
+````
+
+When the block sits inside a chapter, that chapter is highlighted and the others are dimmed, so the same block repeated at the start of each chapter works as an agenda slide. On a slide before the first chapter, such as an outline, all chapters look the same. The list is numbered by default; set `numbered: false` inside the block for a plain list:
+
+````markdown
+```toc
+numbered: false
+```
+````
+
+Like the chapter bar, the table of contents leaves out the generated References chapter. A deck without chapters renders the block as nothing.
+
+See [`examples/chapters/`](./examples/chapters/) for a deck that shows every option above, with a settings summary on its first slides. It is also on the [examples site](https://natolambert.github.io/colloquium/).
 
 ## Content Features
 

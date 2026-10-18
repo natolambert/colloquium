@@ -161,6 +161,7 @@ class ColloquiumPresentation {
         }
 
         this._updatePickerTrigger();
+        if (this.pickerOpen) this._syncPicker();
     }
 
     next() {
@@ -432,21 +433,25 @@ class ColloquiumPresentation {
         // stale timer fires mid-browse, closing the picker and jumping away.
         this._clearSlideNumberBuffer();
 
-        // Highlight current slide
+        this.overlay.classList.add('active');
+        this.pickerOpen = true;
+        this._syncPicker();
+    }
+
+    // Highlight the current slide, expand only its chapter, and scroll it into
+    // view. Runs on open and after every navigation while the picker is open,
+    // since keyboard navigation stays live behind it.
+    _syncPicker() {
         this.pickerItems.forEach((btn, i) => {
             btn.classList.toggle('current', i === this.currentIndex);
         });
 
-        // Expand only the current chapter; the rest start collapsed.
         const currentChapter = this._chapterOf(this.slides[this.currentIndex]);
         this.pickerChapters.forEach((entry, chapterIndex) => {
             this._setPickerChapterExpanded(chapterIndex, chapterIndex === currentChapter);
             entry.header.classList.toggle('current', chapterIndex === currentChapter);
         });
-        this.overlay.classList.add('active');
-        this.pickerOpen = true;
 
-        // Scroll current item into view
         const current = this.pickerItems[this.currentIndex];
         if (current) {
             current.scrollIntoView({ block: 'center' });
