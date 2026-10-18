@@ -230,3 +230,83 @@ Claim [@a2026]
     assert "Me 1/2" in _texts(main)
     assert "Me 2/2" in _texts(refs)
     assert "Me 3/2" in _texts(appendix)
+
+
+def test_only_directive_picks_slides_per_format(tmp_path):
+    md = _write_deck(tmp_path, """<!-- only: html -->
+## Interactive demo
+
+Live iframe
+
+---
+
+<!-- only: pptx -->
+## Static demo
+
+Screenshot instead
+
+---
+
+## Shared
+
+Both
+""")
+    prs = Presentation(export_pptx(str(md)))
+
+    assert [s.placeholders[0].text_frame.text for s in prs.slides] == ["Static demo", "Shared"]
+    assert "Me 2/2" in _texts(prs.slides[1])
+
+
+def test_toc_block_becomes_a_chapter_list(tmp_path):
+    md = _write_deck(tmp_path, """## Outline
+
+```toc
+```
+
+---
+
+<!-- layout: section-break -->
+
+## Why open?
+
+---
+
+<!-- chapter: Adoption -->
+## Agenda
+
+```toc
+```
+""")
+    prs = Presentation(export_pptx(str(md)))
+    outline, _, agenda = prs.slides
+
+    assert any("Why open?\nAdoption" in t for t in _texts(outline))
+    body = next(s for s in agenda.shapes if s.has_text_frame and "Adoption" in s.text_frame.text)
+    current = next(r for p in body.text_frame.paragraphs for r in p.runs if r.text == "Adoption")
+    assert current.font.bold
+    numbering = body.text_frame.paragraphs[0]._p.find(f"{qn('a:pPr')}/{qn('a:buAutoNum')}")
+    assert numbering is not None
+
+
+def test_element_blocks_are_skipped_not_printed(tmp_path, capsys):
+    md = _write_deck(tmp_path, """## Embeds
+
+Intro
+
+```iframe
+src: https://example.com
+```
+
+```builtwith
+repo: natolambert/colloquium
+```
+""")
+    prs = Presentation(export_pptx(str(md)))
+
+    text = "\n".join(_texts(prs.slides[0]))
+    assert "Intro" in text
+    assert "example.com" not in text and "natolambert" not in text
+    err = capsys.readouterr().err
+    assert "```iframe blocks are not supported" in err
+    assert "```builtwith blocks are not supported" in err
+

@@ -979,6 +979,57 @@ def _build_toc_html(options_text: str, chapters: list[dict], current: int | None
     return f'<{tag} class="{classes}">{"".join(items)}</{tag}>'
 
 
+def slides_for_format(slides: list[Slide], fmt: str) -> list[Slide]:
+    """Drop slides marked ``<!-- only: ... -->`` for another output format.
+
+    ``fmt`` is ``"html"`` (the HTML build, and the PDF and captures made from
+    it) or ``"pptx"`` (native PowerPoint export).
+    """
+    return [slide for slide in slides if slide.metadata.get("only", fmt) == fmt]
+
+
+_TOC_FENCE_RE = re.compile(r"^```toc[^\n]*\n(.*?)^```[ \t]*$", re.DOTALL | re.MULTILINE)
+
+
+def expand_toc_markdown(slides: list[Slide], chapters_enabled: bool = True) -> list[Slide]:
+    """Return copies of ``slides`` with ```toc blocks expanded to markdown lists.
+
+    For native exporters, which cannot run the HTML pipeline. The current
+    chapter is bolded; ``numbered: false`` gives a bullet list.
+    """
+    from dataclasses import replace
+
+    if not any(_TOC_FENCE_RE.search(slide.content) for slide in slides):
+        return slides
+    openers = [(slide, _chapter_start_title(slide)) for slide in slides]
+    if chapters_enabled and any(title is not None for _, title in openers):
+        slide_chapters, chapters = _plan_chapters(openers, _create_md_renderer())
+    else:
+        slide_chapters, chapters = [None] * len(slides), []
+
+    def expand(match: re.Match, current: int | None) -> str:
+        try:
+            options = yaml.safe_load(match.group(1)) or {}
+        except yaml.YAMLError:
+            options = {}
+        numbered = not (isinstance(options, dict) and options.get("numbered") is False)
+        lines = []
+        for chapter_index, chapter in enumerate(chapters):
+            if chapter["references"]:
+                continue
+            title = chapter["title"].replace("*", "\\*")
+            if chapter_index == current:
+                title = f"**{title}**"
+            lines.append(f"{len(lines) + 1}. {title}" if numbered else f"- {title}")
+        return "\n".join(lines)
+
+    return [
+        replace(slide, content=_TOC_FENCE_RE.sub(lambda m: expand(m, slide_chapters[i]), slide.content))
+        if _TOC_FENCE_RE.search(slide.content) else slide
+        for i, slide in enumerate(slides)
+    ]
+
+
 def _replace_toc_blocks(slide_html: str, chapters: list[dict], current: int | None) -> str:
     """Swap every ```toc block in a built slide for the chapter list."""
     return _TOC_RE.sub(lambda m: _build_toc_html(m.group(1), chapters, current), slide_html)
@@ -1805,12 +1856,13 @@ def build_deck(deck: Deck) -> str:
     citation_order = deck.citation_order
     citation_numbers: dict[str, int] = {}
 
+    deck_slides = slides_for_format(deck.slides, "html")
     main_slides = [
-        slide for slide in deck.slides
+        slide for slide in deck_slides
         if slide.metadata.get("after") != "references"
     ]
     post_reference_slides = [
-        slide for slide in deck.slides
+        slide for slide in deck_slides
         if slide.metadata.get("after") == "references"
     ]
     render_order_slides = main_slides + post_reference_slides

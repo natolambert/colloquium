@@ -2422,6 +2422,20 @@ class TestSectionBreakFooter:
         assert "1 / 2" in sections[0]
 
 
+class TestOnlyDirective:
+    def test_pptx_only_slides_are_left_out_of_html(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="Static", content="x", only="pptx")
+        deck.add_slide(title="Live", content="y", only="html")
+        deck.add_slide(title="Shared", content="z")
+
+        html = build_deck(deck)
+
+        assert "<h2>Static</h2>" not in html
+        assert "<h2>Live</h2>" in html
+        assert "2 / 2" in html
+
+
 class TestTocBlock:
     def _deck(self, toc_slide_chapter: bool = False, toc: str = "```toc\n```") -> Deck:
         deck = Deck(title="Test")

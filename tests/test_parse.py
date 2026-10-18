@@ -332,6 +332,13 @@ class TestEyebrowDirective:
         assert "<!-- eyebrow: Part 1 -->" in slide.to_markdown()
 
 
+class TestOnlyDirective:
+    def test_only_round_trips(self):
+        slide = parse_slide("<!-- only: PPTX -->\n\n## Static")
+        assert slide.metadata["only"] == "pptx"
+        assert "<!-- only: pptx -->" in slide.to_markdown()
+
+
 class TestChapterDirective:
     def test_chapter_stored_in_metadata(self):
         slide = parse_slide("<!-- chapter: Measuring progress -->\n\n## Downloads\n\nBody")

@@ -33,6 +33,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 from colloquium.md import create_base_md
+from colloquium.elements import BLOCK_LANGUAGES
 
 _ROLES = ("heading", "eyebrow", "subtitle", "name", "affiliation", "photo")
 
@@ -324,7 +325,7 @@ def _parse_blocks(markdown: str, base_dir: Path, warnings: list[str]) -> list[Te
                         flush()
                         blocks.append(legend)
         elif t in ("fence", "code_block"):
-            if tok.info.strip() in ("chart", "conversation", "box"):
+            if tok.info.strip() in BLOCK_LANGUAGES:
                 warnings.append(f"```{tok.info.strip()} blocks are not supported in template export; skipped")
             else:
                 for line in tok.content.rstrip("\n").splitlines():
@@ -759,6 +760,8 @@ def export_pptx_with_template(deck, base_dir: Path, output_path: str, cfg: Templ
         _format_reference,
         _ordered_citation_keys,
         _parse_bib_file,
+        expand_toc_markdown,
+        slides_for_format,
     )
 
     prs = Presentation(str(cfg.template))
@@ -783,8 +786,9 @@ def export_pptx_with_template(deck, base_dir: Path, output_path: str, cfg: Templ
 
     bib_entries = _parse_bib_file(deck.bibliography) if deck.bibliography else {}
     style = deck.citation_style
-    main = [s for s in deck.slides if s.metadata.get("after") != "references"]
-    post = [s for s in deck.slides if s.metadata.get("after") == "references"]
+    slides = expand_toc_markdown(slides_for_format(deck.slides, "pptx"), deck.chapters)
+    main = [s for s in slides if s.metadata.get("after") != "references"]
+    post = [s for s in slides if s.metadata.get("after") == "references"]
 
     cited: list[str] = []
     if bib_entries:

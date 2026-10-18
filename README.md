@@ -275,6 +275,7 @@ At the slide root, use either `columns:` or `rows:`. For nested layouts, use `ro
 | `<!-- style: css-here -->` | Inline CSS on the slide element |
 | `<!-- notes: text -->` | Speaker notes (hidden in presentation) |
 | `<!-- eyebrow: text -->` | Small uppercase label above the slide heading (e.g. `Part 1` on a section break); fills a template's eyebrow slot in PPTX export |
+| `<!-- only: html -->` | Keep this slide out of PPTX export; `only: pptx` keeps it out of the HTML, PDF, and captures (see [HTML-only and PPTX-only slides](#html-only-and-pptx-only-slides)) |
 | `<!-- after: references -->` | Move this slide after generated bibliography slides; it is excluded from the footer `{N}` total |
 | `<!-- chapter: Title -->` | Start a new chapter at this slide (see [Chapters](#chapters)) |
 | `<!-- chapter-short: Label -->` | Shorter label for this slide's chapter in the [chapter bar](#chapter-bar) |
@@ -768,6 +769,38 @@ colloquium export talk.md --template other-template.pptx # override the template
 - Unused template layouts are pruned, so the output doesn't carry the template's sample media. Fonts the template embeds stay embedded.
 
 Find placeholder `idx` values by opening the template with python-pptx (`[(ph.placeholder_format.idx, ph.name) for ph in prs.slides[3].placeholders]`).
+
+### HTML-only and PPTX-only slides
+
+Some slides only work in one format, such as a live iframe demo or an interactive chart. Mark them with `only`, and give the other format its own version:
+
+````markdown
+<!-- only: html -->
+## Live demo
+
+```iframe
+src: https://example.com/demo
+```
+
+---
+
+<!-- only: pptx -->
+## Demo
+
+![Demo screenshot](assets/demo.png)
+````
+
+`only: html` slides are left out of PPTX export. `only: pptx` slides are left out of the HTML, and so out of the PDF and captures made from it. Slide numbers and `{N}` count only the slides in each output.
+
+### What PPTX export leaves out
+
+Both PPTX exporters build slides natively from the markdown, so features that need the browser are dropped:
+
+- **Skipped with a warning:** `box`, `conversation`, `iframe`, and `builtwith` blocks, and in template mode also `chart` blocks. The plain exporter draws charts as native PPTX charts.
+- **Converted:** a `toc` block becomes a native list of chapter titles, with the current chapter in bold.
+- **Ignored:** the [chapter bar](#chapter-bar), the slide picker, animations, custom CSS, and footer logos in template mode. Template mode puts footer text on content slides only, so `footer.section_break` has no effect there.
+
+Use `only: html` for slides built around a skipped feature, and `only: pptx` for their replacements.
 
 ## PDF Export
 
