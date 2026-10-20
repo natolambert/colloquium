@@ -34,12 +34,24 @@ class TestFigureColumnTheme:
     def test_image_and_caption_cells_lay_out_as_flex_figure_columns(self):
         html = _build("Text\n\n|||\n\n![A chart](chart.png)\n\n*Caption*", ["cols-60-40"])
         tail = ":has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))"
-        bare = f".slide .colloquium-grid > .col:where(:has(> img:first-child){tail})"
-        wrapped = f".slide .colloquium-grid > .col:where(:has(> p:first-child > img:only-child){tail})"
-        assert f"{bare}," in html
-        assert f"{wrapped} > p:first-child," in html
-        assert f"{bare} > img:first-child," in html
-        assert f".slide.img-valign-bottom .colloquium-grid > .col:where(:has(> img:first-child){tail})," in html
+        bare = f".slide .colloquium-grid > .col:has(> img:first-child){tail}"
+        wrapped = f".slide .colloquium-grid > .col:has(> p:first-child > img:only-child){tail}"
+        # Whole selectors sit in :where() so any deck rule outranks them.
+        assert f":where({bare})," in html
+        assert f":where({wrapped} > p:first-child)," in html
+        assert f":where({bare} > img:first-child)," in html
+        assert f":where(.slide.img-valign-bottom .colloquium-grid > .col:has(> img:first-child){tail})," in html
+
+    def test_figure_column_rules_have_zero_specificity(self):
+        import pathlib
+        import re
+        css = pathlib.Path("colloquium/themes/default/theme.css").read_text()
+        block = css[css.index("/* ===== Figure columns ====="):css.index(".img-overflow .colloquium-grid > .col,")]
+        block = re.sub(r"/\*.*?\*/", "", block, flags=re.S)
+        selectors = [line.strip() for line in re.findall(r"^(.+?)(?:,|\s\{)$", block, re.M)]
+        assert selectors
+        for selector in selectors:
+            assert selector.startswith(":where(") and selector.endswith(")"), selector
 
     def test_figure_column_selectors_never_nest_has(self):
         import pathlib
