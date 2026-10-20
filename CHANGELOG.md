@@ -11,7 +11,7 @@ One line per PR for easy copy into GitHub releases.
 
 ## [Unreleased]
 
-- Figure columns: the image rule matches the theme's generic image rule's specificity so a figure fills a tall column instead of stopping at the generic height cap ([#60](https://github.com/natolambert/colloquium/pull/60))
+- Figure columns: a max-height rule at the theme's generic image specificity lets a figure fill a tall column instead of stopping at the generic height cap; every other figure-column declaration stays at zero specificity ([#60](https://github.com/natolambert/colloquium/pull/60))
 - Fixed: the dev server's live rebuild silently failed on decks that cite papers and have column or row slides after the references, because the render check compared slides out of order; build errors are now flushed to the log ([#61](https://github.com/natolambert/colloquium/pull/61))
 - `animate: bullets`/`items`: blocks after an animated list (a takeaway line, a caption) now appear after the last bullet instead of being visible from the first click; text before the list stays visible ([#59](https://github.com/natolambert/colloquium/pull/59))
 - Consecutive leading `##` (or `#`) lines form one multi-line slide title with a line break between them, instead of the second line becoming a stray heading in the body; chapters, the slide picker, and `toc` blocks read it as one line ([#57](https://github.com/natolambert/colloquium/pull/57))

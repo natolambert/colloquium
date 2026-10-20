@@ -942,11 +942,12 @@ html, body {
    it, and the column keeps the width given by the columns directive. No
    class is needed; captioned <figure> elements have their own rules above.
    :has() cannot nest, so the bare-image and wrapped-image cases are
-   separate selectors. The structural conditions sit in :where(); the
-   container and caption rules have zero specificity, and the image rule
-   matches the theme's own `.slide .slide-content img` (0,2,1) exactly, so
-   it lifts that rule's fixed max-height to the column height without
-   raising the bar for deck CSS. */
+   separate selectors. The structural conditions sit in :where(), so the
+   container, image, and caption rules have zero specificity and any deck
+   CSS overrides them. The one exception is max-height: the theme's own
+   `.slide .slide-content img` (0,2,1) caps image height, so a rule at
+   exactly that specificity lifts the cap to the column height; it carries
+   nothing else. */
 :where(.slide .colloquium-grid > .col:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))),
 :where(.slide .colloquium-row:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))),
 :where(.slide .colloquium-grid > .col:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))),
@@ -963,19 +964,25 @@ html, body {
     display: contents;
 }
 
-.slide .slide-content :where(.colloquium-grid > .col:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))) > img:first-child,
-.slide .slide-content :where(.colloquium-row:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))) > img:first-child,
-.slide .slide-content :where(.colloquium-grid > .col:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))) > p:first-child > img,
-.slide .slide-content :where(.colloquium-row:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))) > p:first-child > img {
+:where(.slide .colloquium-grid > .col:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > img:first-child),
+:where(.slide .colloquium-row:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > img:first-child),
+:where(.slide .colloquium-grid > .col:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > p:first-child > img),
+:where(.slide .colloquium-row:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > p:first-child > img) {
     display: block;
     flex: 0 1 auto;
     min-height: 0;
     width: auto;
     height: auto;
     max-width: 100%;
-    max-height: 100%;
     margin: 0;
     object-fit: contain;
+}
+
+.slide .slide-content :where(.colloquium-grid > .col:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))) > img:first-child,
+.slide .slide-content :where(.colloquium-row:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))) > img:first-child,
+.slide .slide-content :where(.colloquium-grid > .col:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))) > p:first-child > img,
+.slide .slide-content :where(.colloquium-row:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))) > p:first-child > img {
+    max-height: 100%;
 }
 
 :where(.slide .colloquium-grid > .col:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > p:not(:first-child)),

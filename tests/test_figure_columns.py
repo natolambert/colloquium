@@ -56,6 +56,11 @@ class TestFigureColumnTheme:
             else:
                 # Image rules: two classes plus the img tag, nothing else outside :where().
                 assert re.fullmatch(r"\.slide \.slide-content :where\(.+\) > (img:first-child|p:first-child > img)", selector), selector
+        # The elevated image rule only lifts the theme's height cap; every other
+        # declaration stays at zero specificity so deck CSS can override it.
+        for selectors_text, body in re.findall(r"((?:^[^\n{}]+,\n)*^[^\n{}]+)\s\{([^}]*)\}", block, re.M):
+            if not selectors_text.lstrip().startswith(":where("):
+                assert body.split() == ["max-height:", "100%;"], body
 
     def test_tall_right_uses_the_slide_grid_instead_of_a_fixed_width(self):
         html = _build("Text\n\n|||\n\n![Caption](figure.png)", ["cols-60-40", "img-tall-right", "figure-captions"])
