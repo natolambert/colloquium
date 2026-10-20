@@ -86,21 +86,19 @@ def _read_stable_source_snapshot(input_path: str, settle_seconds: float = 0.06) 
 def _render_matches_deck_structure(deck, html: str) -> bool:
     """Reject broken renders that lost row/column wrappers during live editing."""
     # The build renders regular slides, then any generated References pages,
-    # then ``after: references`` slides, so compare in that order and skip the
-    # generated pages, which have no source slide.
-    sections = [
-        section for section in _SECTION_RE.findall(html)
-        if "colloquium-references-slide" not in section
-    ]
-    ordered_slides = [
-        slide for slide in deck.slides if slide.metadata.get("after") != "references"
-    ] + [
-        slide for slide in deck.slides if slide.metadata.get("after") == "references"
-    ]
-    if len(sections) < len(ordered_slides):
+    # then ``after: references`` slides. Pair source slides with sections by
+    # position from both ends, so the generated pages in the middle (which have
+    # no source slide) are skipped without inspecting section content.
+    sections = _SECTION_RE.findall(html)
+    main_slides = [slide for slide in deck.slides if slide.metadata.get("after") != "references"]
+    post_slides = [slide for slide in deck.slides if slide.metadata.get("after") == "references"]
+    if len(sections) < len(main_slides) + len(post_slides):
         return False
+    pairs = list(zip(main_slides, sections[:len(main_slides)]))
+    if post_slides:
+        pairs += list(zip(post_slides, sections[len(sections) - len(post_slides):]))
 
-    for slide, section_html in zip(ordered_slides, sections):
+    for slide, section_html in pairs:
         has_columns = any(cls.startswith("cols-") for cls in slide.classes)
         has_rows = any(cls.startswith("rows-") for cls in slide.classes)
         if has_columns and "colloquium-grid" not in section_html:

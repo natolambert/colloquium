@@ -55,6 +55,17 @@ class TestServeSnapshotAndValidation:
         assert "colloquium-references-slide" in html
         assert _render_matches_deck_structure(deck, html)
 
+    def test_render_structure_keeps_slides_that_mention_the_references_class(self, tmp_path):
+        text = (
+            "<!-- columns: 50/50 -->\n## Cols\n\nSee `colloquium-references-slide` "
+            "and <div class=\"slide-content colloquium-references-slide\">x</div>\n\n|||\n\nB"
+        )
+        deck = parse_markdown(text)
+        html = _build_snapshot_html(str(tmp_path / "slides.md"), text)
+
+        assert len(deck.slides) == 1
+        assert _render_matches_deck_structure(deck, html)
+
     def test_render_structure_rejects_missing_column_wrapper(self):
         text = "<!-- columns: 50/50 -->\n## Cols\n\nA\n\n|||\n\nB"
         deck = parse_markdown(text)
