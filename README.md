@@ -58,7 +58,14 @@ colloquium build slides.md        # → slides.html
 colloquium serve slides.md        # dev server with live reload
 colloquium export slides.md       # PDF via a headless Chromium-based browser
 colloquium capture slides.md      # per-slide PNGs for AI review
+colloquium share-image slides.md  # first slide as the link-preview card (see below)
 ```
+
+Add `url` and `share_image: auto` to the frontmatter and the built deck links to that capture, so the URL unfurls like this in Slack, X, or iMessage:
+
+![Link preview card: the first slide of the hello example](docs/share-card.png)
+
+Details in [Share images](#share-images).
 
 ## CLI Commands
 
