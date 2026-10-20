@@ -935,14 +935,18 @@ html, body {
 }
 
 /* ===== Figure columns =====
-   A grid column or row cell whose first child is an image (a bare <img> or
+   A grid column or row cell whose first child is an image (a bare <img>, or
    a paragraph holding only an image) followed by nothing but paragraphs
    (its caption or source line) lays out as a flex column: the image shrinks
    to the height left beside the caption, which stays directly beneath it,
    and the column keeps the width given by the columns directive. No class
-   is needed; captioned <figure> elements have their own rules above. */
-.slide .colloquium-grid > .col:has(> :first-child:is(img, p:has(> img:only-child))):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))),
-.slide .colloquium-row:has(> :first-child:is(img, p:has(> img:only-child))):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) {
+   is needed; captioned <figure> elements have their own rules above.
+   :has() cannot nest, so the bare-image and wrapped-image cases are
+   separate selectors. */
+.slide .colloquium-grid > .col:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))),
+.slide .colloquium-row:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))),
+.slide .colloquium-grid > .col:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))),
+.slide .colloquium-row:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -950,15 +954,15 @@ html, body {
     min-height: 0;
 }
 
-.slide .colloquium-grid > .col:has(> :first-child:is(img, p:has(> img:only-child))):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > p:first-child,
-.slide .colloquium-row:has(> :first-child:is(img, p:has(> img:only-child))):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > p:first-child {
+.slide .colloquium-grid > .col:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > p:first-child,
+.slide .colloquium-row:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > p:first-child {
     display: contents;
 }
 
-.slide .colloquium-grid > .col:has(> :first-child:is(img, p:has(> img:only-child))):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > :first-child:is(img, p) > img,
-.slide .colloquium-grid > .col:has(> :first-child:is(img, p:has(> img:only-child))):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > img:first-child,
-.slide .colloquium-row:has(> :first-child:is(img, p:has(> img:only-child))):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > :first-child:is(img, p) > img,
-.slide .colloquium-row:has(> :first-child:is(img, p:has(> img:only-child))):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > img:first-child {
+.slide .colloquium-grid > .col:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > img:first-child,
+.slide .colloquium-row:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > img:first-child,
+.slide .colloquium-grid > .col:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > p:first-child > img,
+.slide .colloquium-row:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > p:first-child > img {
     display: block;
     flex: 0 1 auto;
     min-height: 0;
@@ -970,20 +974,26 @@ html, body {
     object-fit: contain;
 }
 
-.slide .colloquium-grid > .col:has(> :first-child:is(img, p:has(> img:only-child))):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > p:not(:first-child),
-.slide .colloquium-row:has(> :first-child:is(img, p:has(> img:only-child))):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > p:not(:first-child) {
+.slide .colloquium-grid > .col:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > p:not(:first-child),
+.slide .colloquium-row:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > p:not(:first-child),
+.slide .colloquium-grid > .col:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > p:not(:first-child),
+.slide .colloquium-row:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > p:not(:first-child) {
     flex: 0 0 auto;
     max-width: 100%;
     margin: 0.45em 0 0;
 }
 
-.slide.img-valign-center .colloquium-grid > .col:has(> :first-child:is(img, p:has(> img:only-child))):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))),
-.slide.img-valign-center .colloquium-row:has(> :first-child:is(img, p:has(> img:only-child))):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) {
+.slide.img-valign-center .colloquium-grid > .col:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))),
+.slide.img-valign-center .colloquium-row:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))),
+.slide.img-valign-center .colloquium-grid > .col:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))),
+.slide.img-valign-center .colloquium-row:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) {
     justify-content: center;
 }
 
-.slide.img-valign-bottom .colloquium-grid > .col:has(> :first-child:is(img, p:has(> img:only-child))):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))),
-.slide.img-valign-bottom .colloquium-row:has(> :first-child:is(img, p:has(> img:only-child))):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) {
+.slide.img-valign-bottom .colloquium-grid > .col:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))),
+.slide.img-valign-bottom .colloquium-row:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))),
+.slide.img-valign-bottom .colloquium-grid > .col:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))),
+.slide.img-valign-bottom .colloquium-row:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) {
     justify-content: flex-end;
 }
 

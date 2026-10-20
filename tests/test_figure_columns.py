@@ -33,10 +33,24 @@ class TestColumnTracksOnSlide:
 class TestFigureColumnTheme:
     def test_image_and_caption_cells_lay_out_as_flex_figure_columns(self):
         html = _build("Text\n\n|||\n\n![A chart](chart.png)\n\n*Caption*", ["cols-60-40"])
-        figcol = ".col:has(> :first-child:is(img, p:has(> img:only-child))):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))"
-        assert f".slide .colloquium-grid > {figcol}," in html
-        assert f".slide .colloquium-grid > {figcol} > p:first-child," in html
-        assert f".slide.img-valign-bottom .colloquium-grid > {figcol}," in html
+        tail = ":has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))"
+        bare = f".slide .colloquium-grid > .col:has(> img:first-child){tail}"
+        wrapped = f".slide .colloquium-grid > .col:has(> p:first-child > img:only-child){tail}"
+        assert f"{bare}," in html
+        assert f"{wrapped} > p:first-child," in html
+        assert f"{bare} > img:first-child," in html
+        assert f".slide.img-valign-bottom .colloquium-grid > .col:has(> img:first-child){tail}," in html
+
+    def test_figure_column_selectors_never_nest_has(self):
+        import pathlib
+        import re
+        css = pathlib.Path("colloquium/themes/default/theme.css").read_text()
+        for match in re.finditer(r":has\(", css):
+            depth, i = 1, match.end()
+            while i < len(css) and depth:
+                depth += {"(": 1, ")": -1}.get(css[i], 0)
+                i += 1
+            assert ":has(" not in css[match.end():i - 1], css[match.start():i]
 
     def test_tall_right_uses_the_slide_grid_instead_of_a_fixed_width(self):
         html = _build("Text\n\n|||\n\n![Caption](figure.png)", ["cols-60-40", "img-tall-right", "figure-captions"])
