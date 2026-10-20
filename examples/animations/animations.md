@@ -58,6 +58,20 @@ After revealing all bullets, this conclusion appears.
 
 ---
 
+## Trailing text waits for the bullets
+
+<!-- animate: bullets -->
+
+This intro line is visible right away.
+
+- Point A
+- Point B
+- Point C
+
+A closing line after an animated list appears after the last bullet, with no step marker needed.
+
+---
+
 ## Ordered Lists Too
 <!-- animate: items -->
 

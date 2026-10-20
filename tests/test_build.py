@@ -2466,3 +2466,38 @@ class TestMultiLineTitles:
         html = build_deck(deck)
         assert ">How are open models built? The role of distillation</a>" in html
         assert "built?The role" not in html
+
+
+class TestBulletsTrailingBlocks:
+    def _section(self, html: str) -> str:
+        return html.split("<section", 1)[1].split("</section>", 1)[0]
+
+    def test_paragraph_after_animated_list_becomes_the_last_fragment(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="S", content="Intro line.\n\n- One\n- Two\n\nTakeaway line.", animate="bullets")
+        section = self._section(build_deck(deck))
+        assert '<p>Intro line.</p>' in section
+        assert section.index("Intro line.") < section.index('data-fragment-index="1"')
+        assert '<div class="fragment" data-fragment-index="3"><p>Takeaway line.</p></div>' in section
+        assert 'data-fragment-count="3"' in section
+
+    def test_intro_before_the_list_stays_visible(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="S", content="Intro line.\n\n- One\n- Two", animate="bullets")
+        section = self._section(build_deck(deck))
+        assert "<p>Intro line.</p>" in section
+        assert 'data-fragment-count="2"' in section
+
+    def test_columns_only_affect_the_column_with_the_list(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="S", content="Left stays.\n\n|||\n\n- One\n- Two\n\nRight tail.", classes=["cols-2"], animate="bullets")
+        section = self._section(build_deck(deck))
+        assert "<p>Left stays.</p>" in section
+        assert '<div class="fragment" data-fragment-index="3"><p>Right tail.</p></div>' in section
+
+    def test_explicit_step_after_list_is_unchanged(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="S", content="- One\n- Two\n\n<!-- step -->\n\nConclusion.", animate="bullets")
+        section = self._section(build_deck(deck))
+        assert 'data-fragment-count="3"' in section
+        assert section.count("Conclusion.") == 1
