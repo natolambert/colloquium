@@ -258,10 +258,64 @@ def _apply_auto_animate(html: str, animate_type: str) -> str:
             return f"<li{attrs}>"
 
         html = _LI_TAG_RE.sub(_fragmentize, html)
-        return html
+        return _wrap_blocks_after_animated_lists(html)
     if animate_type == "blocks":
         return _wrap_blocks_as_fragments(html)
     return html
+
+
+def _wrap_blocks_after_animated_lists(html: str) -> str:
+    """Reveal blocks that follow an animated list after its bullets.
+
+    With ``animate: bullets``, a paragraph written after the list (a
+    takeaway, a caption, a closing line) used to be visible from the first
+    click while the bullets above it were still hidden. Blocks before the
+    first animated list stay visible; every top-level block after one is
+    wrapped as its own fragment, so it appears once the bullets are done,
+    as if a ``<!-- step -->`` preceded it.
+    """
+    open_re = re.compile(r"<(" + "|".join(_FRAGMENT_BLOCK_TAGS) + r")[\s>]")
+    close_re = re.compile(r"</(" + "|".join(_FRAGMENT_BLOCK_TAGS) + r")>")
+    blocks: list[str] = []
+    current: list[str] = []
+    depth = 0
+    seen_animated_list = False
+
+    def _emit_block(block_html: str) -> None:
+        nonlocal seen_animated_list
+        stripped = block_html.strip()
+        if not stripped:
+            return
+        is_list = stripped.startswith(("<ul", "<ol"))
+        if is_list and _contains_generated_fragments(block_html):
+            seen_animated_list = True
+            blocks.append(block_html)
+            return
+        if (
+            not seen_animated_list
+            or _is_spacer_only_div(stripped)
+            or stripped.startswith('<div class="fragment" data-colloquium-fragment="1">')
+        ):
+            blocks.append(block_html)
+            return
+        blocks.append(_wrap_fragment_html(block_html))
+
+    for line in html.split("\n"):
+        opens = sum(1 for _ in open_re.finditer(line))
+        closes = sum(1 for _ in close_re.finditer(line))
+        if depth == 0 and opens == 0 and not current:
+            if line.strip():
+                blocks.append(line)
+            continue
+        current.append(line)
+        depth += opens - closes
+        if depth <= 0:
+            depth = 0
+            _emit_block("\n".join(current))
+            current = []
+    if current:
+        _emit_block("\n".join(current))
+    return "\n".join(blocks)
 
 
 def _wrap_non_fragment_blocks(html: str) -> str:
