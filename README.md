@@ -209,6 +209,8 @@ Right column content
 
 Arbitrary numeric ratios are allowed, e.g. `25/75`, `33/67`, or `1/2/1`.
 
+A column that holds an image followed by its caption (a markdown image or raw `<img>` and then a paragraph, or a captioned figure) is a figure column: the image fits the column's height with the caption directly beneath it, and the column keeps the width you chose. Widen the text column and the figure narrows to match. `<!-- img-valign: center -->` or `bottom` moves the figure within the column. Add `<!-- class: img-tall-right -->` to run the last column from the top of the slide, beside the title, to the bottom of the content area while still following the `columns` ratio.
+
 ### Rows
 
 Split a slide vertically with `===` between row blocks:
@@ -282,7 +284,7 @@ At the slide root, use either `columns:` or `rows:`. For nested layouts, use `ro
 | `<!-- class: no-figure-captions -->` | Disable deck-wide figure captions for a specific slide |
 | `<!-- img-align: center -->` | Align images only (`left`, `center`, `right`) — title unaffected |
 | `<!-- img-valign: top -->` | Vertically align standalone images in grid/row cells (`top`, `center`, `bottom`) |
-| `<!-- class: img-tall-right -->` | Columns slides: the right column's captioned figure runs full slide height, caption beneath. Requires figure captions (`figure_captions: true` or the `figure-captions` class) so the image renders as a `figure` |
+| `<!-- class: img-tall-right -->` | Columns slides: the last column runs from the top of the slide to the bottom of the content area, beside the title, following the `columns` ratio; its image or captioned figure fills that height with the caption beneath |
 | `<!-- img-fill: true -->` | Expand image to fill available slide space |
 | `<!-- img-overflow: true -->` | Let images in grid cells bleed outside their box instead of fitting inside |
 
