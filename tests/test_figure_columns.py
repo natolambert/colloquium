@@ -34,12 +34,12 @@ class TestFigureColumnTheme:
     def test_image_and_caption_cells_lay_out_as_flex_figure_columns(self):
         html = _build("Text\n\n|||\n\n![A chart](chart.png)\n\n*Caption*", ["cols-60-40"])
         tail = ":has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))"
-        bare = f".slide .colloquium-grid > .col:has(> img:first-child){tail}"
-        wrapped = f".slide .colloquium-grid > .col:has(> p:first-child > img:only-child){tail}"
+        bare = f".slide .colloquium-grid > .col:where(:has(> img:first-child){tail})"
+        wrapped = f".slide .colloquium-grid > .col:where(:has(> p:first-child > img:only-child){tail})"
         assert f"{bare}," in html
         assert f"{wrapped} > p:first-child," in html
         assert f"{bare} > img:first-child," in html
-        assert f".slide.img-valign-bottom .colloquium-grid > .col:has(> img:first-child){tail}," in html
+        assert f".slide.img-valign-bottom .colloquium-grid > .col:where(:has(> img:first-child){tail})," in html
 
     def test_figure_column_selectors_never_nest_has(self):
         import pathlib
