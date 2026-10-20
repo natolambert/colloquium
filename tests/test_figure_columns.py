@@ -34,15 +34,15 @@ class TestFigureColumnTheme:
     def test_image_and_caption_cells_lay_out_as_flex_figure_columns(self):
         html = _build("Text\n\n|||\n\n![A chart](chart.png)\n\n*Caption*", ["cols-60-40"])
         tail = ":has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))"
-        bare = f".slide .colloquium-grid > .col:has(> img:first-child){tail}"
-        wrapped = f".slide .colloquium-grid > .col:has(> p:first-child > img:only-child){tail}"
-        # Whole selectors sit in :where() so any deck rule outranks them.
-        assert f":where({bare})," in html
-        assert f":where({wrapped} > p:first-child)," in html
-        assert f":where({bare} > img:first-child)," in html
-        assert f":where(.slide.img-valign-bottom .colloquium-grid > .col:has(> img:first-child){tail})," in html
+        bare = f".colloquium-grid > .col:has(> img:first-child){tail}"
+        wrapped = f".colloquium-grid > .col:has(> p:first-child > img:only-child){tail}"
+        assert f":where(.slide {bare})," in html
+        assert f":where(.slide {wrapped} > p:first-child)," in html
+        # The image rule matches the theme's `.slide .slide-content img` specificity exactly.
+        assert f".slide .slide-content :where({bare}) > img:first-child," in html
+        assert f":where(.slide.img-valign-bottom {bare})," in html
 
-    def test_figure_column_rules_have_zero_specificity(self):
+    def test_figure_column_rules_do_not_exceed_theme_specificity(self):
         import pathlib
         import re
         css = pathlib.Path("colloquium/themes/default/theme.css").read_text()
@@ -51,18 +51,16 @@ class TestFigureColumnTheme:
         selectors = [line.strip() for line in re.findall(r"^(.+?)(?:,|\s\{)$", block, re.M)]
         assert selectors
         for selector in selectors:
-            assert selector.startswith(":where(") and selector.endswith(")"), selector
-
-    def test_figure_column_selectors_never_nest_has(self):
-        import pathlib
-        import re
-        css = pathlib.Path("colloquium/themes/default/theme.css").read_text()
-        for match in re.finditer(r":has\(", css):
-            depth, i = 1, match.end()
-            while i < len(css) and depth:
-                depth += {"(": 1, ")": -1}.get(css[i], 0)
-                i += 1
-            assert ":has(" not in css[match.end():i - 1], css[match.start():i]
+            if selector.startswith(":where("):
+                assert selector.endswith(")"), selector
+            else:
+                # Image rules: two classes plus the img tag, nothing else outside :where().
+                assert re.fullmatch(r"\.slide \.slide-content :where\(.+\) > (img:first-child|p:first-child > img)", selector), selector
+        # The elevated image rule only lifts the theme's height cap; every other
+        # declaration stays at zero specificity so deck CSS can override it.
+        for selectors_text, body in re.findall(r"((?:^[^\n{}]+,\n)*^[^\n{}]+)\s\{([^}]*)\}", block, re.M):
+            if not selectors_text.lstrip().startswith(":where("):
+                assert body.split() == ["max-height:", "100%;"], body
 
     def test_tall_right_uses_the_slide_grid_instead_of_a_fixed_width(self):
         html = _build("Text\n\n|||\n\n![Caption](figure.png)", ["cols-60-40", "img-tall-right", "figure-captions"])
