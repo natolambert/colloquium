@@ -188,8 +188,8 @@ class TestServePortBinding:
 
 class TestServeLiveReload:
     @staticmethod
-    def _start(tmp_path, live_reload):
-        deck = tmp_path / "slides.html"
+    def _start(tmp_path, live_reload, name="slides.html"):
+        deck = tmp_path / name
         deck.write_text("<html><body><h1>Hi</h1></body></html>", encoding="utf-8")
         httpd = _create_http_server(0, _make_request_handler(str(tmp_path), str(deck), live_reload))
         threading.Thread(target=httpd.serve_forever, daemon=True).start()
@@ -213,6 +213,15 @@ class TestServeLiveReload:
             os.utime(deck, ns=(1_000_000_000, 2_000_000_000))
             second = urlopen(base + _VERSION_PATH).read().decode("ascii")
             assert first != second
+        finally:
+            httpd.shutdown()
+            httpd.server_close()
+
+    def test_deck_names_with_spaces_still_get_the_script(self, tmp_path):
+        httpd, deck, base = self._start(tmp_path, live_reload=True, name="my slides.html")
+        try:
+            html = urlopen(base + "/my%20slides.html").read().decode("utf-8")
+            assert _LIVE_RELOAD_SCRIPT in html
         finally:
             httpd.shutdown()
             httpd.server_close()
