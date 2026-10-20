@@ -37,6 +37,8 @@ class Slide:
             parts.append(f"<!-- chapter-short: {self.metadata['chapter_short']} -->")
         if "chapter_bar" in self.metadata:
             parts.append(f"<!-- chapter-bar: {self.metadata['chapter_bar']} -->")
+        if "figure_title" in self.metadata:
+            parts.append(f"<!-- figure-title: {self.metadata['figure_title']} -->")
 
         if self.title:
             prefix = "# " if self.is_title_slide else "## "

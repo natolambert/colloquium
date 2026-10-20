@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 import html as html_module
-from urllib.parse import urljoin
+from urllib.parse import unquote, urljoin
 import re
 import sys
 import tempfile
@@ -86,7 +86,23 @@ def _plain_title_text(heading_html: str) -> str:
 
 _FIGURE_TITLE_IMG_RE = re.compile(r'<img\b[^>]*\bsrc="([^"]+\.svg)"[^>]*>', re.IGNORECASE)
 _SVG_TITLE_TEXT_RE = re.compile(r'<text\b[^>]*\bdata-role="title"[^>]*>.*?</text>', re.DOTALL)
-_SVG_DOC_TITLE_RE = re.compile(r"(<title\b[^>]*>).*?(</title>)", re.DOTALL)
+_SVG_ROOT_RE = re.compile(r"<svg\b[^>]*>", re.IGNORECASE)
+_SVG_ROOT_TITLE_RE = re.compile(r"(<svg\b[^>]*>\s*(?:<!--.*?-->\s*)*<title\b[^>]*>).*?(</title>)", re.DOTALL | re.IGNORECASE)
+_ARIA_LABELLEDBY_RE = re.compile(r'\baria-labelledby="([^"\s]+)')
+
+
+def _retitle_svg_document(svg: str, heading: str) -> str:
+    """Replace the SVG's own document <title> (never a per-element tooltip <title>).
+
+    The document title is the element named by the root's ``aria-labelledby``
+    or, failing that, a <title> that directly follows the root tag.
+    """
+    root = _SVG_ROOT_RE.search(svg)
+    labelled = _ARIA_LABELLEDBY_RE.search(root.group(0)) if root else None
+    if labelled:
+        by_id = re.compile(r'(<title\b[^>]*\bid="' + re.escape(labelled.group(1)) + r'"[^>]*>).*?(</title>)', re.DOTALL)
+        return by_id.sub(lambda m: m.group(1) + heading + m.group(2), svg, count=1)
+    return _SVG_ROOT_TITLE_RE.sub(lambda m: m.group(1) + heading + m.group(2), svg, count=1)
 
 
 def _apply_figure_title(slide_html: str, slide: Slide, source_dir: str, md: MarkdownIt) -> str:
@@ -106,7 +122,8 @@ def _apply_figure_title(slide_html: str, slide: Slide, source_dir: str, md: Mark
     src = html_module.unescape(match.group(1))
     if src.startswith(("data:", "http:", "https:", "//")):
         return slide_html
-    path = Path(source_dir or ".") / src
+    # Markdown percent-encodes paths such as <my plot.svg>; open the real file.
+    path = Path(source_dir or ".") / unquote(src)
     try:
         svg = path.read_text(encoding="utf-8")
     except OSError:
@@ -125,7 +142,7 @@ def _apply_figure_title(slide_html: str, slide: Slide, source_dir: str, md: Mark
         pieces.append(retitled if index == 0 else "")
         position = found.end()
     pieces.append(svg[position:])
-    svg = _SVG_DOC_TITLE_RE.sub(lambda m: m.group(1) + heading + m.group(2), "".join(pieces), count=1)
+    svg = _retitle_svg_document("".join(pieces), heading)
     data_uri = "data:image/svg+xml;base64," + base64.b64encode(svg.encode("utf-8")).decode("ascii")
     img = match.group(0)
     retitled_img = img.replace(f'src="{match.group(1)}"', f'src="{data_uri}" data-plot="{match.group(1)}"', 1)
@@ -1512,6 +1529,10 @@ def _build_slide_html(
     if index == 0:
         classes.append("active")
     classes.extend(slide.classes)
+    # figure-title: heading moves the heading into the figure, so hide it here
+    # whether the slide came from Markdown or from Deck.add_slide().
+    if slide.metadata.get("figure_title") == "heading" and "title-hidden" not in classes:
+        classes.append("title-hidden")
     if chapter_bar_html:
         classes.append("has-chapter-bar")
 

@@ -112,11 +112,7 @@ def parse_slide(text: str) -> Slide:
         elif key == "after":
             metadata["after"] = value
         elif key == "figure-title":
-            # The slide heading becomes the first SVG figure's title; the
-            # heading itself is hidden so it does not show twice.
             metadata["figure_title"] = value
-            if value == "heading" and "title-hidden" not in classes:
-                classes.append("title-hidden")
         elif key == "chapter":
             metadata["chapter"] = value
         elif key == "chapter-short":

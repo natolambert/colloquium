@@ -2534,6 +2534,37 @@ class TestFigureTitle:
         assert "title-hidden" in re.search(r'<section class="([^"]*)"', html).group(1)
         assert "<h2>Downloads are <strong>up</strong>!</h2>" in html
 
+    def test_only_the_document_title_is_replaced_and_percent_encoded_paths_open(self, tmp_path):
+        tooltip_only = (
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            '<text data-role="title">Old</text>'
+            '<circle r="2"><title>point tooltip</title></circle></svg>'
+        )
+        (tmp_path / "my plot.svg").write_text(tooltip_only, encoding="utf-8")
+        html, _ = self._build(tmp_path, "<!-- figure-title: heading -->\n## New\n\n![Old](<my plot.svg>)")
+        import base64
+        match = re.search(r'src="data:image/svg\+xml;base64,([^"]+)"[^>]*data-plot="my%20plot.svg"', html)
+        assert match, html
+        svg = base64.b64decode(match.group(1)).decode("utf-8")
+        assert '<text data-role="title">New</text>' in svg
+        assert "<title>point tooltip</title>" in svg
+
+    def test_programmatic_slides_and_serialization_keep_the_directive(self, tmp_path):
+        from colloquium.parse import parse_markdown
+        deck = parse_markdown("<!-- figure-title: heading -->\n## New\n\n![Old](plot.svg)")
+        assert deck.slides[0].metadata["figure_title"] == "heading"
+        assert "title-hidden" not in deck.slides[0].classes
+        assert "<!-- figure-title: heading -->" in deck.slides[0].to_markdown()
+        again = parse_markdown(deck.to_markdown())
+        assert again.slides[0].metadata["figure_title"] == "heading"
+
+        (tmp_path / "plot.svg").write_text(self.SVG, encoding="utf-8")
+        api = Deck(title="t", source_dir=str(tmp_path))
+        api.add_slide(title="New", content="![Old](plot.svg)", figure_title="heading")
+        html = build_deck(api)
+        assert "title-hidden" in re.search(r'<section class="([^"]*)"', html).group(1)
+        assert 'data-plot="plot.svg"' in html
+
     def test_without_the_directive_or_a_title_role_the_figure_is_untouched(self, tmp_path):
         html, svg = self._build(tmp_path, "## Heading\n\n![Old title](plot.svg)")
         assert svg is None and 'src="plot.svg"' in html
