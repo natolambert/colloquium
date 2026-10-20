@@ -11,6 +11,7 @@ One line per PR for easy copy into GitHub releases.
 
 ## [Unreleased]
 
+- `animate: bullets`/`items`: blocks after an animated list (a takeaway line, a caption) now appear after the last bullet instead of being visible from the first click; text before the list stays visible ([#59](https://github.com/natolambert/colloquium/pull/59))
 - Consecutive leading `##` (or `#`) lines form one multi-line slide title with a line break between them, instead of the second line becoming a stray heading in the body; chapters, the slide picker, and `toc` blocks read it as one line ([#57](https://github.com/natolambert/colloquium/pull/57))
 - Figure columns: a grid column or row cell holding an image followed by its caption fits the image to the column's height with the caption beneath, keeping the width from the `columns` directive; the builder emits the column tracks as `--colloquium-columns` on each slide, and `img-tall-right` now lays the slide out on that grid so the full-height figure column follows the chosen ratio and works with raw `<img>` + caption as well as captioned figures ([#56](https://github.com/natolambert/colloquium/pull/56))
 - Share images: `url` and `share_image` frontmatter emit Open Graph and Twitter card tags (`share_image: auto` points at `<deck>-share.png`, resolved against `url`), and `colloquium share-image` captures the first slide as that PNG ([#58](https://github.com/natolambert/colloquium/pull/58))
