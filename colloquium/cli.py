@@ -101,6 +101,24 @@ def _capture(args):
             print(f"Captured: {path}")
 
 
+def _share_image(args):
+    """Capture the first slide as the deck's share image."""
+    from colloquium.export import export_share_image
+
+    input_path = args.file
+    if not Path(input_path).exists():
+        print(f"Error: {input_path} not found", file=sys.stderr)
+        sys.exit(1)
+
+    if args.output and Path(input_path).suffix.lower() == ".html":
+        print("Note: a built HTML deck keeps the og:image it was built with; pass the markdown source so -o also sets the tag.", file=sys.stderr)
+    result = export_share_image(input_path, args.output, scale=args.scale)
+    if result is None:
+        print("Share image capture requires a Chromium-based browser.", file=sys.stderr)
+        sys.exit(1)
+    print(f"Share image: {result}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="colloquium",
@@ -139,6 +157,13 @@ def main():
     capture_parser.add_argument("-o", "--output", help="Output directory (default: slides/ next to input)")
     capture_parser.add_argument("-s", "--slide", type=int, help="Capture a single slide (1-indexed)")
     capture_parser.set_defaults(func=_capture)
+
+    # share-image command
+    share_parser = subparsers.add_parser("share-image", help="Capture the first slide as a share (Open Graph) image")
+    share_parser.add_argument("file", help="Input markdown file or built HTML deck")
+    share_parser.add_argument("-o", "--output", help="Output PNG path (default: <deck>-share.png next to the HTML)")
+    share_parser.add_argument("--scale", type=float, default=2, help="Device scale factor for the 1280x720 capture (default: 2)")
+    share_parser.set_defaults(func=_share_image)
 
     args = parser.parse_args()
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import html as html_module
+from urllib.parse import urljoin
 import re
 import sys
 import tempfile
@@ -1540,6 +1541,7 @@ _HTML_TEMPLATE = Template("""\
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>$title</title>
+$share_meta
 
 <!-- KaTeX for LaTeX math -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css">
@@ -1808,7 +1810,41 @@ def _build_font_css(fonts: dict | None) -> str:
     return ":root {\n" + "\n".join(overrides) + "\n}"
 
 
-def build_deck(deck: Deck) -> str:
+def share_image_name(stem: str) -> str:
+    """Default share image filename for a deck built as ``<stem>.html``."""
+    return f"{stem}-share.png"
+
+
+def _share_meta_html(deck: Deck, output_stem: str | None = None) -> str:
+    """Open Graph and Twitter card tags for the deck's share image and URL."""
+    image = deck.share_image
+    if image is True or (isinstance(image, str) and image.strip().lower() in ("auto", "true")):
+        image = share_image_name(output_stem or "deck")
+    elif not image:
+        image = ""
+    url = (deck.url or "").strip()
+    if image and url and not re.match(r"^[a-z][a-z0-9+.-]*:", image, re.IGNORECASE):
+        image = urljoin(url, image)
+    if not image and not url:
+        return ""
+    description = " · ".join(part for part in (deck.author, deck.date) if part)
+    tags = ['<meta property="og:type" content="website">', f'<meta property="og:title" content="{html_module.escape(deck.title, quote=True)}">']
+    if description:
+        tags.append(f'<meta property="og:description" content="{html_module.escape(description, quote=True)}">')
+    if url:
+        tags.append(f'<meta property="og:url" content="{html_module.escape(url, quote=True)}">')
+        tags.append(f'<link rel="canonical" href="{html_module.escape(url, quote=True)}">')
+    if image:
+        tags.append(f'<meta property="og:image" content="{html_module.escape(image, quote=True)}">')
+        tags.append('<meta name="twitter:card" content="summary_large_image">')
+        tags.append(f'<meta name="twitter:image" content="{html_module.escape(image, quote=True)}">')
+    else:
+        tags.append('<meta name="twitter:card" content="summary">')
+    tags.append(f'<meta name="twitter:title" content="{html_module.escape(deck.title, quote=True)}">')
+    return "\n".join(tags)
+
+
+def build_deck(deck: Deck, output_stem: str | None = None) -> str:
     """Build a Deck into a self-contained HTML string."""
     elements.reset()
     md = _create_md_renderer()
@@ -1963,6 +1999,7 @@ def build_deck(deck: Deck) -> str:
 
     return _HTML_TEMPLATE.substitute(
         title=deck.title,
+        share_meta=_share_meta_html(deck, output_stem),
         font_link=font_link,
         font_css=font_css,
         theme_css=theme_css,
@@ -1979,10 +2016,10 @@ def build_file(input_path: str, output_path: str | None = None) -> str:
     from colloquium.parse import parse_file
 
     deck = parse_file(input_path)
-    html = build_deck(deck)
 
     if output_path is None:
         output_path = str(Path(input_path).with_suffix(".html"))
+    html = build_deck(deck, output_stem=Path(output_path).stem)
 
     _write_text_atomic(output_path, html)
     return output_path

@@ -52,8 +52,15 @@ class Deck:
         figure_captions: bool = False,
         chapters: bool = True,
         chapter_bar: bool | str | dict = False,
+        url: str = "",
+        share_image: str | bool = False,
     ):
         self.title = title
+        # Canonical URL of the published deck; share images resolve against it.
+        self.url = url
+        # Share (Open Graph) image: True/"auto" for <deck>-share.png next to the
+        # HTML, or an explicit path or URL.
+        self.share_image = share_image
         self.author = author
         self.date = date
         self.theme = theme
@@ -192,6 +199,10 @@ class Deck:
             lines.append(f"citation_order: {self.citation_order}")
         if self.figure_captions:
             lines.append("figure_captions: true")
+        if self.url:
+            lines.append(f'url: "{self.url}"')
+        if self.share_image:
+            lines.append("share_image: auto" if self.share_image is True or str(self.share_image).lower() in ("auto", "true") else f'share_image: "{self.share_image}"')
         if not self.chapters:
             lines.append("chapters: false")
         if self.chapter_bar == CHAPTER_BAR_DEFAULTS:
