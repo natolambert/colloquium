@@ -5,11 +5,13 @@ import os
 import socket
 import socketserver
 import threading
+import time
 from urllib.request import urlopen
 
 import pytest
 
 from colloquium.serve import (
+    _watch_and_rebuild,
     _LIVE_RELOAD_SCRIPT,
     _VERSION_PATH,
     _inject_live_reload,
@@ -236,3 +238,26 @@ class TestServeLiveReload:
         finally:
             httpd.shutdown()
             httpd.server_close()
+
+
+class TestWatcherStartup:
+    def test_watcher_rebuilds_only_after_an_edit_made_while_running(self, tmp_path):
+        source = tmp_path / "slides.md"
+        source.write_text("## Slide\n\nBody", encoding="utf-8")
+        output = tmp_path / "slides.html"
+        output.write_text("built by serve()", encoding="utf-8")
+        before = output.stat().st_mtime_ns
+        stop = threading.Event()
+        thread = threading.Thread(target=_watch_and_rebuild, args=(str(source), str(output), stop), daemon=True)
+        thread.start()
+        try:
+            time.sleep(1.0)
+            assert output.read_text(encoding="utf-8") == "built by serve()"
+            assert output.stat().st_mtime_ns == before
+
+            source.write_text("## Slide\n\nEdited", encoding="utf-8")
+            time.sleep(1.0)
+            assert "Edited" in output.read_text(encoding="utf-8")
+        finally:
+            stop.set()
+            thread.join(timeout=2)

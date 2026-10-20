@@ -141,7 +141,13 @@ def _watch_and_rebuild(input_path: str, output_path: str, stop_event: threading.
     """Poll for file changes and rebuild on modification."""
     from colloquium.build import _write_text_atomic
 
-    last_mtime = 0.0
+    # serve() has just built the deck, so start from the source's current
+    # mtime: a watcher seeded with 0 would rebuild the unchanged file once,
+    # bump the output's mtime, and reload any tab that opened in the meantime.
+    try:
+        last_mtime = os.stat(input_path).st_mtime
+    except OSError:
+        last_mtime = 0.0
     pending_mtime = 0.0
     pending_since = 0.0
     debounce_seconds = 0.35
@@ -174,8 +180,7 @@ def _watch_and_rebuild(input_path: str, output_path: str, stop_event: threading.
                 else:
                     if timed_out and not stable:
                         print("  Stability wait timed out, rebuilding anyway.", flush=True)
-                    if last_mtime > 0:
-                        print(f"  Rebuilding {input_path}...", flush=True)
+                    print(f"  Rebuilding {input_path}...", flush=True)
                     snapshot = source_snapshot
                     if snapshot is None:
                         snapshot = Path(input_path).read_text(encoding="utf-8")
