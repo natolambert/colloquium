@@ -110,6 +110,8 @@ def _share_image(args):
         print(f"Error: {input_path} not found", file=sys.stderr)
         sys.exit(1)
 
+    if args.output and Path(input_path).suffix.lower() == ".html":
+        print("Note: a built HTML deck keeps the og:image it was built with; pass the markdown source so -o also sets the tag.", file=sys.stderr)
     result = export_share_image(input_path, args.output, scale=args.scale)
     if result is None:
         print("Share image capture requires a Chromium-based browser.", file=sys.stderr)

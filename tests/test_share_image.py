@@ -86,3 +86,21 @@ def test_export_share_image_without_browser(monkeypatch, tmp_path):
     src.write_text('---\ntitle: "T"\n---\n\n# Title\n')
     monkeypatch.setattr(export_mod, "_find_browser", lambda: None)
     assert export_share_image(str(src)) is None
+
+
+def test_custom_output_name_drives_the_og_image_tag(monkeypatch, tmp_path):
+    src = tmp_path / "talk.md"
+    src.write_text('---\ntitle: "T"\nurl: "https://example.com/decks/talk.html"\nshare_image: auto\n---\n\n# Title\n')
+    (tmp_path / "cards").mkdir()
+
+    def fake_run(cmd, **kwargs):
+        shot = next(arg for arg in cmd if arg.startswith("--screenshot=")).split("=", 1)[1]
+        Path(shot).write_bytes(b"\x89PNG fake")
+
+    monkeypatch.setattr(export_mod, "_find_browser", lambda: "/fake/chrome")
+    monkeypatch.setattr(export_mod.subprocess, "run", fake_run)
+    result = export_share_image(str(src), str(tmp_path / "cards" / "cover.png"))
+    assert result == str(tmp_path / "cards" / "cover.png")
+    html = (tmp_path / "talk.html").read_text()
+    assert '<meta property="og:image" content="https://example.com/decks/cards/cover.png">' in html
+    assert "talk-share.png" not in html

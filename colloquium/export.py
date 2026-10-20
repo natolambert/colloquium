@@ -282,15 +282,24 @@ def export_share_image(input_path: str, output_path: str | None = None, scale: f
     Returns the output path, or None when no Chromium browser is available
     or the capture failed.
     """
-    from colloquium.build import build_file, share_image_name
+    from colloquium.build import _write_text_atomic, build_deck, share_image_name
+    from colloquium.parse import parse_file
 
     input_file = Path(input_path).resolve()
     if input_file.suffix.lower() == ".html":
         html_path = str(input_file)
+        if output_path is None:
+            output_path = str(input_file.with_name(share_image_name(input_file.stem)))
     else:
-        html_path = build_file(str(input_file))
-    if output_path is None:
-        output_path = str(Path(html_path).with_name(share_image_name(Path(html_path).stem)))
+        html_path = str(input_file.with_suffix(".html"))
+        deck = parse_file(str(input_file))
+        if output_path is None:
+            output_path = str(Path(html_path).with_name(share_image_name(input_file.stem)))
+        elif deck.share_image is True or (isinstance(deck.share_image, str) and deck.share_image.strip().lower() in ("auto", "true")):
+            # A custom output name must be the file the deck's Open Graph tags
+            # point at, so the rebuilt HTML references it relative to itself.
+            deck.share_image = os.path.relpath(Path(output_path).resolve(), Path(html_path).parent).replace(os.sep, "/")
+        _write_text_atomic(html_path, build_deck(deck, output_stem=input_file.stem))
 
     browser = _find_browser()
     if browser is None or not _is_chromium_based(browser):

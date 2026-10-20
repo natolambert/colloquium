@@ -769,7 +769,7 @@ colloquium build lecture.md
 colloquium share-image lecture.md     # writes lecture-share.png next to lecture.html
 ```
 
-`share_image: auto` emits `og:image`, `twitter:card`, `og:title`, and `og:description` tags for `<deck>-share.png`, resolved against `url` so scrapers get an absolute address. The capture is the first slide at 1280 × 720 CSS pixels, scaled 2× by default (`--scale 1` for a 1280 × 720 file), with the navigation chrome hidden; it needs a Chromium-based browser like PDF export. Publish the PNG alongside the HTML. A path or URL instead of `auto` uses that image as-is.
+`share_image: auto` emits `og:image`, `twitter:card`, `og:title`, and `og:description` tags for `<deck>-share.png`, resolved against `url` so scrapers get an absolute address. The capture is the first slide at 1280 × 720 CSS pixels, scaled 2× by default (`--scale 1` for a 1280 × 720 file), with the navigation chrome hidden; it needs a Chromium-based browser like PDF export. Publish the PNG alongside the HTML. A path or URL instead of `auto` uses that image as-is. With `-o`, the command rebuilds the HTML so its `og:image` points at that file instead of the default name (pass the markdown source, not a built HTML file, for this to apply).
 
 ## PDF Export
 
