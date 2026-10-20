@@ -129,21 +129,30 @@ def parse_slide(text: str) -> Slide:
             classes.append(_DIRECTIVE_CLASS_MAP[key](value))
         remaining = remaining.replace(match.group(0), "")
 
-    # Parse remaining content for title
+    # Parse remaining content for title. Consecutive heading lines of the same
+    # level at the top of the slide form one multi-line title (a line break
+    # between them); a heading after any other line stays in the content.
     lines = remaining.strip().splitlines()
     content_parts = []
+    title_lines: list[str] = []
+    title_prefix = ""
 
     for line in lines:
         stripped = line.strip()
-        if not title and stripped.startswith("# "):
-            title = stripped[2:].strip()
+        if title_lines and not content_parts and stripped.startswith(title_prefix):
+            title_lines.append(stripped[len(title_prefix):].strip())
+        elif not title_lines and stripped.startswith("# "):
+            title_prefix = "# "
+            title_lines.append(stripped[2:].strip())
             if layout == "content":
                 layout = "title"
-        elif not title and stripped.startswith("## "):
-            title = stripped[3:].strip()
+        elif not title_lines and stripped.startswith("## "):
+            title_prefix = "## "
+            title_lines.append(stripped[3:].strip())
         else:
             content_parts.append(line)
 
+    title = "\n".join(title_lines)
     content = "\n".join(content_parts).strip()
 
     return Slide(

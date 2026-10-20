@@ -69,6 +69,20 @@ def _render_inline_markdown(text: str, md: MarkdownIt) -> str:
     return rendered
 
 
+_TITLE_BREAK_RE = re.compile(r"<br\s*/?>", re.IGNORECASE)
+
+
+def _render_title_markdown(title: str, md: MarkdownIt) -> str:
+    """Render a slide title; each line of a multi-line title becomes a <br> break."""
+    return "<br>".join(_render_inline_markdown(line, md) for line in title.split("\n"))
+
+
+def _plain_title_text(heading_html: str) -> str:
+    """One-line plain text for a rendered title (chapters, picker, table of contents)."""
+    text = _HTML_TAG_RE.sub("", _TITLE_BREAK_RE.sub(" ", heading_html))
+    return " ".join(html_module.unescape(text).split())
+
+
 _STANDALONE_IMAGE_PARAGRAPH_RE = re.compile(r"<p>\s*(<img\b[^>]*>)\s*</p>", re.DOTALL)
 _IMAGE_ALT_ATTR_RE = re.compile(r'\balt="([^"]*)"')
 
@@ -875,8 +889,8 @@ def _plan_chapters(
         if start_title is not None:
             title = start_title
             if not title and slide is not None and slide.title:
-                heading_html = _render_inline_markdown(slide.title, md)
-                title = html_module.unescape(_HTML_TAG_RE.sub("", heading_html)).strip()
+                heading_html = _render_title_markdown(slide.title, md)
+                title = _plain_title_text(heading_html)
             short = slide.metadata.get("chapter_short", "") if slide is not None else ""
             chapters.append({
                 "title": title or f"Slide {i + 1}",
@@ -1402,7 +1416,7 @@ def _build_slide_html(
     parts = []
     if slide.title:
         tag = "h1" if slide.is_title_slide else "h2"
-        title_html = _render_inline_markdown(slide.title, md)
+        title_html = _render_title_markdown(slide.title, md)
         parts.append(f"<{tag}>{title_html}</{tag}>")
 
     has_columns = any(c.startswith("cols-") for c in slide.classes)

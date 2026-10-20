@@ -134,6 +134,7 @@ Slides are separated by `---` on its own line. The first heading in each slide b
 | `# Title` | Title slide — centered, large text, `slide--title` layout |
 | `## Title` | Content slide — standard layout with heading at top |
 | `###` through `######` | Rendered as subheadings within slide content |
+| `## Line one` directly followed by `## Line two` | One title on two lines (a line break between them); the picker, chapters, and table of contents read it as one line |
 
 ```markdown
 # Welcome              ← title slide (centered, large)
