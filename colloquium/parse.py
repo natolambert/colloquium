@@ -185,6 +185,8 @@ def parse_markdown(text: str) -> Deck:
         figure_captions=bool(metadata.get("figure_captions", False)),
         chapters=metadata.get("chapters", True) is not False,
         chapter_bar=metadata.get("chapter_bar", False),
+        url=str(metadata.get("url", "") or ""),
+        share_image=metadata.get("share_image", False),
     )
 
     # Split on --- slide separators (horizontal rules)

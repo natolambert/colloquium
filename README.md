@@ -68,6 +68,7 @@ colloquium capture slides.md      # per-slide PNGs for AI review
 | `colloquium serve <file.md>` | Dev server with live reload |
 | `colloquium export <file.md>` | PDF export (requires a Chromium-based browser) |
 | `colloquium capture <file.md>` | Capture slides as individual PNGs |
+| `colloquium share-image <file.md>` | Capture the first slide as the deck's share (Open Graph) image, `<deck>-share.png` |
 
 ## Frontmatter Reference
 
@@ -107,6 +108,8 @@ custom_css: ".slide h2 { color: red; }"   # inline CSS overrides
 | `footer.center` | `""` | Center footer zone |
 | `footer.right` | `"auto"` | Right footer zone (`"auto"` = slide numbers) |
 | `custom_css` | `""` | Additional CSS injected into the page |
+| `url` | `""` | Canonical URL of the published deck; adds `og:url` and a canonical link, and resolves a relative `share_image` |
+| `share_image` | `false` | Share (Open Graph) image: `auto` for `<deck>-share.png` next to the HTML (see [Share images](#share-images)), or a path or URL |
 | `chapters` | `true` | Group slides into [chapters](#chapters); `false` keeps a flat picker |
 | `chapter_bar` | `false` | Show the [chapter bar](#chapter-bar): `true`, `bars`, or a mapping of `labels`, `slides`, `progress` |
 | `footer.section_break` | — | Footer zones to use on section-break slides (see [Section-break footer](#section-break-footer)) |
@@ -741,6 +744,25 @@ colloquium export --pptx slides.md  # → slides.pptx
 ```
 
 This produces a reasonable starting point, but some colloquium features lose fidelity: citations are flattened, math renders as raw LaTeX, and custom themes/CSS aren't applied. Charts and tables become native editable PPTX objects.
+
+## Share images
+
+Give a deck a preview card on Slack, X, iMessage, and friends by pointing its Open Graph tags at a capture of the first slide:
+
+```yaml
+---
+title: "Open Weight Language Models"
+url: "https://example.com/slides/lecture.html"
+share_image: auto
+---
+```
+
+```bash
+colloquium build lecture.md
+colloquium share-image lecture.md     # writes lecture-share.png next to lecture.html
+```
+
+`share_image: auto` emits `og:image`, `twitter:card`, `og:title`, and `og:description` tags for `<deck>-share.png`, resolved against `url` so scrapers get an absolute address. The capture is the first slide at 1280 × 720 CSS pixels, scaled 2× by default (`--scale 1` for a 1280 × 720 file), with the navigation chrome hidden; it needs a Chromium-based browser like PDF export. Publish the PNG alongside the HTML. A path or URL instead of `auto` uses that image as-is.
 
 ## PDF Export
 
