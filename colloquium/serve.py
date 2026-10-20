@@ -198,6 +198,73 @@ def _watch_and_rebuild(input_path: str, output_path: str, stop_event: threading.
         stop_event.wait(timeout=0.15)
 
 
+_VERSION_PATH = "/__colloquium/version"
+
+# Injected into the served deck only (never into the file on disk). Polls the
+# version endpoint and reloads when the build changes; the deck keeps the
+# current slide in the URL hash, so the reload lands on the same slide.
+_LIVE_RELOAD_SCRIPT = (
+    "<script>(function(){var seen=null;function tick(){"
+    "fetch('" + _VERSION_PATH + "',{cache:'no-store'}).then(function(r){return r.text();})"
+    ".then(function(v){if(seen===null){seen=v;}else if(v!==seen){location.reload();}})"
+    ".catch(function(){}).then(function(){setTimeout(tick,500);});}tick();})();</script>"
+)
+
+
+def _inject_live_reload(html: bytes) -> bytes:
+    """Return the deck HTML with the reload script before </body>."""
+    marker = b"</body>"
+    index = html.rfind(marker)
+    script = _LIVE_RELOAD_SCRIPT.encode("utf-8")
+    if index == -1:
+        return html + script
+    return html[:index] + script + html[index:]
+
+
+def _output_version(output_path: str) -> str:
+    """Identify the current build by the output file's modification time."""
+    try:
+        return str(os.stat(output_path).st_mtime_ns)
+    except OSError:
+        return "0"
+
+
+def _make_request_handler(serve_dir: str, output_path: str, live_reload: bool):
+    """Build the request handler: static files, plus the reload hooks when enabled."""
+    deck_name = os.path.basename(output_path)
+
+    class PresentationHandler(http.server.SimpleHTTPRequestHandler):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, directory=serve_dir, **kwargs)
+
+        def log_message(self, format, *args):
+            pass
+
+        def _send_bytes(self, body: bytes, content_type: str):
+            self.send_response(200)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
+
+        def do_GET(self):
+            if not live_reload:
+                return super().do_GET()
+            path = self.path.split("?", 1)[0].split("#", 1)[0]
+            if path == _VERSION_PATH:
+                return self._send_bytes(_output_version(output_path).encode("ascii"), "text/plain")
+            if path.lstrip("/") == deck_name:
+                try:
+                    html = Path(output_path).read_bytes()
+                except OSError:
+                    return super().do_GET()
+                return self._send_bytes(_inject_live_reload(html), "text/html; charset=utf-8")
+            return super().do_GET()
+
+    return PresentationHandler
+
+
 def _create_http_server(port: int, handler):
     """Create the HTTP server bound to loopback with address reuse enabled.
 
@@ -214,8 +281,17 @@ def _create_http_server(port: int, handler):
         raise PortUnavailableError(port, exc) from exc
 
 
-def serve(input_path: str, port: int = 8090, output_dir: str | None = None):
-    """Serve a presentation with live rebuilding on file changes."""
+def serve(
+    input_path: str,
+    port: int = 8090,
+    output_dir: str | None = None,
+    live_reload: bool = True,
+):
+    """Serve a presentation with live rebuilding on file changes.
+
+    With ``live_reload`` (the default) the served deck reloads itself in the
+    browser after each rebuild, staying on the current slide.
+    """
     from colloquium.build import build_file
 
     input_path = str(Path(input_path).resolve())
@@ -242,19 +318,16 @@ def serve(input_path: str, port: int = 8090, output_dir: str | None = None):
     )
     watcher.start()
 
-    # Serve from the output directory
-    os.chdir(serve_dir)
-
-    # Suppress request logging
-    class QuietHandler(http.server.SimpleHTTPRequestHandler):
-        def log_message(self, format, *args):
-            pass
+    handler = _make_request_handler(serve_dir, output_path, live_reload)
 
     try:
-        with _create_http_server(port, QuietHandler) as httpd:
+        with _create_http_server(port, handler) as httpd:
             url = f"http://{_DEFAULT_HOST}:{port}/{stem}.html"
             print(f"  Serving at {url}")
-            print(f"  Watching for changes... (Ctrl+C to stop)")
+            if live_reload:
+                print("  Watching for changes, the browser tab reloads on save (Ctrl+C to stop)")
+            else:
+                print("  Watching for changes... (Ctrl+C to stop)")
             httpd.serve_forever()
     except KeyboardInterrupt:
         print("\n  Shutting down.")

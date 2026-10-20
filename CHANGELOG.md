@@ -11,6 +11,7 @@ One line per PR for easy copy into GitHub releases.
 
 ## [Unreleased]
 
+- `colloquium serve` now reloads the open browser tab after each rebuild, staying on the current slide, so edits show up without pressing refresh; `--no-reload` keeps the old rebuild-only behavior ([#62](https://github.com/natolambert/colloquium/pull/62))
 - Figure columns: a max-height rule at the theme's generic image specificity lets a figure fill a tall column instead of stopping at the generic height cap; every other figure-column declaration stays at zero specificity ([#60](https://github.com/natolambert/colloquium/pull/60))
 - Fixed: the dev server's live rebuild silently failed on decks that cite papers and have column or row slides after the references, because the render check compared slides out of order; build errors are now flushed to the log ([#61](https://github.com/natolambert/colloquium/pull/61))
 - `animate: bullets`/`items`: blocks after an animated list (a takeaway line, a caption) now appear after the last bullet instead of being visible from the first click; text before the list stays visible ([#59](https://github.com/natolambert/colloquium/pull/59))
