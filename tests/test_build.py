@@ -2501,3 +2501,74 @@ class TestBulletsTrailingBlocks:
         section = self._section(build_deck(deck))
         assert 'data-fragment-count="3"' in section
         assert section.count("Conclusion.") == 1
+
+
+class TestFigureTitle:
+    SVG = (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100">'
+        '<title id="p-title">Old title</title>'
+        '<text x="10" y="20" data-role="title">Old title that</text>'
+        '<text x="10" y="40" data-role="title">wrapped</text>'
+        '<text x="10" y="60" data-role="subtitle">Sub</text>'
+        '<circle r="2"><title>point</title></circle></svg>'
+    )
+
+    def _build(self, tmp_path, markdown, svg=SVG):
+        import base64
+        (tmp_path / "plot.svg").write_text(svg, encoding="utf-8")
+        source = tmp_path / "slides.md"
+        source.write_text(markdown, encoding="utf-8")
+        html = Path(build_file(str(source))).read_text(encoding="utf-8")
+        match = re.search(r'<img[^>]*src="data:image/svg\+xml;base64,([^"]+)"', html)
+        return html, (base64.b64decode(match.group(1)).decode("utf-8") if match else None)
+
+    def test_heading_replaces_the_exported_title_and_keeps_hover_path(self, tmp_path):
+        html, svg = self._build(tmp_path, "<!-- figure-title: heading -->\n## Downloads are **up**!\n\n![Old title](plot.svg)")
+        assert svg is not None
+        assert svg.count('data-role="title"') == 1
+        assert '<text x="10" y="20" data-role="title">Downloads are up!</text>' in svg
+        assert '<title id="p-title">Downloads are up!</title>' in svg
+        assert '<text x="10" y="60" data-role="subtitle">Sub</text>' in svg
+        assert '<circle r="2"><title>point</title></circle>' in svg
+        assert 'data-plot="plot.svg"' in html
+        assert "title-hidden" in re.search(r'<section class="([^"]*)"', html).group(1)
+        assert "<h2>Downloads are <strong>up</strong>!</h2>" in html
+
+    def test_only_the_document_title_is_replaced_and_percent_encoded_paths_open(self, tmp_path):
+        tooltip_only = (
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            '<text data-role="title">Old</text>'
+            '<circle r="2"><title>point tooltip</title></circle></svg>'
+        )
+        (tmp_path / "my plot.svg").write_text(tooltip_only, encoding="utf-8")
+        html, _ = self._build(tmp_path, "<!-- figure-title: heading -->\n## New\n\n![Old](<my plot.svg>)")
+        import base64
+        match = re.search(r'src="data:image/svg\+xml;base64,([^"]+)"[^>]*data-plot="my%20plot.svg"', html)
+        assert match, html
+        svg = base64.b64decode(match.group(1)).decode("utf-8")
+        assert '<text data-role="title">New</text>' in svg
+        assert "<title>point tooltip</title>" in svg
+
+    def test_programmatic_slides_and_serialization_keep_the_directive(self, tmp_path):
+        from colloquium.parse import parse_markdown
+        deck = parse_markdown("<!-- figure-title: heading -->\n## New\n\n![Old](plot.svg)")
+        assert deck.slides[0].metadata["figure_title"] == "heading"
+        assert "title-hidden" not in deck.slides[0].classes
+        assert "<!-- figure-title: heading -->" in deck.slides[0].to_markdown()
+        again = parse_markdown(deck.to_markdown())
+        assert again.slides[0].metadata["figure_title"] == "heading"
+
+        (tmp_path / "plot.svg").write_text(self.SVG, encoding="utf-8")
+        api = Deck(title="t", source_dir=str(tmp_path))
+        api.add_slide(title="New", content="![Old](plot.svg)", figure_title="heading")
+        html = build_deck(api)
+        assert "title-hidden" in re.search(r'<section class="([^"]*)"', html).group(1)
+        assert 'data-plot="plot.svg"' in html
+
+    def test_without_the_directive_or_a_title_role_the_figure_is_untouched(self, tmp_path):
+        html, svg = self._build(tmp_path, "## Heading\n\n![Old title](plot.svg)")
+        assert svg is None and 'src="plot.svg"' in html
+        html, svg = self._build(tmp_path, "<!-- figure-title: heading -->\n## Heading\n\n![Old](plot.svg)", svg='<svg xmlns="http://www.w3.org/2000/svg"><text>Old</text></svg>')
+        assert svg is None and 'src="plot.svg"' in html
+        html, svg = self._build(tmp_path, "<!-- figure-title: heading -->\n## Heading\n\n![Missing](missing.svg)")
+        assert svg is None and 'src="missing.svg"' in html

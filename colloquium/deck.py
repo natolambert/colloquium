@@ -54,6 +54,7 @@ class Deck:
         chapter_bar: bool | str | dict = False,
         url: str = "",
         share_image: str | bool = False,
+        source_dir: str = "",
     ):
         self.title = title
         # Canonical URL of the published deck; share images resolve against it.
@@ -61,6 +62,8 @@ class Deck:
         # Share (Open Graph) image: True/"auto" for <deck>-share.png next to the
         # HTML, or an explicit path or URL.
         self.share_image = share_image
+        # Directory the deck's relative asset paths resolve against (set by parse_file).
+        self.source_dir = source_dir
         self.author = author
         self.date = date
         self.theme = theme
