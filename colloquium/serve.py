@@ -85,11 +85,22 @@ def _read_stable_source_snapshot(input_path: str, settle_seconds: float = 0.06) 
 
 def _render_matches_deck_structure(deck, html: str) -> bool:
     """Reject broken renders that lost row/column wrappers during live editing."""
-    sections = _SECTION_RE.findall(html)
-    if len(sections) < len(deck.slides):
+    # The build renders regular slides, then any generated References pages,
+    # then ``after: references`` slides, so compare in that order and skip the
+    # generated pages, which have no source slide.
+    sections = [
+        section for section in _SECTION_RE.findall(html)
+        if "colloquium-references-slide" not in section
+    ]
+    ordered_slides = [
+        slide for slide in deck.slides if slide.metadata.get("after") != "references"
+    ] + [
+        slide for slide in deck.slides if slide.metadata.get("after") == "references"
+    ]
+    if len(sections) < len(ordered_slides):
         return False
 
-    for slide, section_html in zip(deck.slides, sections):
+    for slide, section_html in zip(ordered_slides, sections):
         has_columns = any(cls.startswith("cols-") for cls in slide.classes)
         has_rows = any(cls.startswith("rows-") for cls in slide.classes)
         if has_columns and "colloquium-grid" not in section_html:
@@ -158,14 +169,14 @@ def _watch_and_rebuild(input_path: str, output_path: str, stop_event: threading.
 
                 if not stable and not timed_out:
                     if not waiting_for_stable_source:
-                        print("  Waiting for stable source before rebuild...")
+                        print("  Waiting for stable source before rebuild...", flush=True)
                         waiting_for_stable_source = True
                         unstable_since = time.monotonic()
                 else:
                     if timed_out and not stable:
-                        print("  Stability wait timed out, rebuilding anyway.")
+                        print("  Stability wait timed out, rebuilding anyway.", flush=True)
                     if last_mtime > 0:
-                        print(f"  Rebuilding {input_path}...")
+                        print(f"  Rebuilding {input_path}...", flush=True)
                     snapshot = source_snapshot
                     if snapshot is None:
                         snapshot = Path(input_path).read_text(encoding="utf-8")
@@ -179,7 +190,7 @@ def _watch_and_rebuild(input_path: str, output_path: str, stop_event: threading.
         except OSError:
             pass
         except Exception as e:
-            print(f"  Build error: {e}")
+            print(f"  Build error: {e}", flush=True)
             last_mtime = pending_mtime or last_mtime
             pending_mtime = 0.0
             pending_since = 0.0

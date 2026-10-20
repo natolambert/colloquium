@@ -36,6 +36,25 @@ class TestServeSnapshotAndValidation:
 
         assert _render_matches_deck_structure(deck, html)
 
+    def test_render_structure_handles_slides_after_references(self, tmp_path):
+        bib = tmp_path / "refs.bib"
+        bib.write_text(
+            "@article{key2024,\n  title={A Paper},\n  author={Author, A.},\n  year={2024}\n}\n",
+            encoding="utf-8",
+        )
+        text = (
+            "---\nbibliography: refs.bib\n---\n\n"
+            "## Main\n\nCites [@key2024]\n\n---\n\n"
+            "<!-- after: references -->\n<!-- columns: 40/60 -->\n## Extra\n\nA\n\n|||\n\nB"
+        )
+        source = tmp_path / "slides.md"
+        source.write_text(text, encoding="utf-8")
+        deck = parse_markdown(text)
+        html = _build_snapshot_html(str(source), text)
+
+        assert "colloquium-references-slide" in html
+        assert _render_matches_deck_structure(deck, html)
+
     def test_render_structure_rejects_missing_column_wrapper(self):
         text = "<!-- columns: 50/50 -->\n## Cols\n\nA\n\n|||\n\nB"
         deck = parse_markdown(text)
