@@ -116,6 +116,7 @@ def _build_snapshot_html(input_path: str, text: str) -> str:
     deck = parse_markdown(text)
     if deck.bibliography and not Path(deck.bibliography).is_absolute():
         deck.bibliography = str(Path(input_path).parent / deck.bibliography)
+    deck.source_dir = str(Path(input_path).parent)
     html = build_deck(deck)
     if not _render_matches_deck_structure(deck, html):
         raise ValueError("rendered HTML failed structural validation")

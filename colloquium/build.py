@@ -84,6 +84,54 @@ def _plain_title_text(heading_html: str) -> str:
     return " ".join(html_module.unescape(text).split())
 
 
+_FIGURE_TITLE_IMG_RE = re.compile(r'<img\b[^>]*\bsrc="([^"]+\.svg)"[^>]*>', re.IGNORECASE)
+_SVG_TITLE_TEXT_RE = re.compile(r'<text\b[^>]*\bdata-role="title"[^>]*>.*?</text>', re.DOTALL)
+_SVG_DOC_TITLE_RE = re.compile(r"(<title\b[^>]*>).*?(</title>)", re.DOTALL)
+
+
+def _apply_figure_title(slide_html: str, slide: Slide, source_dir: str, md: MarkdownIt) -> str:
+    """For ``figure-title: heading``, retitle the slide's first SVG figure with the heading.
+
+    The SVG must mark its title text with ``data-role="title"`` (the
+    Interconnects plot exporter does); the first such line takes the heading
+    and any further wrapped lines are dropped. The retitled copy is embedded
+    as a data URI and the original path is kept in ``data-plot`` so hover
+    helpers still find the plot's data. Anything else leaves the slide as is.
+    """
+    if slide.metadata.get("figure_title") != "heading" or not slide.title:
+        return slide_html
+    match = _FIGURE_TITLE_IMG_RE.search(slide_html)
+    if not match:
+        return slide_html
+    src = html_module.unescape(match.group(1))
+    if src.startswith(("data:", "http:", "https:", "//")):
+        return slide_html
+    path = Path(source_dir or ".") / src
+    try:
+        svg = path.read_text(encoding="utf-8")
+    except OSError:
+        print(f"  figure-title: cannot read {path}; keeping the figure's own title")
+        return slide_html
+    titles = list(_SVG_TITLE_TEXT_RE.finditer(svg))
+    if not titles:
+        print(f'  figure-title: {path} has no <text data-role="title">; keeping its own title')
+        return slide_html
+    heading = html_module.escape(_plain_title_text(_render_title_markdown(slide.title, md)), quote=False)
+    first = titles[0].group(0)
+    retitled = first[: first.index(">") + 1] + heading + "</text>"
+    pieces, position = [], 0
+    for index, found in enumerate(titles):
+        pieces.append(svg[position:found.start()])
+        pieces.append(retitled if index == 0 else "")
+        position = found.end()
+    pieces.append(svg[position:])
+    svg = _SVG_DOC_TITLE_RE.sub(lambda m: m.group(1) + heading + m.group(2), "".join(pieces), count=1)
+    data_uri = "data:image/svg+xml;base64," + base64.b64encode(svg.encode("utf-8")).decode("ascii")
+    img = match.group(0)
+    retitled_img = img.replace(f'src="{match.group(1)}"', f'src="{data_uri}" data-plot="{match.group(1)}"', 1)
+    return slide_html[:match.start()] + retitled_img + slide_html[match.end():]
+
+
 _STANDALONE_IMAGE_PARAGRAPH_RE = re.compile(r"<p>\s*(<img\b[^>]*>)\s*</p>", re.DOTALL)
 _IMAGE_ALT_ATTR_RE = re.compile(r'\balt="([^"]*)"')
 
@@ -2024,6 +2072,7 @@ def build_deck(deck: Deck, output_stem: str | None = None) -> str:
             slide_html = _process_citations(
                 slide_html, bib_entries, citation_style, cited_keys, citation_order, citation_numbers,
             )
+        slide_html = _apply_figure_title(slide_html, slide, getattr(deck, "source_dir", ""), md)
         return _replace_toc_blocks(slide_html, chapters, slide_chapters[index])
 
     slides_html_parts = [build_one(slide, i) for i, slide in enumerate(main_slides)]

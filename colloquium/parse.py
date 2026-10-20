@@ -12,7 +12,7 @@ from colloquium.slide import Slide
 
 # Directive patterns: <!-- key: value -->
 _DIRECTIVE_RE = re.compile(
-    r"<!--\s*(layout|class|style|notes|title|align|valign|columns|rows|padding|size|cite|cite-left|cite-right|footnote|footnote-right|footnotes|img-align|img-valign|img-fill|img-overflow|animate|after|chapter|chapter-short|chapter-bar)\s*:\s*(.*?)\s*-->",
+    r"<!--\s*(layout|class|style|notes|title|align|valign|columns|rows|padding|size|cite|cite-left|cite-right|footnote|footnote-right|footnotes|img-align|img-valign|img-fill|img-overflow|animate|after|chapter|chapter-short|chapter-bar|figure-title)\s*:\s*(.*?)\s*-->",
     re.DOTALL,
 )
 
@@ -111,6 +111,12 @@ def parse_slide(text: str) -> Slide:
             metadata["animate"] = value
         elif key == "after":
             metadata["after"] = value
+        elif key == "figure-title":
+            # The slide heading becomes the first SVG figure's title; the
+            # heading itself is hidden so it does not show twice.
+            metadata["figure_title"] = value
+            if value == "heading" and "title-hidden" not in classes:
+                classes.append("title-hidden")
         elif key == "chapter":
             metadata["chapter"] = value
         elif key == "chapter-short":
@@ -214,5 +220,7 @@ def parse_file(path: str) -> Deck:
     # Resolve bibliography path relative to the markdown file
     if deck.bibliography and not Path(deck.bibliography).is_absolute():
         deck.bibliography = str(md_path.parent / deck.bibliography)
+    # Relative figure paths (figure-title) resolve against the markdown file too.
+    deck.source_dir = str(md_path.parent)
 
     return deck

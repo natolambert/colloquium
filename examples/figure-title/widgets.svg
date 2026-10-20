@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="840" viewBox="0 0 1600 840" role="img" aria-labelledby="ex-title" font-family="Arial, Helvetica, sans-serif" fill="#20252B">
+<title id="ex-title">Monthly widget downloads</title>
+<rect width="1600" height="840" fill="#FFFFFF"/>
+<text x="115" y="48" font-size="40" font-weight="700" letter-spacing="-0.8" data-role="title">Monthly widget downloads</text>
+<text x="115" y="84" font-size="24" fill="#5B6470" data-role="subtitle">Example data, millions per month</text>
+<text x="115" y="128" font-size="22">■ Widgets</text>
+<path d="M115 770.0h1457" stroke="#E6E9EC" stroke-width="1.5"/>
+<text x="101" y="777.0" font-size="22" text-anchor="end" fill="#5B6470">0M</text>
+<path d="M115 620.0h1457" stroke="#E6E9EC" stroke-width="1.5"/>
+<text x="101" y="627.0" font-size="22" text-anchor="end" fill="#5B6470">25M</text>
+<path d="M115 470.0h1457" stroke="#E6E9EC" stroke-width="1.5"/>
+<text x="101" y="477.0" font-size="22" text-anchor="end" fill="#5B6470">50M</text>
+<path d="M115 320.0h1457" stroke="#E6E9EC" stroke-width="1.5"/>
+<text x="101" y="327.0" font-size="22" text-anchor="end" fill="#5B6470">75M</text>
+<path d="M115 170.0h1457" stroke="#E6E9EC" stroke-width="1.5"/>
+<text x="101" y="177.0" font-size="22" text-anchor="end" fill="#5B6470">100M</text>
+<rect x="139.3" y="662.0" width="113.3" height="108.0" fill="#2F6FDE" rx="3"/>
+<text x="195.9" y="804" font-size="22" text-anchor="middle" fill="#5B6470">Jan</text>
+<rect x="301.2" y="638.0" width="113.3" height="132.0" fill="#2F6FDE" rx="3"/>
+<text x="357.8" y="804" font-size="22" text-anchor="middle" fill="#5B6470">Feb</text>
+<rect x="463.1" y="620.0" width="113.3" height="150.0" fill="#2F6FDE" rx="3"/>
+<text x="519.7" y="804" font-size="22" text-anchor="middle" fill="#5B6470">Mar</text>
+<rect x="624.9" y="584.0" width="113.3" height="186.0" fill="#2F6FDE" rx="3"/>
+<text x="681.6" y="804" font-size="22" text-anchor="middle" fill="#5B6470">Apr</text>
+<rect x="786.8" y="542.0" width="113.3" height="228.0" fill="#2F6FDE" rx="3"/>
+<text x="843.5" y="804" font-size="22" text-anchor="middle" fill="#5B6470">May</text>
+<rect x="948.7" y="488.0" width="113.3" height="282.0" fill="#2F6FDE" rx="3"/>
+<text x="1005.4" y="804" font-size="22" text-anchor="middle" fill="#5B6470">Jun</text>
+<rect x="1110.6" y="422.0" width="113.3" height="348.0" fill="#2F6FDE" rx="3"/>
+<text x="1167.3" y="804" font-size="22" text-anchor="middle" fill="#5B6470">Jul</text>
+<rect x="1272.5" y="338.0" width="113.3" height="432.0" fill="#2F6FDE" rx="3"/>
+<text x="1329.2" y="804" font-size="22" text-anchor="middle" fill="#5B6470">Aug</text>
+<rect x="1434.4" y="230.0" width="113.3" height="540.0" fill="#2F6FDE" rx="3"/>
+<text x="1491.1" y="804" font-size="22" text-anchor="middle" fill="#5B6470">Sep</text>
+</svg>

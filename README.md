@@ -287,6 +287,7 @@ At the slide root, use either `columns:` or `rows:`. For nested layouts, use `ro
 | `<!-- style: css-here -->` | Inline CSS on the slide element |
 | `<!-- notes: text -->` | Speaker notes (hidden in presentation) |
 | `<!-- after: references -->` | Move this slide after generated bibliography slides; it is excluded from the footer `{N}` total |
+| `<!-- figure-title: heading -->` | The `##` heading replaces the title inside the slide's first SVG figure (see [Plot titles from the heading](#plot-titles-from-the-heading)) |
 | `<!-- chapter: Title -->` | Start a new chapter at this slide (see [Chapters](#chapters)) |
 | `<!-- chapter-short: Label -->` | Shorter label for this slide's chapter in the [chapter bar](#chapter-bar) |
 | `<!-- chapter-bar: bars chapters -->` | Restyle, show, or `hide` the [chapter bar](#chapter-bar) on this slide |
@@ -597,6 +598,21 @@ options:
 | `options.scales.{x,y}.ticks.prefix` | `""` | Prepend to tick labels (e.g. `"$"`) |
 | `options.scales.{x,y}.ticks.suffix` | `""` | Append to tick labels (e.g. `"%"`) |
 | `options.scales.{x,y}.grid.display` | `true` | Show/hide grid lines |
+
+### Plot titles from the heading
+
+Exported plots carry their own title text. To retitle one you would normally re-export it; with `figure-title: heading` the slide's `##` heading becomes the figure's title at build time, so editing the heading is enough:
+
+```markdown
+<!-- figure-title: heading -->
+## Local model downloads are accelerating!
+
+![Local model downloads](assets/local-downloads.svg)
+```
+
+![A plot whose exported title was replaced by the slide heading](docs/figure-title.png)
+
+The SVG must mark its title with `<text data-role="title">` (the [Interconnects plot exporter](https://github.com/Interconnects-AI/dashboard/tree/main/tools/plots) does). The first title line takes the heading and any further wrapped lines are dropped, so keep headings to one line on these slides. The retitled copy is embedded in the HTML and the original path stays in `data-plot`, so the exporter's hover helper keeps working; the heading itself is hidden on the slide. Figures without the role, remote images, and missing files are left as they are, with a note in the build log.
 
 ### Conversations
 
