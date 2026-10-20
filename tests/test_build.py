@@ -2446,3 +2446,20 @@ class TestTocBlock:
 
         assert "colloquium-toc" not in section
         assert "language-toc" not in section
+
+
+class TestMultiLineTitles:
+    def test_title_lines_break_in_the_heading(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="How are open models built?\nThe role of distillation", content="Body")
+        html = build_deck(deck)
+        assert "<h2>How are open models built?<br>The role of distillation</h2>" in html
+
+    def test_chapters_and_toc_read_the_title_as_one_line(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="Deck", layout="title")
+        deck.add_slide(title="Outline", content="```toc\n```")
+        deck.add_slide(title="How are open models built?\nThe role of distillation", layout="section-break")
+        html = build_deck(deck)
+        assert ">How are open models built? The role of distillation</a>" in html
+        assert "built?The role" not in html

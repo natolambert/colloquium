@@ -303,11 +303,18 @@ class ColloquiumPresentation {
 
     // --- Slide Picker ---
 
+    _headingText(heading) {
+        // Multi-line titles break with <br>; read them as one line.
+        return Array.from(heading.childNodes)
+            .map((node) => node.nodeName === 'BR' ? ' ' : node.textContent)
+            .join('').replace(/\s+/g, ' ').trim();
+    }
+
     _getSlideTitle(slide, i) {
         const h1 = slide.querySelector('h1');
-        if (h1) return h1.textContent;
+        if (h1) return this._headingText(h1);
         const h2 = slide.querySelector('h2');
-        if (h2) return h2.textContent;
+        if (h2) return this._headingText(h2);
         const img = slide.querySelector('img[alt]');
         if (img && img.alt) return img.alt;
         const text = slide.textContent.trim();

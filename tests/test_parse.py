@@ -380,3 +380,29 @@ class TestChapterDirective:
         deck = parse_markdown("---\ntitle: Talk\nchapter_bar: true\n---\n\n## S1")
         assert deck.chapter_bar == {"labels": True, "slides": "all", "progress": "slides"}
         assert "chapter_bar: true" in deck.to_markdown()
+
+
+class TestMultiLineTitles:
+    def test_consecutive_heading_lines_form_one_title(self):
+        slide = parse_slide("## How are open models built?\n## The role of distillation\n\nBody")
+        assert slide.title == "How are open models built?\nThe role of distillation"
+        assert slide.content == "Body"
+
+    def test_consecutive_title_slide_lines_join(self):
+        slide = parse_slide("# Open Weight\n# Language Models\n\nSubtitle")
+        assert slide.title == "Open Weight\nLanguage Models"
+        assert slide.layout == "title"
+
+    def test_heading_after_a_blank_line_stays_in_content(self):
+        slide = parse_slide("## Title\n\n## Not the title\n\nBody")
+        assert slide.title == "Title"
+        assert "## Not the title" in slide.content
+
+    def test_different_level_does_not_join(self):
+        slide = parse_slide("# Title\n## Subtitle line")
+        assert slide.title == "Title"
+        assert slide.content == "## Subtitle line"
+
+    def test_multi_line_title_round_trips_to_markdown(self):
+        slide = parse_slide("## One\n## Two\n\nBody")
+        assert slide.to_markdown().startswith("## One\n## Two\n")

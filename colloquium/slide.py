@@ -40,7 +40,7 @@ class Slide:
 
         if self.title:
             prefix = "# " if self.is_title_slide else "## "
-            parts.append(f"{prefix}{self.title}")
+            parts.append("\n".join(f"{prefix}{line}" for line in self.title.split("\n")))
 
         if self.content:
             parts.append(self.content)
