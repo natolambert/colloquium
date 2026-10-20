@@ -9,6 +9,7 @@ import socketserver
 import threading
 import time
 from pathlib import Path
+from urllib.parse import unquote
 
 
 _COMMENT_OPEN_RE = re.compile(r"<!--")
@@ -251,7 +252,7 @@ def _make_request_handler(serve_dir: str, output_path: str, live_reload: bool):
         def do_GET(self):
             if not live_reload:
                 return super().do_GET()
-            path = self.path.split("?", 1)[0].split("#", 1)[0]
+            path = unquote(self.path.split("?", 1)[0].split("#", 1)[0])
             if path == _VERSION_PATH:
                 return self._send_bytes(_output_version(output_path).encode("ascii"), "text/plain")
             if path.lstrip("/") == deck_name:
