@@ -1277,18 +1277,23 @@ def _extract_grid_spec(classes: list[str], prefix: str) -> str | None:
     return None
 
 
-def _grid_template_style(spec: str, axis: str) -> str:
-    """Convert a class-like grid spec to an inline CSS grid template declaration."""
+def _grid_template_tracks(spec: str) -> str:
+    """Convert a class-like grid spec (2, 60-40, 1-2-1) to a CSS track list."""
     if spec.isdigit():
         count = max(int(spec), 1)
-        return f"grid-template-{axis}: repeat({count}, minmax(0, 1fr));"
+        return f"repeat({count}, minmax(0, 1fr))"
 
     parts = [p for p in spec.split("-") if p]
     if len(parts) >= 2 and all(part.isdigit() for part in parts):
-        tracks = " ".join(f"minmax(0, {int(part)}fr)" for part in parts)
-        return f"grid-template-{axis}: {tracks};"
+        return " ".join(f"minmax(0, {int(part)}fr)" for part in parts)
 
     return ""
+
+
+def _grid_template_style(spec: str, axis: str) -> str:
+    """Convert a class-like grid spec to an inline CSS grid template declaration."""
+    tracks = _grid_template_tracks(spec)
+    return f"grid-template-{axis}: {tracks};" if tracks else ""
 
 
 def _slide_uses_figure_captions(classes: list[str], deck_figure_captions: bool = False) -> bool:
@@ -1410,7 +1415,7 @@ def _build_slide_html(
     class_str = " ".join(classes)
 
     # Style attribute
-    slide_style_attr = f' style="{slide.style}"' if slide.style else ""
+    slide_style = (slide.style or "").strip()
 
     # Slide content
     parts = []
@@ -1463,6 +1468,13 @@ def _build_slide_html(
                 cols_spec = _extract_grid_spec(slide.classes, "cols-")
                 content_classes.append("colloquium-grid")
                 content_style = _grid_template_style(cols_spec or "", "columns")
+                # The slide itself learns the column tracks so layouts that
+                # restructure the slide (img-tall-right) follow the same ratio.
+                tracks = _grid_template_tracks(cols_spec or "")
+                if tracks:
+                    if slide_style and not slide_style.endswith(";"):
+                        slide_style += ";"
+                    slide_style = f"{slide_style} --colloquium-columns: {tracks};".strip()
                 rendered = _build_columns_html(rendered, frag_animate)
                 rendered, fragment_count = _number_fragments(rendered)
             else:
@@ -1516,6 +1528,7 @@ def _build_slide_html(
     # and unicode pitfalls of carrying raw markdown in an attribute.
     md_source = base64.b64encode(slide.to_markdown().encode("utf-8")).decode("ascii")
     md_attr = f' data-colloquium-md="{md_source}"'
+    slide_style_attr = f' style="{slide_style}"' if slide_style else ""
     return f'<section class="{class_str}"{slide_style_attr} data-index="{index}"{chapter_attr}{fragment_attr}{md_attr}>\n{inner}\n</section>'
 
 

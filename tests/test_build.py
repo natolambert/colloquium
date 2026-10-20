@@ -2166,8 +2166,11 @@ class TestImgTallRightUtility:
     def test_theme_ships_img_tall_right_rules(self):
         import pathlib
         css = (pathlib.Path("colloquium/themes/default/theme.css")).read_text()
-        assert ".slide.img-tall-right" in css
-        assert "figure.colloquium-figure:first-child:last-child > figcaption" in css
+        assert ".slide.img-tall-right.active {\n    display: grid;" in css
+        assert "grid-template-columns: var(--colloquium-columns, minmax(0, 1fr) minmax(0, 1fr));" in css
+        assert ".slide.img-tall-right > .slide-content.colloquium-grid > .col:last-child {" in css
+        # The figure column follows the columns ratio; no fixed width remains.
+        assert "width: 55%" not in css
 
     def test_class_directive_reaches_slide_markup(self, tmp_path):
         src = tmp_path / "deck.md"
