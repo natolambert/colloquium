@@ -37,7 +37,7 @@ def _serve(args):
         sys.exit(1)
 
     try:
-        serve(input_path, port=args.port)
+        serve(input_path, port=args.port, live_reload=not args.no_reload)
     except PortUnavailableError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
@@ -142,6 +142,10 @@ def main():
     serve_parser = subparsers.add_parser("serve", help="Dev server with live reload")
     serve_parser.add_argument("file", help="Input markdown file")
     serve_parser.add_argument("-p", "--port", type=int, default=8090, help="Port (default: 8090)")
+    serve_parser.add_argument(
+        "--no-reload", action="store_true",
+        help="Rebuild on save but do not reload the open browser tab",
+    )
     serve_parser.set_defaults(func=_serve)
 
     # export

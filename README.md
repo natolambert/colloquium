@@ -55,7 +55,7 @@ Build it:
 
 ```bash
 colloquium build slides.md        # → slides.html
-colloquium serve slides.md        # dev server with live reload
+colloquium serve slides.md        # rebuilds and reloads the browser tab on save
 colloquium export slides.md       # PDF via a headless Chromium-based browser
 colloquium capture slides.md      # per-slide PNGs for AI review
 colloquium share-image slides.md  # first slide as the link-preview card (see below)
@@ -72,7 +72,7 @@ Details in [Share images](#share-images).
 | Command | Description |
 |---------|-------------|
 | `colloquium build <file.md>` | Build to self-contained HTML |
-| `colloquium serve <file.md>` | Dev server with live reload |
+| `colloquium serve <file.md>` | Dev server: rebuilds on save and reloads the open browser tab on the same slide (`--no-reload` to only rebuild) |
 | `colloquium export <file.md>` | PDF export (requires a Chromium-based browser) |
 | `colloquium capture <file.md>` | Capture slides as individual PNGs |
 | `colloquium share-image <file.md>` | Capture the first slide as the deck's share (Open Graph) image, `<deck>-share.png` |
