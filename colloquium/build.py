@@ -1672,7 +1672,7 @@ window.addEventListener("load", function() {
             mathSlides.forEach(function(s) {
                 mathOrigDisplay.push(s.style.display);
                 mathOrigVisibility.push(s.style.visibility);
-                s.style.display = "flex";
+                s.style.display = s.classList.contains("img-tall-right") ? "grid" : "flex";
                 if (!s.classList.contains("active")) {
                     s.style.visibility = "hidden";
                 }
@@ -1716,7 +1716,7 @@ window.addEventListener("load", function() {
             var origDisplay = [];
             slides.forEach(function(s) {
                 origDisplay.push(s.style.display);
-                s.style.display = "flex";
+                s.style.display = s.classList.contains("img-tall-right") ? "grid" : "flex";
                 if (!s.classList.contains("active")) {
                     s.style.visibility = "hidden";
                 }

@@ -2058,6 +2058,11 @@ body:hover .colloquium-present {
     /* img-tall-right: printed slides are forced to flex above, so restore
        the slide-level grid that places the last column at full height. */
     .slide.img-tall-right { display: grid !important; }
+    /* Its last column spans beside the title, so the figure may use the full
+       content height instead of the generic grid-figure print cap. */
+    .slide.img-tall-right:not(.img-overflow) .slide-content.colloquium-grid > .col:last-child > figure.colloquium-figure:first-child:last-child > img {
+        max-height: calc(720px - var(--colloquium-slide-padding) * 2 - 48px) !important;
+    }
 
     .colloquium-progress,
     .colloquium-picker-overlay,
