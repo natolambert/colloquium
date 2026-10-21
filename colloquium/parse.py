@@ -168,9 +168,27 @@ def parse_slide(text: str) -> Slide:
     )
 
 
+def is_stylesheet_path(value) -> bool:
+    """True when a ``custom_css`` value names a .css file rather than inline CSS."""
+    if not isinstance(value, str):
+        return False
+    text = value.strip()
+    return (
+        text.lower().endswith(".css")
+        and "\n" not in text
+        and "{" not in text
+    )
+
+
 def parse_markdown(text: str) -> Deck:
     """Parse a full markdown file into a Deck."""
     metadata, body = parse_frontmatter(text)
+
+    custom_css = metadata.get("custom_css", "")
+    custom_css_path = ""
+    if is_stylesheet_path(custom_css):
+        custom_css_path = str(custom_css).strip()
+        custom_css = ""
 
     deck = Deck(
         title=metadata.get("title", "Untitled"),
@@ -178,7 +196,8 @@ def parse_markdown(text: str) -> Deck:
         date=str(metadata.get("date", "")),
         theme=metadata.get("theme", "default"),
         aspect_ratio=str(metadata.get("aspect_ratio", "16:9")),
-        custom_css=metadata.get("custom_css", ""),
+        custom_css=custom_css,
+        custom_css_path=custom_css_path,
         footer=metadata.get("footer", None),
         fonts=metadata.get("fonts", None),
         bibliography=metadata.get("bibliography", ""),

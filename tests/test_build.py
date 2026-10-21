@@ -378,6 +378,35 @@ class TestBuildDeck:
 
         assert ".custom { color: blue; }" in html
 
+    def test_custom_css_from_a_file_next_to_the_deck(self, tmp_path):
+        (tmp_path / "deck.css").write_text(".from-file { color: green; }", encoding="utf-8")
+        source = tmp_path / "deck.md"
+        source.write_text("---\ncustom_css: deck.css\n---\n## S1\n\nC", encoding="utf-8")
+        output = build_file(str(source))
+        html = Path(output).read_text(encoding="utf-8")
+
+        assert ".from-file { color: green; }" in html
+        assert "deck.css" not in html.split("<body")[0].split("<style")[0]
+
+    def test_custom_css_file_and_inline_css_combine(self, tmp_path):
+        (tmp_path / "deck.css").write_text(".from-file { }", encoding="utf-8")
+        deck = Deck(title="Test", custom_css=".inline { }", custom_css_path="deck.css", source_dir=str(tmp_path))
+        deck.add_slide(title="S1", content="C")
+        html = build_deck(deck)
+
+        assert ".from-file { }\n.inline { }" in html
+
+    def test_missing_custom_css_file_names_the_path(self, tmp_path):
+        source = tmp_path / "deck.md"
+        source.write_text("---\ncustom_css: missing.css\n---\n## S1\n\nC", encoding="utf-8")
+
+        with pytest.raises(FileNotFoundError, match="missing.css"):
+            build_file(str(source))
+
+    def test_custom_css_path_round_trips_through_markdown(self):
+        deck = Deck(title="Test", custom_css_path="deck.css")
+        assert "custom_css: deck.css" in deck.to_markdown()
+
     def test_multiple_slides(self):
         deck = Deck(title="Test")
         deck.add_slide(title="Slide 1", content="A")

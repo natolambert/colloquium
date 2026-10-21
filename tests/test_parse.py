@@ -1,6 +1,6 @@
 """Tests for the markdown parser."""
 
-from colloquium.parse import parse_frontmatter, parse_slide, parse_markdown
+from colloquium.parse import is_stylesheet_path, parse_frontmatter, parse_slide, parse_markdown
 
 
 class TestParseFrontmatter:
@@ -406,3 +406,23 @@ class TestMultiLineTitles:
     def test_multi_line_title_round_trips_to_markdown(self):
         slide = parse_slide("## One\n## Two\n\nBody")
         assert slide.to_markdown().startswith("## One\n## Two\n")
+
+
+class TestCustomCssFrontmatter:
+    def test_inline_css_stays_inline(self):
+        deck = parse_markdown("---\ncustom_css: '.slide h2 { color: red; }'\n---\n## S\n\nBody")
+        assert deck.custom_css == ".slide h2 { color: red; }"
+        assert deck.custom_css_path == ""
+
+    def test_css_filename_becomes_a_path(self):
+        deck = parse_markdown("---\ncustom_css: deck.css\n---\n## S\n\nBody")
+        assert deck.custom_css == ""
+        assert deck.custom_css_path == "deck.css"
+
+    def test_is_stylesheet_path(self):
+        assert is_stylesheet_path("deck.css")
+        assert is_stylesheet_path(" styles/Talk.CSS ")
+        assert not is_stylesheet_path(".css { color: red; }")
+        assert not is_stylesheet_path("a.css\nb { }")
+        assert not is_stylesheet_path("")
+        assert not is_stylesheet_path(None)

@@ -1,0 +1,19 @@
+/* Deck styles for custom-css.md, kept out of the markdown frontmatter. */
+:root {
+  --colloquium-bg: #fbf7ef;
+  --colloquium-accent: #b5542d;
+  --colloquium-link: #b5542d;
+  --colloquium-progress-fill: #b5542d;
+}
+
+.slide h2 {
+  color: var(--colloquium-accent);
+}
+
+.callout {
+  margin-top: 1.2em;
+  padding: 18px 24px;
+  border-left: 6px solid var(--colloquium-accent);
+  background: rgba(181, 84, 45, 0.08);
+  border-radius: 0 10px 10px 0;
+}

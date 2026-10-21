@@ -98,7 +98,7 @@ footer:
   center: "My Talk Title"
   right: "auto"                           # "auto" → slide numbers "3 / 12"
 
-custom_css: ".slide h2 { color: red; }"   # inline CSS overrides
+custom_css: ".slide h2 { color: red; }"   # inline CSS overrides, or a .css file: custom_css: deck.css
 ---
 ```
 
@@ -114,7 +114,7 @@ custom_css: ".slide h2 { color: red; }"   # inline CSS overrides
 | `footer.left` | `""` | Left footer zone (text, image URL, or `"auto"`) |
 | `footer.center` | `""` | Center footer zone |
 | `footer.right` | `"auto"` | Right footer zone (`"auto"` = slide numbers) |
-| `custom_css` | `""` | Additional CSS injected into the page |
+| `custom_css` | `""` | Additional CSS injected into the page: inline CSS, or the path of a `.css` file next to the deck (see [Custom CSS from a file](#custom-css-from-a-file)) |
 | `url` | `""` | Canonical URL of the published deck; adds `og:url` and a canonical link, and resolves a relative `share_image` |
 | `share_image` | `false` | Share (Open Graph) image: `auto` for `<deck>-share.png` next to the HTML (see [Share images](#share-images)), or a path or URL |
 | `chapters` | `true` | Group slides into [chapters](#chapters); `false` keeps a flat picker |
@@ -134,6 +134,18 @@ footer:
 ```
 
 If no zone uses `"auto"`, `{n}`, or `{N}`, the slide counter is automatically placed in the first empty zone.
+
+### Custom CSS from a file
+
+When a deck's styling grows past a few rules, point `custom_css` at a stylesheet instead of holding the CSS in the frontmatter:
+
+```yaml
+custom_css: lecture.css    # a path ending in .css, relative to the markdown file
+```
+
+The file's contents are inlined into the built HTML at build time, so the output is still a single self-contained file and PDF export, share images, and hosting work unchanged. `colloquium serve` watches the stylesheet as well as the markdown, so saving either rebuilds and reloads the deck. A missing file is a build error that names the path. See [`examples/custom-css`](examples/custom-css) for a deck styled this way:
+
+![A deck whose styles come from a .css file next to it](docs/custom-css.png)
 
 ## Slide Structure
 

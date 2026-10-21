@@ -1967,6 +1967,30 @@ def _share_meta_html(deck: Deck, output_stem: str | None = None) -> str:
     return "\n".join(tags)
 
 
+def _load_custom_css(deck: Deck) -> str:
+    """Return the deck's custom CSS, reading ``custom_css_path`` when it is set.
+
+    A relative path resolves against the deck's source directory (the folder
+    of the markdown file), so ``custom_css: deck.css`` finds the file next to
+    the deck. The file's contents are inlined, keeping the HTML self-contained.
+    """
+    inline = deck.custom_css or ""
+    path = getattr(deck, "custom_css_path", "") or ""
+    if not path:
+        return inline
+    css_path = Path(path)
+    if not css_path.is_absolute():
+        css_path = Path(getattr(deck, "source_dir", "") or ".") / css_path
+    try:
+        file_css = css_path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        raise FileNotFoundError(
+            f"custom_css stylesheet not found: {css_path} "
+            f"(frontmatter custom_css: {path})"
+        ) from None
+    return f"{file_css}\n{inline}" if inline else file_css
+
+
 def build_deck(deck: Deck, output_stem: str | None = None) -> str:
     """Build a Deck into a self-contained HTML string."""
     elements.reset()
@@ -1976,7 +2000,7 @@ def build_deck(deck: Deck, output_stem: str | None = None) -> str:
 
     font_link = _build_font_link(deck.fonts)
     font_css = _build_font_css(deck.fonts)
-    custom_css = deck.custom_css or ""
+    custom_css = _load_custom_css(deck)
 
     # Load bibliography if configured
     bib_entries = {}
