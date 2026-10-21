@@ -261,3 +261,28 @@ class TestWatcherStartup:
         finally:
             stop.set()
             thread.join(timeout=2)
+
+
+class TestWatcherStylesheet:
+    def test_watcher_rebuilds_when_the_custom_css_file_changes(self, tmp_path):
+        source = tmp_path / "slides.md"
+        source.write_text("---\ncustom_css: slides.css\n---\n## Slide\n\nBody", encoding="utf-8")
+        stylesheet = tmp_path / "slides.css"
+        stylesheet.write_text(".v1 { }", encoding="utf-8")
+        output = tmp_path / "slides.html"
+        output.write_text("built by serve()", encoding="utf-8")
+        stop = threading.Event()
+        thread = threading.Thread(target=_watch_and_rebuild, args=(str(source), str(output), stop), daemon=True)
+        thread.start()
+        try:
+            time.sleep(1.0)
+            assert output.read_text(encoding="utf-8") == "built by serve()"
+
+            stylesheet.write_text(".v2 { }", encoding="utf-8")
+            time.sleep(1.0)
+            html = output.read_text(encoding="utf-8")
+            assert ".v2 { }" in html
+            assert ".v1 { }" not in html
+        finally:
+            stop.set()
+            thread.join(timeout=2)

@@ -138,17 +138,50 @@ class PortUnavailableError(RuntimeError):
         super().__init__(f"Port {port} is unavailable: {detail}")
 
 
+def _stylesheet_path(input_path: str) -> str | None:
+    """The deck's ``custom_css`` file, resolved next to the deck, or None."""
+    from colloquium.parse import is_stylesheet_path, parse_frontmatter
+
+    try:
+        metadata, _ = parse_frontmatter(Path(input_path).read_text(encoding="utf-8"))
+    except Exception:  # a half-saved frontmatter must not stop the watcher
+        return None
+    value = metadata.get("custom_css", "")
+    if not is_stylesheet_path(value):
+        return None
+    css_path = Path(str(value).strip())
+    if not css_path.is_absolute():
+        css_path = Path(input_path).parent / css_path
+    return str(css_path)
+
+
+def _latest_mtime(*paths: str | None) -> float:
+    """The newest modification time among the paths that exist."""
+    latest = 0.0
+    for path in paths:
+        if not path:
+            continue
+        try:
+            latest = max(latest, os.stat(path).st_mtime)
+        except OSError:
+            continue
+    return latest
+
+
 def _watch_and_rebuild(input_path: str, output_path: str, stop_event: threading.Event):
-    """Poll for file changes and rebuild on modification."""
+    """Poll for file changes and rebuild on modification.
+
+    The deck's ``custom_css`` stylesheet (when the frontmatter names a .css
+    file) is watched alongside the markdown, so editing either rebuilds.
+    """
     from colloquium.build import _write_text_atomic
+
+    stylesheet = _stylesheet_path(input_path)
 
     # serve() has just built the deck, so start from the source's current
     # mtime: a watcher seeded with 0 would rebuild the unchanged file once,
     # bump the output's mtime, and reload any tab that opened in the meantime.
-    try:
-        last_mtime = os.stat(input_path).st_mtime
-    except OSError:
-        last_mtime = 0.0
+    last_mtime = _latest_mtime(input_path, stylesheet)
     pending_mtime = 0.0
     pending_since = 0.0
     debounce_seconds = 0.35
@@ -157,7 +190,7 @@ def _watch_and_rebuild(input_path: str, output_path: str, stop_event: threading.
 
     while not stop_event.is_set():
         try:
-            mtime = os.stat(input_path).st_mtime
+            mtime = _latest_mtime(input_path, stylesheet)
             if mtime > max(last_mtime, pending_mtime):
                 pending_mtime = mtime
                 pending_since = time.monotonic()
@@ -187,6 +220,8 @@ def _watch_and_rebuild(input_path: str, output_path: str, stop_event: threading.
                         snapshot = Path(input_path).read_text(encoding="utf-8")
                     html = _build_snapshot_html(input_path, snapshot)
                     _write_text_atomic(output_path, html)
+                    # The frontmatter may have pointed at a different stylesheet.
+                    stylesheet = _stylesheet_path(input_path)
                     last_mtime = pending_mtime
                     pending_mtime = 0.0
                     pending_since = 0.0

@@ -11,6 +11,7 @@ One line per PR for easy copy into GitHub releases.
 
 ## [Unreleased]
 
+- `custom_css` accepts the path of a `.css` file next to the deck (`custom_css: lecture.css`); the file is inlined at build time so the HTML stays self-contained, and `colloquium serve` rebuilds when the stylesheet changes ([#67](https://github.com/natolambert/colloquium/pull/67))
 - Security: Pillow 13.0.0 in the lock file and as the floor of the `pptx` extra, closing the nine Dependabot alerts on 12.3.0; Python 3.10 (end of life in October 2026) is no longer supported, the minimum is 3.11 ([#66](https://github.com/natolambert/colloquium/pull/66))
 ## [0.2.4] - 2026-10-20
 

@@ -44,6 +44,7 @@ class Deck:
         theme: str = "default",
         aspect_ratio: str = "16:9",
         custom_css: str = "",
+        custom_css_path: str = "",
         footer: dict | None = None,
         fonts: dict | None = None,
         bibliography: str = "",
@@ -69,6 +70,9 @@ class Deck:
         self.theme = theme
         self.aspect_ratio = aspect_ratio
         self.custom_css = custom_css
+        # A .css file next to the deck whose contents are inlined at build time
+        # (the frontmatter form ``custom_css: deck.css``).
+        self.custom_css_path = custom_css_path
         self.footer = footer
         self.fonts = fonts
         self.bibliography = bibliography
@@ -176,7 +180,9 @@ class Deck:
             lines.append(f"theme: {self.theme}")
         if self.aspect_ratio != "16:9":
             lines.append(f"aspect_ratio: {self.aspect_ratio}")
-        if self.custom_css:
+        if self.custom_css_path:
+            lines.append(f"custom_css: {self.custom_css_path}")
+        elif self.custom_css:
             lines.append(f"custom_css: {self.custom_css}")
         if self.footer:
             lines.append("footer:")
