@@ -11,6 +11,8 @@ One line per PR for easy copy into GitHub releases.
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-10-20
+
 - `figure-title: heading`: the slide heading replaces the title inside an exported SVG figure at build time (`data-role="title"` text), so retitling a plot no longer needs a re-export; the original path stays in `data-plot` for hover helpers ([#63](https://github.com/natolambert/colloquium/pull/63))
 - `colloquium serve` now reloads the open browser tab after each rebuild, staying on the current slide, so edits show up without pressing refresh; `--no-reload` keeps the old rebuild-only behavior ([#62](https://github.com/natolambert/colloquium/pull/62), landed on main via [#64](https://github.com/natolambert/colloquium/pull/64))
 - Figure columns: a max-height rule at the theme's generic image specificity lets a figure fill a tall column instead of stopping at the generic height cap; every other figure-column declaration stays at zero specificity ([#60](https://github.com/natolambert/colloquium/pull/60))
