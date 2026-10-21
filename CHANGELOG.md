@@ -11,6 +11,7 @@ One line per PR for easy copy into GitHub releases.
 
 ## [Unreleased]
 
+- Security: Pillow 13.0.0 in the lock file and as the floor of the `pptx` extra, closing the nine Dependabot alerts on 12.3.0; Python 3.10 (end of life in October 2026) is no longer supported, the minimum is 3.11 ([#66](https://github.com/natolambert/colloquium/pull/66))
 ## [0.2.4] - 2026-10-20
 
 - `figure-title: heading`: the slide heading replaces the title inside an exported SVG figure at build time (`data-role="title"` text), so retitling a plot no longer needs a re-export; the original path stays in `data-plot` for hover helpers ([#63](https://github.com/natolambert/colloquium/pull/63))
