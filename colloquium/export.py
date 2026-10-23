@@ -548,6 +548,33 @@ def _resolve_image_path(src: str, base_dir: Path) -> Path | None:
     return None
 
 
+def _register_notes_master(prs) -> None:
+    """List the notes master in presentation.xml, which python-pptx omits.
+
+    python-pptx creates the notes master on the first speaker note and links it
+    in presentation.xml.rels, but never adds <p:notesMasterIdLst>. PowerPoint
+    tolerates that; Keynote rejects the whole file as invalid.
+    """
+    from pptx.opc.constants import RELATIONSHIP_TYPE as RT
+    from pptx.oxml.ns import qn
+    from pptx.oxml.xmlchemy import OxmlElement
+
+    pres = prs.part._element
+    if pres.find(qn("p:notesMasterIdLst")) is not None:
+        return
+    rid = next(
+        (r.rId for r in prs.part.rels.values() if r.reltype == RT.NOTES_MASTER),
+        None,
+    )
+    if rid is None:
+        return
+    id_lst = OxmlElement("p:notesMasterIdLst")
+    master_id = OxmlElement("p:notesMasterId")
+    master_id.set(qn("r:id"), rid)
+    id_lst.append(master_id)
+    pres.find(qn("p:sldMasterIdLst")).addnext(id_lst)
+
+
 def export_pptx(input_path: str, output_path: str | None = None) -> str:
     """Export a presentation to PPTX.
 
@@ -895,5 +922,6 @@ def export_pptx(input_path: str, output_path: str | None = None) -> str:
             notes_slide = pptx_slide.notes_slide
             notes_slide.notes_text_frame.text = slide_data.speaker_notes
 
+    _register_notes_master(prs)
     prs.save(output_path)
     return output_path
