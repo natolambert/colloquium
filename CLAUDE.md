@@ -40,6 +40,7 @@ Per-slide configuration via HTML comments:
 - `<!-- class: highlight -->` — CSS classes
 - `<!-- style: background: #1a1a2e -->` — inline styles
 - `<!-- notes: Speaker notes here -->` — speaker notes (hidden in presentation)
+- `<!-- only: html -->` / `<!-- only: pptx -->` — keep a slide to one output (`build.slides_for_format`); native PPTX exporters skip `elements.BLOCK_LANGUAGES` blocks and expand ```toc via `build.expand_toc_markdown`
 
 ### Output
 - All output is a single self-contained HTML file (CSS/JS inlined)

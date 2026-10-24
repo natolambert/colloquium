@@ -27,6 +27,11 @@ from colloquium.elements.iframe import (
     reset as reset_iframes,
 )
 
+# Fenced-block languages that render as HTML elements (plus ```toc, which the
+# build expands from the deck's chapters). Native exporters that cannot draw
+# one must skip it rather than print its source as code.
+BLOCK_LANGUAGES = ("builtwith", "box", "chart", "conversation", "iframe", "toc")
+
 ELEMENTS = [
     (BUILTWITH_PATTERN, process_builtwith),
     (BOX_PATTERN, process_box),

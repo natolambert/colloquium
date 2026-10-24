@@ -2214,6 +2214,24 @@ class TestImgTallRightUtility:
         assert "img-tall-right" in html
 
 
+class TestEyebrow:
+    def test_eyebrow_renders_before_heading(self):
+        from colloquium.parse import parse_markdown
+
+        deck = parse_markdown("---\ntitle: T\n---\n\n<!-- eyebrow: Part *1* -->\n\n## Heading\n")
+        html = build_deck(deck)
+        assert '<div class="slide-eyebrow">Part <em>1</em></div>\n<h2>Heading</h2>' in html
+
+    def test_reference_does_not_double_initial_period(self, tmp_path):
+        bib = tmp_path / "refs.bib"
+        bib.write_text("@misc{a,\n  title = {T},\n  author = {Doe, Jane},\n  year = {2026}\n}\n")
+        entries = _parse_bib_file(str(bib))
+        from colloquium.build import _format_reference
+
+        assert "Doe, J.. " not in _format_reference(entries["a"], "a", "author-year", 1)
+        assert "Doe, J. " in _format_reference(entries["a"], "a", "author-year", 1)
+
+
 class TestChapters:
     def test_section_breaks_open_chapters(self):
         deck = Deck(title="Test")
@@ -2434,6 +2452,20 @@ class TestSectionBreakFooter:
         assert 'src="logo.png"' not in sections[0]
         assert 'src="logo.png"' in sections[1]
         assert "1 / 2" in sections[0]
+
+
+class TestOnlyDirective:
+    def test_pptx_only_slides_are_left_out_of_html(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="Static", content="x", only="pptx")
+        deck.add_slide(title="Live", content="y", only="html")
+        deck.add_slide(title="Shared", content="z")
+
+        html = build_deck(deck)
+
+        assert "<h2>Static</h2>" not in html
+        assert "<h2>Live</h2>" in html
+        assert "2 / 2" in html
 
 
 class TestTocBlock:

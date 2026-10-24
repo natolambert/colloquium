@@ -28,7 +28,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=7.0"]
+dev = ["pytest>=7.0", "python-pptx>=1.0"]
 pptx = ["python-pptx>=1.0", "pillow>=13.0"]
 
 [project.scripts]

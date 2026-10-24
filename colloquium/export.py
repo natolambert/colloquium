@@ -575,11 +575,15 @@ def _register_notes_master(prs) -> None:
     pres.find(qn("p:sldMasterIdLst")).addnext(id_lst)
 
 
-def export_pptx(input_path: str, output_path: str | None = None) -> str:
+def export_pptx(
+    input_path: str, output_path: str | None = None, template: str | None = None,
+) -> str:
     """Export a presentation to PPTX.
 
-    Requires the `python-pptx` package (install with `pip install colloquium[pptx]`).
-    Returns the output path.
+    With a template (``template`` argument or ``pptx.template`` in the
+    frontmatter), slides are built on the template's layouts; see
+    ``colloquium.pptx_template``. Requires the `python-pptx` package
+    (install with `pip install colloquium[pptx]`). Returns the output path.
     """
     try:
         from pptx import Presentation
@@ -602,6 +606,12 @@ def export_pptx(input_path: str, output_path: str | None = None) -> str:
 
     if output_path is None:
         output_path = str(Path(input_path).with_suffix(".pptx"))
+
+    if template or (deck.pptx or {}).get("template"):
+        from colloquium.pptx_template import export_pptx_with_template, parse_template_config
+
+        cfg = parse_template_config(deck.pptx or {}, base_dir, template_override=template)
+        return export_pptx_with_template(deck, base_dir, output_path, cfg)
 
     prs = Presentation()
     prs.slide_width = Inches(13.333)
@@ -785,7 +795,10 @@ def export_pptx(input_path: str, output_path: str | None = None) -> str:
             p.font.size = Pt(14)
             p.font.name = "Courier New"
 
-    for slide_data in deck.slides:
+    from colloquium.build import expand_toc_markdown, slides_for_format
+    from colloquium.elements import BLOCK_LANGUAGES
+
+    for slide_data in expand_toc_markdown(slides_for_format(deck.slides, "pptx"), deck.chapters):
         if slide_data.is_title_slide:
             layout = prs.slide_layouts[0]  # Title Slide
             pptx_slide = prs.slides.add_slide(layout)
@@ -817,9 +830,10 @@ def export_pptx(input_path: str, output_path: str | None = None) -> str:
             images = _extract_images(content)
             chart_specs = _extract_chart_specs(content)
             tables = _extract_tables(content)
+            # Element blocks (box, iframe, ...) have no native form; charts are
+            # drawn natively above, and the rest are left out.
             code_blocks = [m.group(1) for m in _CODE_BLOCK_RE.finditer(content)
-                           if not m.group(0).startswith("```chart") and
-                           not m.group(0).startswith("```conversation")]
+                           if m.group(0)[3:].split("\n", 1)[0].strip() not in BLOCK_LANGUAGES]
 
             # Get remaining text after stripping special blocks
             remaining = _strip_special_blocks(content)

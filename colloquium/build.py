@@ -105,6 +105,27 @@ def _retitle_svg_document(svg: str, heading: str) -> str:
     return _SVG_ROOT_TITLE_RE.sub(lambda m: m.group(1) + heading + m.group(2), svg, count=1)
 
 
+def retitle_svg(svg: str, heading: str) -> str | None:
+    """Put ``heading`` (already HTML-escaped) into an exported plot's title.
+
+    The first ``<text data-role="title">`` takes the heading and any further
+    wrapped title lines are dropped; the document <title> follows. Returns None
+    when the SVG has no such title text.
+    """
+    titles = list(_SVG_TITLE_TEXT_RE.finditer(svg))
+    if not titles:
+        return None
+    first = titles[0].group(0)
+    retitled = first[: first.index(">") + 1] + heading + "</text>"
+    pieces, position = [], 0
+    for index, found in enumerate(titles):
+        pieces.append(svg[position:found.start()])
+        pieces.append(retitled if index == 0 else "")
+        position = found.end()
+    pieces.append(svg[position:])
+    return _retitle_svg_document("".join(pieces), heading)
+
+
 def _apply_figure_title(slide_html: str, slide: Slide, source_dir: str, md: MarkdownIt) -> str:
     """For ``figure-title: heading``, retitle the slide's first SVG figure with the heading.
 
@@ -129,20 +150,12 @@ def _apply_figure_title(slide_html: str, slide: Slide, source_dir: str, md: Mark
     except OSError:
         print(f"  figure-title: cannot read {path}; keeping the figure's own title")
         return slide_html
-    titles = list(_SVG_TITLE_TEXT_RE.finditer(svg))
-    if not titles:
+    heading = html_module.escape(_plain_title_text(_render_title_markdown(slide.title, md)), quote=False)
+    retitled_svg = retitle_svg(svg, heading)
+    if retitled_svg is None:
         print(f'  figure-title: {path} has no <text data-role="title">; keeping its own title')
         return slide_html
-    heading = html_module.escape(_plain_title_text(_render_title_markdown(slide.title, md)), quote=False)
-    first = titles[0].group(0)
-    retitled = first[: first.index(">") + 1] + heading + "</text>"
-    pieces, position = [], 0
-    for index, found in enumerate(titles):
-        pieces.append(svg[position:found.start()])
-        pieces.append(retitled if index == 0 else "")
-        position = found.end()
-    pieces.append(svg[position:])
-    svg = _retitle_svg_document("".join(pieces), heading)
+    svg = retitled_svg
     data_uri = "data:image/svg+xml;base64," + base64.b64encode(svg.encode("utf-8")).decode("ascii")
     img = match.group(0)
     retitled_img = img.replace(f'src="{match.group(1)}"', f'src="{data_uri}" data-plot="{match.group(1)}"', 1)
@@ -831,7 +844,8 @@ def _format_reference(entry, key: str, style: str, number: int) -> str:
     prefix = f"[{number}] " if style == "numeric" else ""
 
     # Build: Authors. "Title." Venue, Year.
-    parts = [f'{prefix}{html_module.escape(author_line)}.']
+    # Initials already end the author line with "." -- don't double it.
+    parts = [f'{prefix}{html_module.escape(author_line.rstrip("."))}.']
     parts.append(f' &ldquo;<em>{html_module.escape(title)}</em>.&rdquo;')
     if venue:
         parts.append(f' <em>{html_module.escape(venue)}</em>,')
@@ -1110,6 +1124,57 @@ def _build_toc_html(options_text: str, chapters: list[dict], current: int | None
     if current is not None:
         classes += " colloquium-toc--has-current"
     return f'<{tag} class="{classes}">{"".join(items)}</{tag}>'
+
+
+def slides_for_format(slides: list[Slide], fmt: str) -> list[Slide]:
+    """Drop slides marked ``<!-- only: ... -->`` for another output format.
+
+    ``fmt`` is ``"html"`` (the HTML build, and the PDF and captures made from
+    it) or ``"pptx"`` (native PowerPoint export).
+    """
+    return [slide for slide in slides if slide.metadata.get("only", fmt) == fmt]
+
+
+_TOC_FENCE_RE = re.compile(r"^```toc[^\n]*\n(.*?)^```[ \t]*$", re.DOTALL | re.MULTILINE)
+
+
+def expand_toc_markdown(slides: list[Slide], chapters_enabled: bool = True) -> list[Slide]:
+    """Return copies of ``slides`` with ```toc blocks expanded to markdown lists.
+
+    For native exporters, which cannot run the HTML pipeline. The current
+    chapter is bolded; ``numbered: false`` gives a bullet list.
+    """
+    from dataclasses import replace
+
+    if not any(_TOC_FENCE_RE.search(slide.content) for slide in slides):
+        return slides
+    openers = [(slide, _chapter_start_title(slide)) for slide in slides]
+    if chapters_enabled and any(title is not None for _, title in openers):
+        slide_chapters, chapters = _plan_chapters(openers, _create_md_renderer())
+    else:
+        slide_chapters, chapters = [None] * len(slides), []
+
+    def expand(match: re.Match, current: int | None) -> str:
+        try:
+            options = yaml.safe_load(match.group(1)) or {}
+        except yaml.YAMLError:
+            options = {}
+        numbered = not (isinstance(options, dict) and options.get("numbered") is False)
+        lines = []
+        for chapter_index, chapter in enumerate(chapters):
+            if chapter["references"]:
+                continue
+            title = chapter["title"].replace("*", "\\*")
+            if chapter_index == current:
+                title = f"**{title}**"
+            lines.append(f"{len(lines) + 1}. {title}" if numbered else f"- {title}")
+        return "\n".join(lines)
+
+    return [
+        replace(slide, content=_TOC_FENCE_RE.sub(lambda m: expand(m, slide_chapters[i]), slide.content))
+        if _TOC_FENCE_RE.search(slide.content) else slide
+        for i, slide in enumerate(slides)
+    ]
 
 
 def _replace_toc_blocks(slide_html: str, chapters: list[dict], current: int | None) -> str:
@@ -1543,6 +1608,9 @@ def _build_slide_html(
 
     # Slide content
     parts = []
+    eyebrow = slide.metadata.get("eyebrow")
+    if eyebrow:
+        parts.append(f'<div class="slide-eyebrow">{_render_inline_markdown(eyebrow, md)}</div>')
     if slide.title:
         tag = "h1" if slide.is_title_slide else "h2"
         title_html = _render_title_markdown(slide.title, md)
@@ -2011,12 +2079,13 @@ def build_deck(deck: Deck, output_stem: str | None = None) -> str:
     citation_order = deck.citation_order
     citation_numbers: dict[str, int] = {}
 
+    deck_slides = slides_for_format(deck.slides, "html")
     main_slides = [
-        slide for slide in deck.slides
+        slide for slide in deck_slides
         if slide.metadata.get("after") != "references"
     ]
     post_reference_slides = [
-        slide for slide in deck.slides
+        slide for slide in deck_slides
         if slide.metadata.get("after") == "references"
     ]
     render_order_slides = main_slides + post_reference_slides

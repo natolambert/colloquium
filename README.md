@@ -117,6 +117,7 @@ custom_css: ".slide h2 { color: red; }"   # inline CSS overrides, or a .css file
 | `custom_css` | `""` | Additional CSS injected into the page: inline CSS, or the path of a `.css` file next to the deck (see [Custom CSS from a file](#custom-css-from-a-file)) |
 | `url` | `""` | Canonical URL of the published deck; adds `og:url` and a canonical link, and resolves a relative `share_image` |
 | `share_image` | `false` | Share (Open Graph) image: `auto` for `<deck>-share.png` next to the HTML (see [Share images](#share-images)), or a path or URL |
+| `pptx` | — | PPTX template export settings; see [PPTX Export](#pptx-export-experimental) |
 | `chapters` | `true` | Group slides into [chapters](#chapters); `false` keeps a flat picker |
 | `chapter_bar` | `false` | Show the [chapter bar](#chapter-bar): `true`, `bars`, or a mapping of `labels`, `slides`, `progress` |
 | `footer.section_break` | — | Footer zones to use on section-break slides (see [Section-break footer](#section-break-footer)) |
@@ -298,6 +299,8 @@ At the slide root, use either `columns:` or `rows:`. For nested layouts, use `ro
 | `<!-- class: name1 name2 -->` | Add CSS classes to the slide |
 | `<!-- style: css-here -->` | Inline CSS on the slide element |
 | `<!-- notes: text -->` | Speaker notes (hidden in presentation) |
+| `<!-- eyebrow: text -->` | Small uppercase label above the slide heading (e.g. `Part 1` on a section break); fills a template's eyebrow slot in PPTX export |
+| `<!-- only: html -->` | Keep this slide out of PPTX export; `only: pptx` keeps it out of the HTML, PDF, and captures (see [HTML-only and PPTX-only slides](#html-only-and-pptx-only-slides)) |
 | `<!-- after: references -->` | Move this slide after generated bibliography slides; it is excluded from the footer `{N}` total |
 | `<!-- figure-title: heading -->` | The `##` heading replaces the title inside the slide's first SVG figure (see [Plot titles from the heading](#plot-titles-from-the-heading)) |
 | `<!-- chapter: Title -->` | Start a new chapter at this slide (see [Chapters](#chapters)) |
@@ -779,6 +782,67 @@ colloquium export --pptx slides.md  # → slides.pptx
 ```
 
 This produces a reasonable starting point, but some colloquium features lose fidelity: citations are flattened, math renders as raw LaTeX, and custom themes/CSS aren't applied. Charts and tables become native editable PPTX objects.
+
+### Exporting onto an event's template
+
+When a conference hands you a `.pptx` speaker template, keep writing in markdown and build native, editable slides on the template's own layouts — backgrounds, logos, and heading styles come from the template:
+
+```yaml
+pptx:
+  template: "~/Downloads/Event Speaker Template.pptx"  # relative to the .md, or ~/absolute
+  layouts:                     # colloquium layout -> template slide number (1-based)
+    title: {slide: 4, eyebrow: 3, subtitle: 2, photo: 4, name: 6, affiliation: 5}
+    section-break: {slide: 9, eyebrow: 2}
+    content: {slide: 22, eyebrow: 3}
+  font: "Inter"                # body text font; headings keep the template's
+  colors: {text: "280016", muted: "706666", accent: "FF0073", link: "D10060"}
+  image_background: "FFFFFF"   # optional rounded card behind figures
+```
+
+```bash
+colloquium export --pptx talk.md                         # uses pptx.template
+colloquium export talk.md --template other-template.pptx # override the template
+```
+
+- **Layouts** pick a template slide whose *layout* each colloquium layout is built on. `content` is required; title slides fall back to `title`, everything else to `content`. Pick clean layouts (background + logo) — shapes baked into a layout (cards, divider lines) appear on every slide that uses it.
+- **Roles** map content onto that layout's placeholders by `idx` (the heading is `idx` 0 unless `heading:` is set). Title slides fill `eyebrow`/`name`/`affiliation`/`subtitle` from the `colloquium-title-*` components and `photo` from the first image; any slide fills `eyebrow` from `<!-- eyebrow: ... -->`. Placeholders left empty are removed.
+- **Body content** (paragraphs, bold/italic/links, bullet and numbered lists, `|||` columns, images as markdown or `<img>` tags with their captions, tables as text) is laid out natively under the heading, shrinking text uniformly when a slide is dense. Simple HTML blocks become small text, with empty color-styled `<span>`s rendered as colored swatches (handy for plot legends). Consecutive leading `##` lines become one multi-line title. `cite:` directives, a References slide, `{n}/{N}` footer text, and speaker notes carry over; animations, charts, and math do not.
+- SVG figures are rasterized at 2x with the same headless Chromium the PDF export uses (`figure-title: heading` is applied first); without a Chromium-based browser they are skipped with a warning.
+- Unused template layouts are pruned, so the output doesn't carry the template's sample media. Fonts the template embeds stay embedded.
+
+Find placeholder `idx` values by opening the template with python-pptx (`[(ph.placeholder_format.idx, ph.name) for ph in prs.slides[3].placeholders]`).
+
+### HTML-only and PPTX-only slides
+
+Some slides only work in one format, such as a live iframe demo or an interactive chart. Mark them with `only`, and give the other format its own version:
+
+````markdown
+<!-- only: html -->
+## Live demo
+
+```iframe
+src: https://example.com/demo
+```
+
+---
+
+<!-- only: pptx -->
+## Demo
+
+![Demo screenshot](assets/demo.png)
+````
+
+`only: html` slides are left out of PPTX export. `only: pptx` slides are left out of the HTML, and so out of the PDF and captures made from it. Slide numbers and `{N}` count only the slides in each output.
+
+### What PPTX export leaves out
+
+Both PPTX exporters build slides natively from the markdown, so features that need the browser are dropped:
+
+- **Skipped with a warning:** `box`, `conversation`, `iframe`, and `builtwith` blocks, and in template mode also `chart` blocks. The plain exporter draws charts as native PPTX charts.
+- **Converted:** a `toc` block becomes a native list of chapter titles, with the current chapter in bold.
+- **Ignored:** the [chapter bar](#chapter-bar), the slide picker, animations, custom CSS, and footer logos in template mode. Template mode puts footer text on content slides only, so `footer.section_break` has no effect there.
+
+Use `only: html` for slides built around a skipped feature, and `only: pptx` for their replacements.
 
 ## Share images
 

@@ -31,12 +31,16 @@ class Slide:
             parts.append(f"<!-- class: {' '.join(self.classes)} -->")
         if self.style:
             parts.append(f"<!-- style: {self.style} -->")
+        if self.metadata.get("eyebrow"):
+            parts.append(f"<!-- eyebrow: {self.metadata['eyebrow']} -->")
         if "chapter" in self.metadata:
             parts.append(f"<!-- chapter: {self.metadata['chapter']} -->")
         if "chapter_short" in self.metadata:
             parts.append(f"<!-- chapter-short: {self.metadata['chapter_short']} -->")
         if "chapter_bar" in self.metadata:
             parts.append(f"<!-- chapter-bar: {self.metadata['chapter_bar']} -->")
+        if self.metadata.get("only"):
+            parts.append(f"<!-- only: {self.metadata['only']} -->")
         if "figure_title" in self.metadata:
             parts.append(f"<!-- figure-title: {self.metadata['figure_title']} -->")
 

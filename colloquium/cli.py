@@ -52,13 +52,13 @@ def _export(args):
 
     output_path = args.output
 
-    if args.pptx:
+    if args.pptx or args.template:
         from colloquium.export import export_pptx
 
         try:
-            result = export_pptx(input_path, output_path)
+            result = export_pptx(input_path, output_path, template=args.template)
             print(f"Exported: {result}")
-        except ImportError as e:
+        except (ImportError, ValueError, FileNotFoundError) as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
     else:
@@ -152,6 +152,7 @@ def main():
     export_parser = subparsers.add_parser("export", help="Export to PDF or PPTX")
     export_parser.add_argument("file", help="Input markdown file")
     export_parser.add_argument("--pptx", action="store_true", help="Export as PPTX (requires: pip install colloquium[pptx])")
+    export_parser.add_argument("--template", help="PPTX template to build slides on (overrides pptx.template)")
     export_parser.add_argument("-o", "--output", help="Output file path")
     export_parser.set_defaults(func=_export)
 
