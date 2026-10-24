@@ -27,7 +27,9 @@ from __future__ import annotations
 import html as html_module
 import io
 import re
+import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
 from pathlib import Path
@@ -48,6 +50,8 @@ _COLUMN_SPLIT_RE = re.compile(r"^\s*\|\|\|\s*$", re.MULTILINE)
 _HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 _CITATION_RE = re.compile(r"\[@([^\]]+)\]")
 _MD_IMAGE_RE = re.compile(r"!\[([^\]]*)\]\(([^)\s]+)[^)]*\)")
+_HTML_IMG_RE = re.compile(r"<img\b[^>]*\bsrc=[\"']([^\"']+)[\"'][^>]*>", re.IGNORECASE)
+_HTML_CAPTION_CLASS_RE = re.compile(r"class=[\"'][^\"']*caption[^\"']*[\"']", re.IGNORECASE)
 _TITLE_COMPONENT_RES = {
     "eyebrow": re.compile(r'<div class="colloquium-title-eyebrow">(.*?)</div>', re.DOTALL),
     "name": re.compile(r'<p class="colloquium-title-name">(.*?)</p>', re.DOTALL),
@@ -173,6 +177,7 @@ class TextBlock:
 class ImageBlock:
     path: Path
     legend: TextBlock | None = None
+    heading: str | None = None  # figure-title: heading swaps this into an SVG plot's title
 
 
 class _SwatchHTMLParser(HTMLParser):
@@ -315,10 +320,22 @@ def _parse_blocks(markdown: str, base_dir: Path, warnings: list[str]) -> list[Te
             i += 2
         elif t == "html_block":
             html = _HTML_COMMENT_RE.sub("", tok.content).strip()
+            # <img> tags are figures like markdown images; a <p class="…caption"> (or any
+            # text that follows an <img>) is centered under the figure.
+            img_srcs = _HTML_IMG_RE.findall(html)
+            for src in img_srcs:
+                path = _resolve_local(html_module.unescape(src), base_dir)
+                if path is None:
+                    warnings.append(f"image not found or remote, skipped: {src}")
+                    continue
+                flush()
+                blocks.append(ImageBlock(path))
+            html = _HTML_IMG_RE.sub("", html).strip()
             if html:
                 runs = _html_to_runs(html)
                 if runs:
-                    legend = TextBlock([Para(runs, kind="small", align="right")])
+                    caption = bool(img_srcs) or bool(_HTML_CAPTION_CLASS_RE.search(html))
+                    legend = TextBlock([Para(runs, kind="small", align="center" if caption else "right")])
                     if blocks and isinstance(blocks[-1], ImageBlock) and not current and blocks[-1].legend is None:
                         blocks[-1].legend = legend
                     else:
@@ -435,7 +452,103 @@ class _Placed:
     h: float
 
 
+def _svg_size(path: Path) -> tuple[float, float]:
+    """Intrinsic size of an SVG in CSS px from its width/height or viewBox (1600x900 if unknown)."""
+    import xml.etree.ElementTree as ET
+
+    try:
+        root = ET.parse(path).getroot()
+    except ET.ParseError:
+        return (1600.0, 900.0)
+
+    def px(value: str | None) -> float | None:
+        m = re.match(r"\s*([0-9.]+)", value or "")
+        return float(m.group(1)) if m and float(m.group(1)) > 0 else None
+
+    width, height = px(root.get("width")), px(root.get("height"))
+    view_box = (root.get("viewBox") or "").replace(",", " ").split()
+    if (width is None or height is None) and len(view_box) == 4:
+        try:
+            width, height = float(view_box[2]), float(view_box[3])
+        except ValueError:
+            width = height = None
+    if not width or not height:
+        return (1600.0, 900.0)
+    return (width, height)
+
+
+_svg_raster_cache: dict[tuple[Path, str | None], Path | None] = {}
+_svg_raster_dir: tempfile.TemporaryDirectory | None = None
+
+
+def _rasterize_svg(path: Path, heading: str | None = None) -> Path | None:
+    """PNG rendering of an SVG at 2x, made with the headless Chromium the PDF export uses.
+
+    PPTX has no portable SVG support, so figures are embedded as bitmaps. Returns
+    None when no Chromium-based browser is installed; the caller skips the image.
+    """
+    global _svg_raster_dir
+    key = (path, heading)
+    if key in _svg_raster_cache:
+        return _svg_raster_cache[key]
+    from colloquium.export import _find_browser, _is_chromium_based
+
+    out: Path | None = None
+    browser = _find_browser()
+    if browser and _is_chromium_based(browser):
+        if _svg_raster_dir is None:
+            _svg_raster_dir = tempfile.TemporaryDirectory(prefix="colloquium-svg-")
+        width, height = _svg_size(path)
+        scale = min(1.0, 1600.0 / width)
+        w_px, h_px = max(1, round(width * scale)), max(1, round(height * scale))
+        stem = f"{path.stem}-{len(_svg_raster_cache)}"
+        source = path
+        if heading:
+            from colloquium.build import retitle_svg
+
+            try:
+                retitled = retitle_svg(path.read_text(encoding="utf-8"), html_module.escape(heading, quote=False))
+            except OSError:
+                retitled = None
+            if retitled is not None:
+                source = Path(_svg_raster_dir.name) / f"{stem}.svg"
+                source.write_text(retitled, encoding="utf-8")
+        wrapper = Path(_svg_raster_dir.name) / f"{stem}.html"
+        wrapper.write_text(
+            "<!doctype html><html><head><meta charset='utf-8'><style>"
+            "html,body{margin:0;background:transparent}"
+            f"img{{display:block;width:{w_px}px;height:{h_px}px}}"
+            f"</style></head><body><img src=\"{html_module.escape(source.resolve().as_uri(), quote=True)}\"></body></html>",
+            encoding="utf-8",
+        )
+        png = Path(_svg_raster_dir.name) / f"{stem}.png"
+        cmd = [
+            browser, "--headless=new", "--disable-gpu", "--hide-scrollbars",
+            "--force-device-scale-factor=2", "--default-background-color=00000000",
+            f"--screenshot={png}", f"--window-size={w_px},{h_px}", wrapper.as_uri(),
+        ]
+        try:
+            subprocess.run(cmd, capture_output=True, timeout=120, check=False)
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+        if png.exists() and png.stat().st_size > 0:
+            out = png
+    _svg_raster_cache[key] = out
+    return out
+
+
+def _reset_svg_cache() -> None:
+    global _svg_raster_dir
+    _svg_raster_cache.clear()
+    if _svg_raster_dir is not None:
+        _svg_raster_dir.cleanup()
+        _svg_raster_dir = None
+
+
 def _image_aspect(path: Path) -> float:
+    if path.suffix.lower() == ".svg":
+        width, height = _svg_size(path)
+        return width / height
     from PIL import Image
 
     with Image.open(path) as img:
@@ -569,7 +682,7 @@ def _add_text_block(slide, block: TextBlock, x, y, w, h, metrics: _Metrics, scal
         p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
         size = metrics.size(para, scale)
         _set_bullet(p, para, metrics, scale, cfg, metrics.space_before(para, prev, scale))
-        p.alignment = PP_ALIGN.RIGHT if para.align == "right" else PP_ALIGN.LEFT
+        p.alignment = {"right": PP_ALIGN.RIGHT, "center": PP_ALIGN.CENTER}.get(para.align, PP_ALIGN.LEFT)
         runs = para.runs
         if para.kind == "h":
             runs = [Run(r.text, bold=True, italic=r.italic, code=r.code, href=r.href,
@@ -582,7 +695,8 @@ def _add_text_block(slide, block: TextBlock, x, y, w, h, metrics: _Metrics, scal
     return box
 
 
-def _add_image(slide, placed: _Placed, cfg: TemplateConfig):
+def _add_image(slide, placed: _Placed, cfg: TemplateConfig) -> bool:
+    """Place a figure; False when an SVG could not be rasterized (no Chromium)."""
     from PIL import Image
     from pptx.dml.color import RGBColor
     from pptx.enum.shapes import MSO_SHAPE
@@ -601,14 +715,21 @@ def _add_image(slide, placed: _Placed, cfg: TemplateConfig):
         card.line.fill.background()
         card.shadow.inherit = False
     path = placed.block.path
-    with Image.open(path) as img:
-        if (img.format or "").upper() in {"BMP", "GIF", "JPEG", "PNG", "TIFF"}:
-            source = str(path)
-        else:
-            source = io.BytesIO()
-            img.save(source, format="PNG")
-            source.seek(0)
+    if path.suffix.lower() == ".svg":
+        png = _rasterize_svg(path, placed.block.heading)
+        if png is None:
+            return False
+        source = str(png)
+    else:
+        with Image.open(path) as img:
+            if (img.format or "").upper() in {"BMP", "GIF", "JPEG", "PNG", "TIFF"}:
+                source = str(path)
+            else:
+                source = io.BytesIO()
+                img.save(source, format="PNG")
+                source.seek(0)
     slide.shapes.add_picture(source, Inches(placed.x), Inches(placed.y), Inches(placed.w), Inches(placed.h))
+    return True
 
 
 def _placeholder_font_pt(ph, default: float) -> float:
@@ -835,8 +956,9 @@ def export_pptx_with_template(deck, base_dir: Path, output_path: str, cfg: Templ
         if bib_entries:
             content = _resolve_citations(content, bib_entries, style, numbers)
 
-        # Consecutive leading `##` lines read as one multi-line title.
-        title_lines = [src.title] if src.title else []
+        # The parser joins consecutive leading `##` lines into one title with newlines;
+        # each becomes its own line in the placeholder.
+        title_lines = [line for line in src.title.split("\n") if line.strip()] if src.title else []
         while True:
             m = re.match(r"\s*##\s+(.*)(?:\n|$)", content)
             if not m or not title_lines:
@@ -929,6 +1051,10 @@ def export_pptx_with_template(deck, base_dir: Path, output_path: str, cfg: Templ
             col_gap = 0.4 if len(columns) > 1 else 0
             usable = region_w - col_gap * (len(columns) - 1)
             col_blocks = [_parse_blocks(c, base_dir, warnings) if c else [] for c in columns]
+            if src.metadata.get("figure_title") == "heading" and title_lines:
+                first_image = next((b for blocks in col_blocks for b in blocks if isinstance(b, ImageBlock)), None)
+                if first_image is not None and first_image.path.suffix.lower() == ".svg":
+                    first_image.heading = " ".join(title_lines)
 
             scale = 1.0
             while True:
@@ -951,7 +1077,10 @@ def export_pptx_with_template(deck, base_dir: Path, output_path: str, cfg: Templ
 
             for placed in plan:
                 if placed.kind == "image":
-                    _add_image(slide, placed, cfg)
+                    if not _add_image(slide, placed, cfg):
+                        warnings.append(
+                            f"slide {index + 1}: {placed.block.path.name} needs a Chromium-based browser to rasterize SVG; skipped"
+                        )
                 else:
                     _add_text_block(slide, placed.block, placed.x, placed.y, placed.w, placed.h, metrics, scale, cfg)
 
@@ -987,7 +1116,11 @@ def export_pptx_with_template(deck, base_dir: Path, output_path: str, cfg: Templ
     prs.core_properties.title = deck.title
     if deck.author:
         prs.core_properties.author = deck.author
+    from colloquium.export import _register_notes_master
+
+    _register_notes_master(prs)  # Keynote rejects decks whose notes master is unlisted
     prs.save(output_path)
+    _reset_svg_cache()
 
     for warning in dict.fromkeys(warnings):
         print(f"Warning: {warning}", file=sys.stderr)

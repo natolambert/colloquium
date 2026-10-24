@@ -310,3 +310,68 @@ repo: natolambert/colloquium
     assert "```iframe blocks are not supported" in err
     assert "```builtwith blocks are not supported" in err
 
+
+
+def test_html_img_tags_become_pictures_with_centered_captions(tmp_path):
+    from PIL import Image
+
+    Image.new("RGB", (400, 200), "white").save(tmp_path / "chart.png")
+    md = _write_deck(tmp_path, """## Chart
+
+<img src="chart.png" alt="A chart">
+<p class="chart-caption"><a href="https://example.com">Source, 2026</a></p>
+""")
+    prs = Presentation(export_pptx(str(md)))
+    slide = prs.slides[0]
+    assert sum(1 for sh in slide.shapes if sh.shape_type == 13) == 1
+    caption = next(sh for sh in slide.shapes if sh.has_text_frame and "Source, 2026" in sh.text_frame.text)
+    from pptx.enum.text import PP_ALIGN
+
+    assert caption.text_frame.paragraphs[0].alignment == PP_ALIGN.CENTER
+
+
+def _svg_plot(path: Path, title: str = "Old title") -> None:
+    path.write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="200" viewBox="0 0 400 200" aria-labelledby="t">'
+        f'<title id="t">{title}</title><rect width="400" height="200" fill="#eee"/>'
+        f'<text data-role="title" x="10" y="30">{title}</text></svg>'
+    )
+
+
+def test_svg_size_reads_width_height_or_viewbox(tmp_path):
+    from colloquium.pptx_template import _svg_size
+
+    _svg_plot(tmp_path / "plot.svg")
+    assert _svg_size(tmp_path / "plot.svg") == (400.0, 200.0)
+    (tmp_path / "vb.svg").write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300"></svg>')
+    assert _svg_size(tmp_path / "vb.svg") == (800.0, 300.0)
+
+
+def test_retitle_svg_swaps_plot_title():
+    from colloquium.build import retitle_svg
+
+    svg = ('<svg xmlns="http://www.w3.org/2000/svg" aria-labelledby="t"><title id="t">Old</title>'
+           '<text data-role="title">Old</text><text data-role="title">wrapped</text></svg>')
+    out = retitle_svg(svg, "New heading")
+    assert out.count("New heading") == 2 and "Old" not in out and "wrapped" not in out
+    assert retitle_svg("<svg><title>x</title></svg>", "y") is None
+
+
+def test_svg_figures_are_rasterized_or_skipped_with_a_warning(tmp_path, capsys):
+    from colloquium.export import _find_browser, _is_chromium_based
+
+    _svg_plot(tmp_path / "plot.svg")
+    md = _write_deck(tmp_path, """<!-- figure-title: heading -->
+## New heading
+
+![Plot](plot.svg)
+""")
+    prs = Presentation(export_pptx(str(md)))
+    pictures = [sh for sh in prs.slides[0].shapes if sh.shape_type == 13]
+    browser = _find_browser()
+    if browser and _is_chromium_based(browser):
+        assert len(pictures) == 1 and pictures[0].image.ext == "png"
+        assert pictures[0].image.size[0] >= 800  # rendered at 2x
+    else:
+        assert not pictures
+        assert "rasterize SVG; skipped" in capsys.readouterr().err

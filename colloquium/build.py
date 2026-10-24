@@ -105,6 +105,27 @@ def _retitle_svg_document(svg: str, heading: str) -> str:
     return _SVG_ROOT_TITLE_RE.sub(lambda m: m.group(1) + heading + m.group(2), svg, count=1)
 
 
+def retitle_svg(svg: str, heading: str) -> str | None:
+    """Put ``heading`` (already HTML-escaped) into an exported plot's title.
+
+    The first ``<text data-role="title">`` takes the heading and any further
+    wrapped title lines are dropped; the document <title> follows. Returns None
+    when the SVG has no such title text.
+    """
+    titles = list(_SVG_TITLE_TEXT_RE.finditer(svg))
+    if not titles:
+        return None
+    first = titles[0].group(0)
+    retitled = first[: first.index(">") + 1] + heading + "</text>"
+    pieces, position = [], 0
+    for index, found in enumerate(titles):
+        pieces.append(svg[position:found.start()])
+        pieces.append(retitled if index == 0 else "")
+        position = found.end()
+    pieces.append(svg[position:])
+    return _retitle_svg_document("".join(pieces), heading)
+
+
 def _apply_figure_title(slide_html: str, slide: Slide, source_dir: str, md: MarkdownIt) -> str:
     """For ``figure-title: heading``, retitle the slide's first SVG figure with the heading.
 
@@ -129,20 +150,12 @@ def _apply_figure_title(slide_html: str, slide: Slide, source_dir: str, md: Mark
     except OSError:
         print(f"  figure-title: cannot read {path}; keeping the figure's own title")
         return slide_html
-    titles = list(_SVG_TITLE_TEXT_RE.finditer(svg))
-    if not titles:
+    heading = html_module.escape(_plain_title_text(_render_title_markdown(slide.title, md)), quote=False)
+    retitled_svg = retitle_svg(svg, heading)
+    if retitled_svg is None:
         print(f'  figure-title: {path} has no <text data-role="title">; keeping its own title')
         return slide_html
-    heading = html_module.escape(_plain_title_text(_render_title_markdown(slide.title, md)), quote=False)
-    first = titles[0].group(0)
-    retitled = first[: first.index(">") + 1] + heading + "</text>"
-    pieces, position = [], 0
-    for index, found in enumerate(titles):
-        pieces.append(svg[position:found.start()])
-        pieces.append(retitled if index == 0 else "")
-        position = found.end()
-    pieces.append(svg[position:])
-    svg = _retitle_svg_document("".join(pieces), heading)
+    svg = retitled_svg
     data_uri = "data:image/svg+xml;base64," + base64.b64encode(svg.encode("utf-8")).decode("ascii")
     img = match.group(0)
     retitled_img = img.replace(f'src="{match.group(1)}"', f'src="{data_uri}" data-plot="{match.group(1)}"', 1)
