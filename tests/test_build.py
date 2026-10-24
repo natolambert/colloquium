@@ -378,6 +378,35 @@ class TestBuildDeck:
 
         assert ".custom { color: blue; }" in html
 
+    def test_custom_css_from_a_file_next_to_the_deck(self, tmp_path):
+        (tmp_path / "deck.css").write_text(".from-file { color: green; }", encoding="utf-8")
+        source = tmp_path / "deck.md"
+        source.write_text("---\ncustom_css: deck.css\n---\n## S1\n\nC", encoding="utf-8")
+        output = build_file(str(source))
+        html = Path(output).read_text(encoding="utf-8")
+
+        assert ".from-file { color: green; }" in html
+        assert "deck.css" not in html.split("<body")[0].split("<style")[0]
+
+    def test_custom_css_file_and_inline_css_combine(self, tmp_path):
+        (tmp_path / "deck.css").write_text(".from-file { }", encoding="utf-8")
+        deck = Deck(title="Test", custom_css=".inline { }", custom_css_path="deck.css", source_dir=str(tmp_path))
+        deck.add_slide(title="S1", content="C")
+        html = build_deck(deck)
+
+        assert ".from-file { }\n.inline { }" in html
+
+    def test_missing_custom_css_file_names_the_path(self, tmp_path):
+        source = tmp_path / "deck.md"
+        source.write_text("---\ncustom_css: missing.css\n---\n## S1\n\nC", encoding="utf-8")
+
+        with pytest.raises(FileNotFoundError, match="missing.css"):
+            build_file(str(source))
+
+    def test_custom_css_path_round_trips_through_markdown(self):
+        deck = Deck(title="Test", custom_css_path="deck.css")
+        assert "custom_css: deck.css" in deck.to_markdown()
+
     def test_multiple_slides(self):
         deck = Deck(title="Test")
         deck.add_slide(title="Slide 1", content="A")
@@ -2166,8 +2195,11 @@ class TestImgTallRightUtility:
     def test_theme_ships_img_tall_right_rules(self):
         import pathlib
         css = (pathlib.Path("colloquium/themes/default/theme.css")).read_text()
-        assert ".slide.img-tall-right" in css
-        assert "figure.colloquium-figure:first-child:last-child > figcaption" in css
+        assert ".slide.img-tall-right.active {\n    display: grid;" in css
+        assert "grid-template-columns: var(--colloquium-columns, minmax(0, 1fr) minmax(0, 1fr));" in css
+        assert ".slide.img-tall-right > .slide-content.colloquium-grid > .col:last-child {" in css
+        # The figure column follows the columns ratio; no fixed width remains.
+        assert "width: 55%" not in css
 
     def test_class_directive_reaches_slide_markup(self, tmp_path):
         src = tmp_path / "deck.md"
@@ -2478,3 +2510,126 @@ class TestTocBlock:
 
         assert "colloquium-toc" not in section
         assert "language-toc" not in section
+
+
+class TestMultiLineTitles:
+    def test_title_lines_break_in_the_heading(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="How are open models built?\nThe role of distillation", content="Body")
+        html = build_deck(deck)
+        assert "<h2>How are open models built?<br>The role of distillation</h2>" in html
+
+    def test_chapters_and_toc_read_the_title_as_one_line(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="Deck", layout="title")
+        deck.add_slide(title="Outline", content="```toc\n```")
+        deck.add_slide(title="How are open models built?\nThe role of distillation", layout="section-break")
+        html = build_deck(deck)
+        assert ">How are open models built? The role of distillation</a>" in html
+        assert "built?The role" not in html
+
+
+class TestBulletsTrailingBlocks:
+    def _section(self, html: str) -> str:
+        return html.split("<section", 1)[1].split("</section>", 1)[0]
+
+    def test_paragraph_after_animated_list_becomes_the_last_fragment(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="S", content="Intro line.\n\n- One\n- Two\n\nTakeaway line.", animate="bullets")
+        section = self._section(build_deck(deck))
+        assert '<p>Intro line.</p>' in section
+        assert section.index("Intro line.") < section.index('data-fragment-index="1"')
+        assert '<div class="fragment" data-fragment-index="3"><p>Takeaway line.</p></div>' in section
+        assert 'data-fragment-count="3"' in section
+
+    def test_intro_before_the_list_stays_visible(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="S", content="Intro line.\n\n- One\n- Two", animate="bullets")
+        section = self._section(build_deck(deck))
+        assert "<p>Intro line.</p>" in section
+        assert 'data-fragment-count="2"' in section
+
+    def test_columns_only_affect_the_column_with_the_list(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="S", content="Left stays.\n\n|||\n\n- One\n- Two\n\nRight tail.", classes=["cols-2"], animate="bullets")
+        section = self._section(build_deck(deck))
+        assert "<p>Left stays.</p>" in section
+        assert '<div class="fragment" data-fragment-index="3"><p>Right tail.</p></div>' in section
+
+    def test_explicit_step_after_list_is_unchanged(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="S", content="- One\n- Two\n\n<!-- step -->\n\nConclusion.", animate="bullets")
+        section = self._section(build_deck(deck))
+        assert 'data-fragment-count="3"' in section
+        assert section.count("Conclusion.") == 1
+
+
+class TestFigureTitle:
+    SVG = (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100">'
+        '<title id="p-title">Old title</title>'
+        '<text x="10" y="20" data-role="title">Old title that</text>'
+        '<text x="10" y="40" data-role="title">wrapped</text>'
+        '<text x="10" y="60" data-role="subtitle">Sub</text>'
+        '<circle r="2"><title>point</title></circle></svg>'
+    )
+
+    def _build(self, tmp_path, markdown, svg=SVG):
+        import base64
+        (tmp_path / "plot.svg").write_text(svg, encoding="utf-8")
+        source = tmp_path / "slides.md"
+        source.write_text(markdown, encoding="utf-8")
+        html = Path(build_file(str(source))).read_text(encoding="utf-8")
+        match = re.search(r'<img[^>]*src="data:image/svg\+xml;base64,([^"]+)"', html)
+        return html, (base64.b64decode(match.group(1)).decode("utf-8") if match else None)
+
+    def test_heading_replaces_the_exported_title_and_keeps_hover_path(self, tmp_path):
+        html, svg = self._build(tmp_path, "<!-- figure-title: heading -->\n## Downloads are **up**!\n\n![Old title](plot.svg)")
+        assert svg is not None
+        assert svg.count('data-role="title"') == 1
+        assert '<text x="10" y="20" data-role="title">Downloads are up!</text>' in svg
+        assert '<title id="p-title">Downloads are up!</title>' in svg
+        assert '<text x="10" y="60" data-role="subtitle">Sub</text>' in svg
+        assert '<circle r="2"><title>point</title></circle>' in svg
+        assert 'data-plot="plot.svg"' in html
+        assert "title-hidden" in re.search(r'<section class="([^"]*)"', html).group(1)
+        assert "<h2>Downloads are <strong>up</strong>!</h2>" in html
+
+    def test_only_the_document_title_is_replaced_and_percent_encoded_paths_open(self, tmp_path):
+        tooltip_only = (
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            '<text data-role="title">Old</text>'
+            '<circle r="2"><title>point tooltip</title></circle></svg>'
+        )
+        (tmp_path / "my plot.svg").write_text(tooltip_only, encoding="utf-8")
+        html, _ = self._build(tmp_path, "<!-- figure-title: heading -->\n## New\n\n![Old](<my plot.svg>)")
+        import base64
+        match = re.search(r'src="data:image/svg\+xml;base64,([^"]+)"[^>]*data-plot="my%20plot.svg"', html)
+        assert match, html
+        svg = base64.b64decode(match.group(1)).decode("utf-8")
+        assert '<text data-role="title">New</text>' in svg
+        assert "<title>point tooltip</title>" in svg
+
+    def test_programmatic_slides_and_serialization_keep_the_directive(self, tmp_path):
+        from colloquium.parse import parse_markdown
+        deck = parse_markdown("<!-- figure-title: heading -->\n## New\n\n![Old](plot.svg)")
+        assert deck.slides[0].metadata["figure_title"] == "heading"
+        assert "title-hidden" not in deck.slides[0].classes
+        assert "<!-- figure-title: heading -->" in deck.slides[0].to_markdown()
+        again = parse_markdown(deck.to_markdown())
+        assert again.slides[0].metadata["figure_title"] == "heading"
+
+        (tmp_path / "plot.svg").write_text(self.SVG, encoding="utf-8")
+        api = Deck(title="t", source_dir=str(tmp_path))
+        api.add_slide(title="New", content="![Old](plot.svg)", figure_title="heading")
+        html = build_deck(api)
+        assert "title-hidden" in re.search(r'<section class="([^"]*)"', html).group(1)
+        assert 'data-plot="plot.svg"' in html
+
+    def test_without_the_directive_or_a_title_role_the_figure_is_untouched(self, tmp_path):
+        html, svg = self._build(tmp_path, "## Heading\n\n![Old title](plot.svg)")
+        assert svg is None and 'src="plot.svg"' in html
+        html, svg = self._build(tmp_path, "<!-- figure-title: heading -->\n## Heading\n\n![Old](plot.svg)", svg='<svg xmlns="http://www.w3.org/2000/svg"><text>Old</text></svg>')
+        assert svg is None and 'src="plot.svg"' in html
+        html, svg = self._build(tmp_path, "<!-- figure-title: heading -->\n## Heading\n\n![Missing](missing.svg)")
+        assert svg is None and 'src="missing.svg"' in html

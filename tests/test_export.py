@@ -38,6 +38,33 @@ data:
         assert Path(result).suffix == ".pptx"
 
 
+def test_export_speaker_notes_registers_notes_master():
+    """Keynote rejects decks whose notes master is missing from presentation.xml."""
+    import zipfile
+
+    md_content = """---
+title: Notes
+---
+
+## With notes
+
+Body text
+
+<!-- notes: Say something here -->
+"""
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        md_path = Path(tmpdir) / "notes.md"
+        md_path.write_text(md_content)
+
+        result = export_pptx(str(md_path))
+
+        with zipfile.ZipFile(result) as zf:
+            presentation_xml = zf.read("ppt/presentation.xml").decode()
+        assert "<p:notesMasterIdLst>" in presentation_xml
+        assert presentation_xml.count("<p:notesMasterId ") == 1
+
+
 class TestIframePrintSnapshots:
     def test_injects_snapshot_after_iframe_and_before_fallback(self, monkeypatch, tmp_path):
         from colloquium import export as export_module

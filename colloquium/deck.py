@@ -44,6 +44,7 @@ class Deck:
         theme: str = "default",
         aspect_ratio: str = "16:9",
         custom_css: str = "",
+        custom_css_path: str = "",
         footer: dict | None = None,
         fonts: dict | None = None,
         bibliography: str = "",
@@ -53,13 +54,26 @@ class Deck:
         pptx: dict | None = None,
         chapters: bool = True,
         chapter_bar: bool | str | dict = False,
+        url: str = "",
+        share_image: str | bool = False,
+        source_dir: str = "",
     ):
         self.title = title
+        # Canonical URL of the published deck; share images resolve against it.
+        self.url = url
+        # Share (Open Graph) image: True/"auto" for <deck>-share.png next to the
+        # HTML, or an explicit path or URL.
+        self.share_image = share_image
+        # Directory the deck's relative asset paths resolve against (set by parse_file).
+        self.source_dir = source_dir
         self.author = author
         self.date = date
         self.theme = theme
         self.aspect_ratio = aspect_ratio
         self.custom_css = custom_css
+        # A .css file next to the deck whose contents are inlined at build time
+        # (the frontmatter form ``custom_css: deck.css``).
+        self.custom_css_path = custom_css_path
         self.footer = footer
         self.fonts = fonts
         self.bibliography = bibliography
@@ -168,7 +182,9 @@ class Deck:
             lines.append(f"theme: {self.theme}")
         if self.aspect_ratio != "16:9":
             lines.append(f"aspect_ratio: {self.aspect_ratio}")
-        if self.custom_css:
+        if self.custom_css_path:
+            lines.append(f"custom_css: {self.custom_css_path}")
+        elif self.custom_css:
             lines.append(f"custom_css: {self.custom_css}")
         if self.footer:
             lines.append("footer:")
@@ -194,6 +210,10 @@ class Deck:
             lines.append(f"citation_order: {self.citation_order}")
         if self.figure_captions:
             lines.append("figure_captions: true")
+        if self.url:
+            lines.append(f'url: "{self.url}"')
+        if self.share_image:
+            lines.append("share_image: auto" if self.share_image is True or str(self.share_image).lower() in ("auto", "true") else f'share_image: "{self.share_image}"')
         if not self.chapters:
             lines.append("chapters: false")
         if self.chapter_bar == CHAPTER_BAR_DEFAULTS:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import html as html_module
+from urllib.parse import unquote, urljoin
 import re
 import sys
 import tempfile
@@ -67,6 +68,85 @@ def _render_inline_markdown(text: str, md: MarkdownIt) -> str:
     rendered = md.renderInline(text)
     rendered = elements.process_all(rendered)
     return rendered
+
+
+_TITLE_BREAK_RE = re.compile(r"<br\s*/?>", re.IGNORECASE)
+
+
+def _render_title_markdown(title: str, md: MarkdownIt) -> str:
+    """Render a slide title; each line of a multi-line title becomes a <br> break."""
+    return "<br>".join(_render_inline_markdown(line, md) for line in title.split("\n"))
+
+
+def _plain_title_text(heading_html: str) -> str:
+    """One-line plain text for a rendered title (chapters, picker, table of contents)."""
+    text = _HTML_TAG_RE.sub("", _TITLE_BREAK_RE.sub(" ", heading_html))
+    return " ".join(html_module.unescape(text).split())
+
+
+_FIGURE_TITLE_IMG_RE = re.compile(r'<img\b[^>]*\bsrc="([^"]+\.svg)"[^>]*>', re.IGNORECASE)
+_SVG_TITLE_TEXT_RE = re.compile(r'<text\b[^>]*\bdata-role="title"[^>]*>.*?</text>', re.DOTALL)
+_SVG_ROOT_RE = re.compile(r"<svg\b[^>]*>", re.IGNORECASE)
+_SVG_ROOT_TITLE_RE = re.compile(r"(<svg\b[^>]*>\s*(?:<!--.*?-->\s*)*<title\b[^>]*>).*?(</title>)", re.DOTALL | re.IGNORECASE)
+_ARIA_LABELLEDBY_RE = re.compile(r'\baria-labelledby="([^"\s]+)')
+
+
+def _retitle_svg_document(svg: str, heading: str) -> str:
+    """Replace the SVG's own document <title> (never a per-element tooltip <title>).
+
+    The document title is the element named by the root's ``aria-labelledby``
+    or, failing that, a <title> that directly follows the root tag.
+    """
+    root = _SVG_ROOT_RE.search(svg)
+    labelled = _ARIA_LABELLEDBY_RE.search(root.group(0)) if root else None
+    if labelled:
+        by_id = re.compile(r'(<title\b[^>]*\bid="' + re.escape(labelled.group(1)) + r'"[^>]*>).*?(</title>)', re.DOTALL)
+        return by_id.sub(lambda m: m.group(1) + heading + m.group(2), svg, count=1)
+    return _SVG_ROOT_TITLE_RE.sub(lambda m: m.group(1) + heading + m.group(2), svg, count=1)
+
+
+def _apply_figure_title(slide_html: str, slide: Slide, source_dir: str, md: MarkdownIt) -> str:
+    """For ``figure-title: heading``, retitle the slide's first SVG figure with the heading.
+
+    The SVG must mark its title text with ``data-role="title"`` (the
+    Interconnects plot exporter does); the first such line takes the heading
+    and any further wrapped lines are dropped. The retitled copy is embedded
+    as a data URI and the original path is kept in ``data-plot`` so hover
+    helpers still find the plot's data. Anything else leaves the slide as is.
+    """
+    if slide.metadata.get("figure_title") != "heading" or not slide.title:
+        return slide_html
+    match = _FIGURE_TITLE_IMG_RE.search(slide_html)
+    if not match:
+        return slide_html
+    src = html_module.unescape(match.group(1))
+    if src.startswith(("data:", "http:", "https:", "//")):
+        return slide_html
+    # Markdown percent-encodes paths such as <my plot.svg>; open the real file.
+    path = Path(source_dir or ".") / unquote(src)
+    try:
+        svg = path.read_text(encoding="utf-8")
+    except OSError:
+        print(f"  figure-title: cannot read {path}; keeping the figure's own title")
+        return slide_html
+    titles = list(_SVG_TITLE_TEXT_RE.finditer(svg))
+    if not titles:
+        print(f'  figure-title: {path} has no <text data-role="title">; keeping its own title')
+        return slide_html
+    heading = html_module.escape(_plain_title_text(_render_title_markdown(slide.title, md)), quote=False)
+    first = titles[0].group(0)
+    retitled = first[: first.index(">") + 1] + heading + "</text>"
+    pieces, position = [], 0
+    for index, found in enumerate(titles):
+        pieces.append(svg[position:found.start()])
+        pieces.append(retitled if index == 0 else "")
+        position = found.end()
+    pieces.append(svg[position:])
+    svg = _retitle_svg_document("".join(pieces), heading)
+    data_uri = "data:image/svg+xml;base64," + base64.b64encode(svg.encode("utf-8")).decode("ascii")
+    img = match.group(0)
+    retitled_img = img.replace(f'src="{match.group(1)}"', f'src="{data_uri}" data-plot="{match.group(1)}"', 1)
+    return slide_html[:match.start()] + retitled_img + slide_html[match.end():]
 
 
 _STANDALONE_IMAGE_PARAGRAPH_RE = re.compile(r"<p>\s*(<img\b[^>]*>)\s*</p>", re.DOTALL)
@@ -243,10 +323,64 @@ def _apply_auto_animate(html: str, animate_type: str) -> str:
             return f"<li{attrs}>"
 
         html = _LI_TAG_RE.sub(_fragmentize, html)
-        return html
+        return _wrap_blocks_after_animated_lists(html)
     if animate_type == "blocks":
         return _wrap_blocks_as_fragments(html)
     return html
+
+
+def _wrap_blocks_after_animated_lists(html: str) -> str:
+    """Reveal blocks that follow an animated list after its bullets.
+
+    With ``animate: bullets``, a paragraph written after the list (a
+    takeaway, a caption, a closing line) used to be visible from the first
+    click while the bullets above it were still hidden. Blocks before the
+    first animated list stay visible; every top-level block after one is
+    wrapped as its own fragment, so it appears once the bullets are done,
+    as if a ``<!-- step -->`` preceded it.
+    """
+    open_re = re.compile(r"<(" + "|".join(_FRAGMENT_BLOCK_TAGS) + r")[\s>]")
+    close_re = re.compile(r"</(" + "|".join(_FRAGMENT_BLOCK_TAGS) + r")>")
+    blocks: list[str] = []
+    current: list[str] = []
+    depth = 0
+    seen_animated_list = False
+
+    def _emit_block(block_html: str) -> None:
+        nonlocal seen_animated_list
+        stripped = block_html.strip()
+        if not stripped:
+            return
+        is_list = stripped.startswith(("<ul", "<ol"))
+        if is_list and _contains_generated_fragments(block_html):
+            seen_animated_list = True
+            blocks.append(block_html)
+            return
+        if (
+            not seen_animated_list
+            or _is_spacer_only_div(stripped)
+            or stripped.startswith('<div class="fragment" data-colloquium-fragment="1">')
+        ):
+            blocks.append(block_html)
+            return
+        blocks.append(_wrap_fragment_html(block_html))
+
+    for line in html.split("\n"):
+        opens = sum(1 for _ in open_re.finditer(line))
+        closes = sum(1 for _ in close_re.finditer(line))
+        if depth == 0 and opens == 0 and not current:
+            if line.strip():
+                blocks.append(line)
+            continue
+        current.append(line)
+        depth += opens - closes
+        if depth <= 0:
+            depth = 0
+            _emit_block("\n".join(current))
+            current = []
+    if current:
+        _emit_block("\n".join(current))
+    return "\n".join(blocks)
 
 
 def _wrap_non_fragment_blocks(html: str) -> str:
@@ -876,8 +1010,8 @@ def _plan_chapters(
         if start_title is not None:
             title = start_title
             if not title and slide is not None and slide.title:
-                heading_html = _render_inline_markdown(slide.title, md)
-                title = html_module.unescape(_HTML_TAG_RE.sub("", heading_html)).strip()
+                heading_html = _render_title_markdown(slide.title, md)
+                title = _plain_title_text(heading_html)
             short = slide.metadata.get("chapter_short", "") if slide is not None else ""
             chapters.append({
                 "title": title or f"Slide {i + 1}",
@@ -1315,18 +1449,23 @@ def _extract_grid_spec(classes: list[str], prefix: str) -> str | None:
     return None
 
 
-def _grid_template_style(spec: str, axis: str) -> str:
-    """Convert a class-like grid spec to an inline CSS grid template declaration."""
+def _grid_template_tracks(spec: str) -> str:
+    """Convert a class-like grid spec (2, 60-40, 1-2-1) to a CSS track list."""
     if spec.isdigit():
         count = max(int(spec), 1)
-        return f"grid-template-{axis}: repeat({count}, minmax(0, 1fr));"
+        return f"repeat({count}, minmax(0, 1fr))"
 
     parts = [p for p in spec.split("-") if p]
     if len(parts) >= 2 and all(part.isdigit() for part in parts):
-        tracks = " ".join(f"minmax(0, {int(part)}fr)" for part in parts)
-        return f"grid-template-{axis}: {tracks};"
+        return " ".join(f"minmax(0, {int(part)}fr)" for part in parts)
 
     return ""
+
+
+def _grid_template_style(spec: str, axis: str) -> str:
+    """Convert a class-like grid spec to an inline CSS grid template declaration."""
+    tracks = _grid_template_tracks(spec)
+    return f"grid-template-{axis}: {tracks};" if tracks else ""
 
 
 def _slide_uses_figure_captions(classes: list[str], deck_figure_captions: bool = False) -> bool:
@@ -1442,13 +1581,17 @@ def _build_slide_html(
     if index == 0:
         classes.append("active")
     classes.extend(slide.classes)
+    # figure-title: heading moves the heading into the figure, so hide it here
+    # whether the slide came from Markdown or from Deck.add_slide().
+    if slide.metadata.get("figure_title") == "heading" and "title-hidden" not in classes:
+        classes.append("title-hidden")
     if chapter_bar_html:
         classes.append("has-chapter-bar")
 
     class_str = " ".join(classes)
 
     # Style attribute
-    slide_style_attr = f' style="{slide.style}"' if slide.style else ""
+    slide_style = (slide.style or "").strip()
 
     # Slide content
     parts = []
@@ -1457,7 +1600,7 @@ def _build_slide_html(
         parts.append(f'<div class="slide-eyebrow">{_render_inline_markdown(eyebrow, md)}</div>')
     if slide.title:
         tag = "h1" if slide.is_title_slide else "h2"
-        title_html = _render_inline_markdown(slide.title, md)
+        title_html = _render_title_markdown(slide.title, md)
         parts.append(f"<{tag}>{title_html}</{tag}>")
 
     has_columns = any(c.startswith("cols-") for c in slide.classes)
@@ -1504,6 +1647,13 @@ def _build_slide_html(
                 cols_spec = _extract_grid_spec(slide.classes, "cols-")
                 content_classes.append("colloquium-grid")
                 content_style = _grid_template_style(cols_spec or "", "columns")
+                # The slide itself learns the column tracks so layouts that
+                # restructure the slide (img-tall-right) follow the same ratio.
+                tracks = _grid_template_tracks(cols_spec or "")
+                if tracks:
+                    if slide_style and not slide_style.endswith(";"):
+                        slide_style += ";"
+                    slide_style = f"{slide_style} --colloquium-columns: {tracks};".strip()
                 rendered = _build_columns_html(rendered, frag_animate)
                 rendered, fragment_count = _number_fragments(rendered)
             else:
@@ -1557,6 +1707,7 @@ def _build_slide_html(
     # and unicode pitfalls of carrying raw markdown in an attribute.
     md_source = base64.b64encode(slide.to_markdown().encode("utf-8")).decode("ascii")
     md_attr = f' data-colloquium-md="{md_source}"'
+    slide_style_attr = f' style="{slide_style}"' if slide_style else ""
     return f'<section class="{class_str}"{slide_style_attr} data-index="{index}"{chapter_attr}{fragment_attr}{md_attr}>\n{inner}\n</section>'
 
 
@@ -1568,6 +1719,7 @@ _HTML_TEMPLATE = Template("""\
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>$title</title>
+$share_meta
 
 <!-- KaTeX for LaTeX math -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css">
@@ -1700,7 +1852,7 @@ window.addEventListener("load", function() {
             mathSlides.forEach(function(s) {
                 mathOrigDisplay.push(s.style.display);
                 mathOrigVisibility.push(s.style.visibility);
-                s.style.display = "flex";
+                s.style.display = s.classList.contains("img-tall-right") ? "grid" : "flex";
                 if (!s.classList.contains("active")) {
                     s.style.visibility = "hidden";
                 }
@@ -1744,7 +1896,7 @@ window.addEventListener("load", function() {
             var origDisplay = [];
             slides.forEach(function(s) {
                 origDisplay.push(s.style.display);
-                s.style.display = "flex";
+                s.style.display = s.classList.contains("img-tall-right") ? "grid" : "flex";
                 if (!s.classList.contains("active")) {
                     s.style.visibility = "hidden";
                 }
@@ -1836,7 +1988,65 @@ def _build_font_css(fonts: dict | None) -> str:
     return ":root {\n" + "\n".join(overrides) + "\n}"
 
 
-def build_deck(deck: Deck) -> str:
+def share_image_name(stem: str) -> str:
+    """Default share image filename for a deck built as ``<stem>.html``."""
+    return f"{stem}-share.png"
+
+
+def _share_meta_html(deck: Deck, output_stem: str | None = None) -> str:
+    """Open Graph and Twitter card tags for the deck's share image and URL."""
+    image = deck.share_image
+    if image is True or (isinstance(image, str) and image.strip().lower() in ("auto", "true")):
+        image = share_image_name(output_stem or "deck")
+    elif not image:
+        image = ""
+    url = (deck.url or "").strip()
+    if image and url and not re.match(r"^[a-z][a-z0-9+.-]*:", image, re.IGNORECASE):
+        image = urljoin(url, image)
+    if not image and not url:
+        return ""
+    description = " · ".join(part for part in (deck.author, deck.date) if part)
+    tags = ['<meta property="og:type" content="website">', f'<meta property="og:title" content="{html_module.escape(deck.title, quote=True)}">']
+    if description:
+        tags.append(f'<meta property="og:description" content="{html_module.escape(description, quote=True)}">')
+    if url:
+        tags.append(f'<meta property="og:url" content="{html_module.escape(url, quote=True)}">')
+        tags.append(f'<link rel="canonical" href="{html_module.escape(url, quote=True)}">')
+    if image:
+        tags.append(f'<meta property="og:image" content="{html_module.escape(image, quote=True)}">')
+        tags.append('<meta name="twitter:card" content="summary_large_image">')
+        tags.append(f'<meta name="twitter:image" content="{html_module.escape(image, quote=True)}">')
+    else:
+        tags.append('<meta name="twitter:card" content="summary">')
+    tags.append(f'<meta name="twitter:title" content="{html_module.escape(deck.title, quote=True)}">')
+    return "\n".join(tags)
+
+
+def _load_custom_css(deck: Deck) -> str:
+    """Return the deck's custom CSS, reading ``custom_css_path`` when it is set.
+
+    A relative path resolves against the deck's source directory (the folder
+    of the markdown file), so ``custom_css: deck.css`` finds the file next to
+    the deck. The file's contents are inlined, keeping the HTML self-contained.
+    """
+    inline = deck.custom_css or ""
+    path = getattr(deck, "custom_css_path", "") or ""
+    if not path:
+        return inline
+    css_path = Path(path)
+    if not css_path.is_absolute():
+        css_path = Path(getattr(deck, "source_dir", "") or ".") / css_path
+    try:
+        file_css = css_path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        raise FileNotFoundError(
+            f"custom_css stylesheet not found: {css_path} "
+            f"(frontmatter custom_css: {path})"
+        ) from None
+    return f"{file_css}\n{inline}" if inline else file_css
+
+
+def build_deck(deck: Deck, output_stem: str | None = None) -> str:
     """Build a Deck into a self-contained HTML string."""
     elements.reset()
     md = _create_md_renderer()
@@ -1845,7 +2055,7 @@ def build_deck(deck: Deck) -> str:
 
     font_link = _build_font_link(deck.fonts)
     font_css = _build_font_css(deck.fonts)
-    custom_css = deck.custom_css or ""
+    custom_css = _load_custom_css(deck)
 
     # Load bibliography if configured
     bib_entries = {}
@@ -1963,6 +2173,7 @@ def build_deck(deck: Deck) -> str:
             slide_html = _process_citations(
                 slide_html, bib_entries, citation_style, cited_keys, citation_order, citation_numbers,
             )
+        slide_html = _apply_figure_title(slide_html, slide, getattr(deck, "source_dir", ""), md)
         return _replace_toc_blocks(slide_html, chapters, slide_chapters[index])
 
     slides_html_parts = [build_one(slide, i) for i, slide in enumerate(main_slides)]
@@ -1992,6 +2203,7 @@ def build_deck(deck: Deck) -> str:
 
     return _HTML_TEMPLATE.substitute(
         title=deck.title,
+        share_meta=_share_meta_html(deck, output_stem),
         font_link=font_link,
         font_css=font_css,
         theme_css=theme_css,
@@ -2008,10 +2220,10 @@ def build_file(input_path: str, output_path: str | None = None) -> str:
     from colloquium.parse import parse_file
 
     deck = parse_file(input_path)
-    html = build_deck(deck)
 
     if output_path is None:
         output_path = str(Path(input_path).with_suffix(".html"))
+    html = build_deck(deck, output_stem=Path(output_path).stem)
 
     _write_text_atomic(output_path, html)
     return output_path

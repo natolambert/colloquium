@@ -1,12 +1,21 @@
 """Tests for live-reload stability checks."""
 
 import http.server
+import os
 import socket
 import socketserver
+import threading
+import time
+from urllib.request import urlopen
 
 import pytest
 
 from colloquium.serve import (
+    _watch_and_rebuild,
+    _LIVE_RELOAD_SCRIPT,
+    _VERSION_PATH,
+    _inject_live_reload,
+    _make_request_handler,
     _build_snapshot_html,
     _create_http_server,
     _has_unclosed_fenced_code_block,
@@ -34,6 +43,36 @@ class TestServeSnapshotAndValidation:
         deck = parse_markdown(text)
         html = _build_snapshot_html("/tmp/slides.md", text)
 
+        assert _render_matches_deck_structure(deck, html)
+
+    def test_render_structure_handles_slides_after_references(self, tmp_path):
+        bib = tmp_path / "refs.bib"
+        bib.write_text(
+            "@article{key2024,\n  title={A Paper},\n  author={Author, A.},\n  year={2024}\n}\n",
+            encoding="utf-8",
+        )
+        text = (
+            "---\nbibliography: refs.bib\n---\n\n"
+            "## Main\n\nCites [@key2024]\n\n---\n\n"
+            "<!-- after: references -->\n<!-- columns: 40/60 -->\n## Extra\n\nA\n\n|||\n\nB"
+        )
+        source = tmp_path / "slides.md"
+        source.write_text(text, encoding="utf-8")
+        deck = parse_markdown(text)
+        html = _build_snapshot_html(str(source), text)
+
+        assert "colloquium-references-slide" in html
+        assert _render_matches_deck_structure(deck, html)
+
+    def test_render_structure_keeps_slides_that_mention_the_references_class(self, tmp_path):
+        text = (
+            "<!-- columns: 50/50 -->\n## Cols\n\nSee `colloquium-references-slide` "
+            "and <div class=\"slide-content colloquium-references-slide\">x</div>\n\n|||\n\nB"
+        )
+        deck = parse_markdown(text)
+        html = _build_snapshot_html(str(tmp_path / "slides.md"), text)
+
+        assert len(deck.slides) == 1
         assert _render_matches_deck_structure(deck, html)
 
     def test_render_structure_rejects_missing_column_wrapper(self):
@@ -147,3 +186,103 @@ class TestServePortBinding:
                 match=rf"Port {port} is unavailable",
             ):
                 _create_http_server(port, http.server.SimpleHTTPRequestHandler)
+
+
+class TestServeLiveReload:
+    @staticmethod
+    def _start(tmp_path, live_reload, name="slides.html"):
+        deck = tmp_path / name
+        deck.write_text("<html><body><h1>Hi</h1></body></html>", encoding="utf-8")
+        httpd = _create_http_server(0, _make_request_handler(str(tmp_path), str(deck), live_reload))
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        return httpd, deck, f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    def test_inject_live_reload_places_script_before_body_end(self):
+        assert _inject_live_reload(b"<body>x</body></html>") == (
+            b"<body>x" + _LIVE_RELOAD_SCRIPT.encode() + b"</body></html>"
+        )
+        assert _inject_live_reload(b"<p>x</p>") == b"<p>x</p>" + _LIVE_RELOAD_SCRIPT.encode()
+
+    def test_served_deck_reloads_when_the_build_changes(self, tmp_path):
+        httpd, deck, base = self._start(tmp_path, live_reload=True)
+        try:
+            html = urlopen(base + "/slides.html").read().decode("utf-8")
+            assert _LIVE_RELOAD_SCRIPT in html
+            assert html.endswith("</body></html>")
+            assert _LIVE_RELOAD_SCRIPT not in deck.read_text(encoding="utf-8")
+
+            first = urlopen(base + _VERSION_PATH).read().decode("ascii")
+            os.utime(deck, ns=(1_000_000_000, 2_000_000_000))
+            second = urlopen(base + _VERSION_PATH).read().decode("ascii")
+            assert first != second
+        finally:
+            httpd.shutdown()
+            httpd.server_close()
+
+    def test_deck_names_with_spaces_still_get_the_script(self, tmp_path):
+        httpd, deck, base = self._start(tmp_path, live_reload=True, name="my slides.html")
+        try:
+            html = urlopen(base + "/my%20slides.html").read().decode("utf-8")
+            assert _LIVE_RELOAD_SCRIPT in html
+        finally:
+            httpd.shutdown()
+            httpd.server_close()
+
+    def test_no_reload_serves_the_file_untouched(self, tmp_path):
+        httpd, deck, base = self._start(tmp_path, live_reload=False)
+        try:
+            html = urlopen(base + "/slides.html").read().decode("utf-8")
+            assert html == deck.read_text(encoding="utf-8")
+            with pytest.raises(Exception):
+                urlopen(base + _VERSION_PATH)
+        finally:
+            httpd.shutdown()
+            httpd.server_close()
+
+
+class TestWatcherStartup:
+    def test_watcher_rebuilds_only_after_an_edit_made_while_running(self, tmp_path):
+        source = tmp_path / "slides.md"
+        source.write_text("## Slide\n\nBody", encoding="utf-8")
+        output = tmp_path / "slides.html"
+        output.write_text("built by serve()", encoding="utf-8")
+        before = output.stat().st_mtime_ns
+        stop = threading.Event()
+        thread = threading.Thread(target=_watch_and_rebuild, args=(str(source), str(output), stop), daemon=True)
+        thread.start()
+        try:
+            time.sleep(1.0)
+            assert output.read_text(encoding="utf-8") == "built by serve()"
+            assert output.stat().st_mtime_ns == before
+
+            source.write_text("## Slide\n\nEdited", encoding="utf-8")
+            time.sleep(1.0)
+            assert "Edited" in output.read_text(encoding="utf-8")
+        finally:
+            stop.set()
+            thread.join(timeout=2)
+
+
+class TestWatcherStylesheet:
+    def test_watcher_rebuilds_when_the_custom_css_file_changes(self, tmp_path):
+        source = tmp_path / "slides.md"
+        source.write_text("---\ncustom_css: slides.css\n---\n## Slide\n\nBody", encoding="utf-8")
+        stylesheet = tmp_path / "slides.css"
+        stylesheet.write_text(".v1 { }", encoding="utf-8")
+        output = tmp_path / "slides.html"
+        output.write_text("built by serve()", encoding="utf-8")
+        stop = threading.Event()
+        thread = threading.Thread(target=_watch_and_rebuild, args=(str(source), str(output), stop), daemon=True)
+        thread.start()
+        try:
+            time.sleep(1.0)
+            assert output.read_text(encoding="utf-8") == "built by serve()"
+
+            stylesheet.write_text(".v2 { }", encoding="utf-8")
+            time.sleep(1.0)
+            html = output.read_text(encoding="utf-8")
+            assert ".v2 { }" in html
+            assert ".v1 { }" not in html
+        finally:
+            stop.set()
+            thread.join(timeout=2)

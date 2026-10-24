@@ -1,6 +1,6 @@
 """Tests for the markdown parser."""
 
-from colloquium.parse import parse_frontmatter, parse_slide, parse_markdown
+from colloquium.parse import is_stylesheet_path, parse_frontmatter, parse_slide, parse_markdown
 
 
 class TestParseFrontmatter:
@@ -398,3 +398,49 @@ class TestChapterDirective:
         deck = parse_markdown("---\ntitle: Talk\nchapter_bar: true\n---\n\n## S1")
         assert deck.chapter_bar == {"labels": True, "slides": "all", "progress": "slides"}
         assert "chapter_bar: true" in deck.to_markdown()
+
+
+class TestMultiLineTitles:
+    def test_consecutive_heading_lines_form_one_title(self):
+        slide = parse_slide("## How are open models built?\n## The role of distillation\n\nBody")
+        assert slide.title == "How are open models built?\nThe role of distillation"
+        assert slide.content == "Body"
+
+    def test_consecutive_title_slide_lines_join(self):
+        slide = parse_slide("# Open Weight\n# Language Models\n\nSubtitle")
+        assert slide.title == "Open Weight\nLanguage Models"
+        assert slide.layout == "title"
+
+    def test_heading_after_a_blank_line_stays_in_content(self):
+        slide = parse_slide("## Title\n\n## Not the title\n\nBody")
+        assert slide.title == "Title"
+        assert "## Not the title" in slide.content
+
+    def test_different_level_does_not_join(self):
+        slide = parse_slide("# Title\n## Subtitle line")
+        assert slide.title == "Title"
+        assert slide.content == "## Subtitle line"
+
+    def test_multi_line_title_round_trips_to_markdown(self):
+        slide = parse_slide("## One\n## Two\n\nBody")
+        assert slide.to_markdown().startswith("## One\n## Two\n")
+
+
+class TestCustomCssFrontmatter:
+    def test_inline_css_stays_inline(self):
+        deck = parse_markdown("---\ncustom_css: '.slide h2 { color: red; }'\n---\n## S\n\nBody")
+        assert deck.custom_css == ".slide h2 { color: red; }"
+        assert deck.custom_css_path == ""
+
+    def test_css_filename_becomes_a_path(self):
+        deck = parse_markdown("---\ncustom_css: deck.css\n---\n## S\n\nBody")
+        assert deck.custom_css == ""
+        assert deck.custom_css_path == "deck.css"
+
+    def test_is_stylesheet_path(self):
+        assert is_stylesheet_path("deck.css")
+        assert is_stylesheet_path(" styles/Talk.CSS ")
+        assert not is_stylesheet_path(".css { color: red; }")
+        assert not is_stylesheet_path("a.css\nb { }")
+        assert not is_stylesheet_path("")
+        assert not is_stylesheet_path(None)

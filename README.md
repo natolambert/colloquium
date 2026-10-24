@@ -55,19 +55,27 @@ Build it:
 
 ```bash
 colloquium build slides.md        # → slides.html
-colloquium serve slides.md        # dev server with live reload
+colloquium serve slides.md        # rebuilds and reloads the browser tab on save
 colloquium export slides.md       # PDF via a headless Chromium-based browser
 colloquium capture slides.md      # per-slide PNGs for AI review
+colloquium share-image slides.md  # first slide as the link-preview card (see below)
 ```
+
+Add `url` and `share_image: auto` to the frontmatter and the built deck links to that capture, so the URL unfurls like this in Slack, X, or iMessage:
+
+![Link preview card: the first slide of the hello example](docs/share-card.png)
+
+Details in [Share images](#share-images).
 
 ## CLI Commands
 
 | Command | Description |
 |---------|-------------|
 | `colloquium build <file.md>` | Build to self-contained HTML |
-| `colloquium serve <file.md>` | Dev server with live reload |
+| `colloquium serve <file.md>` | Dev server: rebuilds on save and reloads the open browser tab on the same slide (`--no-reload` to only rebuild) |
 | `colloquium export <file.md>` | PDF export (requires a Chromium-based browser) |
 | `colloquium capture <file.md>` | Capture slides as individual PNGs |
+| `colloquium share-image <file.md>` | Capture the first slide as the deck's share (Open Graph) image, `<deck>-share.png` |
 
 ## Frontmatter Reference
 
@@ -90,7 +98,7 @@ footer:
   center: "My Talk Title"
   right: "auto"                           # "auto" → slide numbers "3 / 12"
 
-custom_css: ".slide h2 { color: red; }"   # inline CSS overrides
+custom_css: ".slide h2 { color: red; }"   # inline CSS overrides, or a .css file: custom_css: deck.css
 ---
 ```
 
@@ -106,7 +114,9 @@ custom_css: ".slide h2 { color: red; }"   # inline CSS overrides
 | `footer.left` | `""` | Left footer zone (text, image URL, or `"auto"`) |
 | `footer.center` | `""` | Center footer zone |
 | `footer.right` | `"auto"` | Right footer zone (`"auto"` = slide numbers) |
-| `custom_css` | `""` | Additional CSS injected into the page |
+| `custom_css` | `""` | Additional CSS injected into the page: inline CSS, or the path of a `.css` file next to the deck (see [Custom CSS from a file](#custom-css-from-a-file)) |
+| `url` | `""` | Canonical URL of the published deck; adds `og:url` and a canonical link, and resolves a relative `share_image` |
+| `share_image` | `false` | Share (Open Graph) image: `auto` for `<deck>-share.png` next to the HTML (see [Share images](#share-images)), or a path or URL |
 | `pptx` | — | PPTX template export settings; see [PPTX Export](#pptx-export-experimental) |
 | `chapters` | `true` | Group slides into [chapters](#chapters); `false` keeps a flat picker |
 | `chapter_bar` | `false` | Show the [chapter bar](#chapter-bar): `true`, `bars`, or a mapping of `labels`, `slides`, `progress` |
@@ -126,6 +136,18 @@ footer:
 
 If no zone uses `"auto"`, `{n}`, or `{N}`, the slide counter is automatically placed in the first empty zone.
 
+### Custom CSS from a file
+
+When a deck's styling grows past a few rules, point `custom_css` at a stylesheet instead of holding the CSS in the frontmatter:
+
+```yaml
+custom_css: lecture.css    # a path ending in .css, relative to the markdown file
+```
+
+The file's contents are inlined into the built HTML at build time, so the output is still a single self-contained file and PDF export, share images, and hosting work unchanged. `colloquium serve` watches the stylesheet as well as the markdown, so saving either rebuilds and reloads the deck. A missing file is a build error that names the path. See [`examples/custom-css`](examples/custom-css) for a deck styled this way:
+
+![A deck whose styles come from a .css file next to it](docs/custom-css.png)
+
 ## Slide Structure
 
 Slides are separated by `---` on its own line. The first heading in each slide becomes the slide title:
@@ -135,6 +157,7 @@ Slides are separated by `---` on its own line. The first heading in each slide b
 | `# Title` | Title slide — centered, large text, `slide--title` layout |
 | `## Title` | Content slide — standard layout with heading at top |
 | `###` through `######` | Rendered as subheadings within slide content |
+| `## Line one` directly followed by `## Line two` | One title on two lines (a line break between them); the picker, chapters, and table of contents read it as one line |
 
 ```markdown
 # Welcome              ← title slide (centered, large)
@@ -209,6 +232,8 @@ Right column content
 
 Arbitrary numeric ratios are allowed, e.g. `25/75`, `33/67`, or `1/2/1`.
 
+A column that holds an image followed by its caption (a markdown image or raw `<img>` and then a paragraph, or a captioned figure) is a figure column: the image fits the column's height with the caption directly beneath it, and the column keeps the width you chose. Widen the text column and the figure narrows to match. `<!-- img-valign: center -->` or `bottom` moves the figure within the column. Add `<!-- class: img-tall-right -->` to run the last column from the top of the slide, beside the title, to the bottom of the content area while still following the `columns` ratio.
+
 ### Rows
 
 Split a slide vertically with `===` between row blocks:
@@ -277,6 +302,7 @@ At the slide root, use either `columns:` or `rows:`. For nested layouts, use `ro
 | `<!-- eyebrow: text -->` | Small uppercase label above the slide heading (e.g. `Part 1` on a section break); fills a template's eyebrow slot in PPTX export |
 | `<!-- only: html -->` | Keep this slide out of PPTX export; `only: pptx` keeps it out of the HTML, PDF, and captures (see [HTML-only and PPTX-only slides](#html-only-and-pptx-only-slides)) |
 | `<!-- after: references -->` | Move this slide after generated bibliography slides; it is excluded from the footer `{N}` total |
+| `<!-- figure-title: heading -->` | The `##` heading replaces the title inside the slide's first SVG figure (see [Plot titles from the heading](#plot-titles-from-the-heading)) |
 | `<!-- chapter: Title -->` | Start a new chapter at this slide (see [Chapters](#chapters)) |
 | `<!-- chapter-short: Label -->` | Shorter label for this slide's chapter in the [chapter bar](#chapter-bar) |
 | `<!-- chapter-bar: bars chapters -->` | Restyle, show, or `hide` the [chapter bar](#chapter-bar) on this slide |
@@ -284,7 +310,7 @@ At the slide root, use either `columns:` or `rows:`. For nested layouts, use `ro
 | `<!-- class: no-figure-captions -->` | Disable deck-wide figure captions for a specific slide |
 | `<!-- img-align: center -->` | Align images only (`left`, `center`, `right`) — title unaffected |
 | `<!-- img-valign: top -->` | Vertically align standalone images in grid/row cells (`top`, `center`, `bottom`) |
-| `<!-- class: img-tall-right -->` | Columns slides: the right column's captioned figure runs full slide height, caption beneath. Requires figure captions (`figure_captions: true` or the `figure-captions` class) so the image renders as a `figure` |
+| `<!-- class: img-tall-right -->` | Columns slides: the last column runs from the top of the slide to the bottom of the content area, beside the title, following the `columns` ratio; its image or captioned figure fills that height with the caption beneath |
 | `<!-- img-fill: true -->` | Expand image to fill available slide space |
 | `<!-- img-overflow: true -->` | Let images in grid cells bleed outside their box instead of fitting inside |
 
@@ -588,6 +614,21 @@ options:
 | `options.scales.{x,y}.ticks.suffix` | `""` | Append to tick labels (e.g. `"%"`) |
 | `options.scales.{x,y}.grid.display` | `true` | Show/hide grid lines |
 
+### Plot titles from the heading
+
+Exported plots carry their own title text. To retitle one you would normally re-export it; with `figure-title: heading` the slide's `##` heading becomes the figure's title at build time, so editing the heading is enough:
+
+```markdown
+<!-- figure-title: heading -->
+## Local model downloads are accelerating!
+
+![Local model downloads](assets/local-downloads.svg)
+```
+
+![A plot whose exported title was replaced by the slide heading](docs/figure-title.png)
+
+The SVG must mark its title with `<text data-role="title">` (the [Interconnects plot exporter](https://github.com/Interconnects-AI/dashboard/tree/main/tools/plots) does). The first title line takes the heading and any further wrapped lines are dropped, so keep headings to one line on these slides. The retitled copy is embedded in the HTML and the original path stays in `data-plot`, so the exporter's hover helper keeps working; the heading itself is hidden on the slide. Figures without the role, remote images, and missing files are left as they are, with a note in the build log.
+
 ### Conversations
 
 Render LLM-style chat bubbles using YAML in fenced code blocks:
@@ -801,6 +842,25 @@ Both PPTX exporters build slides natively from the markdown, so features that ne
 - **Ignored:** the [chapter bar](#chapter-bar), the slide picker, animations, custom CSS, and footer logos in template mode. Template mode puts footer text on content slides only, so `footer.section_break` has no effect there.
 
 Use `only: html` for slides built around a skipped feature, and `only: pptx` for their replacements.
+
+## Share images
+
+Give a deck a preview card on Slack, X, iMessage, and friends by pointing its Open Graph tags at a capture of the first slide:
+
+```yaml
+---
+title: "Open Weight Language Models"
+url: "https://example.com/slides/lecture.html"
+share_image: auto
+---
+```
+
+```bash
+colloquium build lecture.md
+colloquium share-image lecture.md     # writes lecture-share.png next to lecture.html
+```
+
+`share_image: auto` emits `og:image`, `twitter:card`, `og:title`, and `og:description` tags for `<deck>-share.png`, resolved against `url` so scrapers get an absolute address. The capture is the first slide at 1280 × 720 CSS pixels, scaled 2× by default (`--scale 1` for a 1280 × 720 file), with the navigation chrome hidden; it needs a Chromium-based browser like PDF export. Publish the PNG alongside the HTML. A path or URL instead of `auto` uses that image as-is. With `-o`, the command rebuilds the HTML so its `og:image` points at that file instead of the default name (pass the markdown source, not a built HTML file, for this to apply).
 
 ## PDF Export
 

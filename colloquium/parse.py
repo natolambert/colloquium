@@ -12,7 +12,7 @@ from colloquium.slide import Slide
 
 # Directive patterns: <!-- key: value -->
 _DIRECTIVE_RE = re.compile(
-    r"<!--\s*(layout|class|style|notes|title|align|valign|columns|rows|padding|size|cite|cite-left|cite-right|footnote|footnote-right|footnotes|img-align|img-valign|img-fill|img-overflow|animate|after|eyebrow|chapter|chapter-short|chapter-bar|only)\s*:\s*(.*?)\s*-->",
+    r"<!--\s*(layout|class|style|notes|title|align|valign|columns|rows|padding|size|cite|cite-left|cite-right|footnote|footnote-right|footnotes|img-align|img-valign|img-fill|img-overflow|animate|after|eyebrow|chapter|chapter-short|chapter-bar|figure-title|only)\s*:\s*(.*?)\s*-->",
     re.DOTALL,
 )
 
@@ -113,6 +113,8 @@ def parse_slide(text: str) -> Slide:
             metadata["after"] = value
         elif key == "eyebrow":
             metadata["eyebrow"] = value
+        elif key == "figure-title":
+            metadata["figure_title"] = value
         elif key == "chapter":
             metadata["chapter"] = value
         elif key == "chapter-short":
@@ -133,21 +135,30 @@ def parse_slide(text: str) -> Slide:
             classes.append(_DIRECTIVE_CLASS_MAP[key](value))
         remaining = remaining.replace(match.group(0), "")
 
-    # Parse remaining content for title
+    # Parse remaining content for title. Consecutive heading lines of the same
+    # level at the top of the slide form one multi-line title (a line break
+    # between them); a heading after any other line stays in the content.
     lines = remaining.strip().splitlines()
     content_parts = []
+    title_lines: list[str] = []
+    title_prefix = ""
 
     for line in lines:
         stripped = line.strip()
-        if not title and stripped.startswith("# "):
-            title = stripped[2:].strip()
+        if title_lines and not content_parts and stripped.startswith(title_prefix):
+            title_lines.append(stripped[len(title_prefix):].strip())
+        elif not title_lines and stripped.startswith("# "):
+            title_prefix = "# "
+            title_lines.append(stripped[2:].strip())
             if layout == "content":
                 layout = "title"
-        elif not title and stripped.startswith("## "):
-            title = stripped[3:].strip()
+        elif not title_lines and stripped.startswith("## "):
+            title_prefix = "## "
+            title_lines.append(stripped[3:].strip())
         else:
             content_parts.append(line)
 
+    title = "\n".join(title_lines)
     content = "\n".join(content_parts).strip()
 
     return Slide(
@@ -161,9 +172,27 @@ def parse_slide(text: str) -> Slide:
     )
 
 
+def is_stylesheet_path(value) -> bool:
+    """True when a ``custom_css`` value names a .css file rather than inline CSS."""
+    if not isinstance(value, str):
+        return False
+    text = value.strip()
+    return (
+        text.lower().endswith(".css")
+        and "\n" not in text
+        and "{" not in text
+    )
+
+
 def parse_markdown(text: str) -> Deck:
     """Parse a full markdown file into a Deck."""
     metadata, body = parse_frontmatter(text)
+
+    custom_css = metadata.get("custom_css", "")
+    custom_css_path = ""
+    if is_stylesheet_path(custom_css):
+        custom_css_path = str(custom_css).strip()
+        custom_css = ""
 
     deck = Deck(
         title=metadata.get("title", "Untitled"),
@@ -171,7 +200,8 @@ def parse_markdown(text: str) -> Deck:
         date=str(metadata.get("date", "")),
         theme=metadata.get("theme", "default"),
         aspect_ratio=str(metadata.get("aspect_ratio", "16:9")),
-        custom_css=metadata.get("custom_css", ""),
+        custom_css=custom_css,
+        custom_css_path=custom_css_path,
         footer=metadata.get("footer", None),
         fonts=metadata.get("fonts", None),
         bibliography=metadata.get("bibliography", ""),
@@ -181,6 +211,8 @@ def parse_markdown(text: str) -> Deck:
         pptx=metadata.get("pptx") if isinstance(metadata.get("pptx"), dict) else None,
         chapters=metadata.get("chapters", True) is not False,
         chapter_bar=metadata.get("chapter_bar", False),
+        url=str(metadata.get("url", "") or ""),
+        share_image=metadata.get("share_image", False),
     )
 
     # Split on --- slide separators (horizontal rules)
@@ -208,5 +240,7 @@ def parse_file(path: str) -> Deck:
     # Resolve bibliography path relative to the markdown file
     if deck.bibliography and not Path(deck.bibliography).is_absolute():
         deck.bibliography = str(md_path.parent / deck.bibliography)
+    # Relative figure paths (figure-title) resolve against the markdown file too.
+    deck.source_dir = str(md_path.parent)
 
     return deck

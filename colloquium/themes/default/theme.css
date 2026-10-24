@@ -747,39 +747,44 @@ html, body {
 /* ===== Utility: Vertical Alignment ===== */
 /* ===== Utility: Tall right figure =====
    Opt-in slide class (<!-- class: img-tall-right -->) for columns slides:
-   the right column's captioned figure escapes the grid and runs from the
-   top of the slide to the bottom of the content area, caption pinned
-   beneath. The caption-fit pass skips absolutely positioned figures, so
-   these rules own the layout. */
-.slide.img-tall-right { position: relative; }
-.slide.img-tall-right .colloquium-grid > .col:last-child > figure.colloquium-figure:first-child:last-child {
-    position: absolute;
-    top: 10px;
-    bottom: 42px;
-    right: 30px;
-    width: 55%;
-    height: auto;
-    max-height: none;
-    margin: 0;
-    display: block;
+   the slide becomes the column grid itself, using the tracks the columns
+   directive emits as --colloquium-columns, so the figure column follows
+   the chosen ratio (40/60, 60/40, 1/2/1, ...). The eyebrow, title, and the
+   other columns stack in the left tracks; the last column spans from the
+   top of the slide to the bottom of the content area, so a captioned figure
+   or an image followed by its caption runs the full height with the caption
+   directly beneath. */
+.slide.img-tall-right.active {
+    display: grid;
 }
-.slide.img-tall-right .colloquium-grid > .col:last-child > figure.colloquium-figure:first-child:last-child > img {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: calc(100% - 1.5em);
-    width: 100%;
-    max-width: none;
-    max-height: none;
-    object-fit: contain;
+.slide.img-tall-right {
+    grid-template-columns: var(--colloquium-columns, minmax(0, 1fr) minmax(0, 1fr));
+    grid-template-rows: auto auto minmax(0, 1fr);
+    column-gap: 2em;
+    align-content: start;
 }
-.slide.img-tall-right .colloquium-grid > .col:last-child > figure.colloquium-figure:first-child:last-child > figcaption {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    text-align: center;
+.slide.img-tall-right > .slide-eyebrow {
+    grid-column: 1 / -2;
+    grid-row: 1;
+}
+.slide.img-tall-right > h1,
+.slide.img-tall-right > h2 {
+    grid-column: 1 / -2;
+    grid-row: 2;
+}
+.slide.img-tall-right > .slide-content.colloquium-grid { display: contents; }
+.slide.img-tall-right > .slide-content.colloquium-grid > .col {
+    grid-row: 3;
+    min-height: 0;
+}
+.slide.img-tall-right > .slide-content.colloquium-grid > .col:last-child {
+    grid-column: -2 / -1;
+    grid-row: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 0;
 }
 
 .valign-top.active { justify-content: flex-start; }
@@ -946,6 +951,80 @@ html, body {
 .slide.img-valign-bottom .colloquium-grid > .col > figure.colloquium-figure:first-child:last-child > img,
 .slide.img-valign-bottom .colloquium-row > figure.colloquium-figure:first-child:last-child > img {
     object-position: bottom center;
+}
+
+/* ===== Figure columns =====
+   A grid column or row cell whose first child is an image (a bare <img>, or
+   a paragraph holding only an image) followed by nothing but paragraphs
+   (its caption or source line) lays out as a flex column: the image shrinks
+   to the height left beside the caption, the caption stays directly beneath
+   it, and the column keeps the width given by the columns directive. No
+   class is needed; captioned <figure> elements have their own rules above.
+   :has() cannot nest, so the bare-image and wrapped-image cases are
+   separate selectors. The structural conditions sit in :where(), so the
+   container, image, and caption rules have zero specificity and any deck
+   CSS overrides them. The one exception is max-height: the theme's own
+   `.slide .slide-content img` (0,2,1) caps image height, so a rule at
+   exactly that specificity lifts the cap to the column height; it carries
+   nothing else. */
+:where(.slide .colloquium-grid > .col:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))),
+:where(.slide .colloquium-row:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))),
+:where(.slide .colloquium-grid > .col:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))),
+:where(.slide .colloquium-row:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 0;
+}
+
+:where(.slide .colloquium-grid > .col:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > p:first-child),
+:where(.slide .colloquium-row:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > p:first-child) {
+    display: contents;
+}
+
+:where(.slide .colloquium-grid > .col:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > img:first-child),
+:where(.slide .colloquium-row:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > img:first-child),
+:where(.slide .colloquium-grid > .col:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > p:first-child > img),
+:where(.slide .colloquium-row:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > p:first-child > img) {
+    display: block;
+    flex: 0 1 auto;
+    min-height: 0;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    margin: 0;
+    object-fit: contain;
+}
+
+.slide .slide-content :where(.colloquium-grid > .col:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))) > img:first-child,
+.slide .slide-content :where(.colloquium-row:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))) > img:first-child,
+.slide .slide-content :where(.colloquium-grid > .col:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))) > p:first-child > img,
+.slide .slide-content :where(.colloquium-row:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))) > p:first-child > img {
+    max-height: 100%;
+}
+
+:where(.slide .colloquium-grid > .col:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > p:not(:first-child)),
+:where(.slide .colloquium-row:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > p:not(:first-child)),
+:where(.slide .colloquium-grid > .col:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > p:not(:first-child)),
+:where(.slide .colloquium-row:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p))) > p:not(:first-child)) {
+    flex: 0 0 auto;
+    max-width: 100%;
+    margin: 0.45em 0 0;
+}
+
+:where(.slide.img-valign-center .colloquium-grid > .col:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))),
+:where(.slide.img-valign-center .colloquium-row:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))),
+:where(.slide.img-valign-center .colloquium-grid > .col:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))),
+:where(.slide.img-valign-center .colloquium-row:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))) {
+    justify-content: center;
+}
+
+:where(.slide.img-valign-bottom .colloquium-grid > .col:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))),
+:where(.slide.img-valign-bottom .colloquium-row:has(> img:first-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))),
+:where(.slide.img-valign-bottom .colloquium-grid > .col:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))),
+:where(.slide.img-valign-bottom .colloquium-row:has(> p:first-child > img:only-child):has(> p:not(:first-child)):not(:has(> :not(:first-child):not(p)))) {
+    justify-content: flex-end;
 }
 
 .img-overflow .colloquium-grid > .col,
@@ -2014,18 +2093,13 @@ body:hover .colloquium-present {
     .size-normal { font-size: 24px; }
     .size-large { font-size: 28px; }
 
-    /* img-tall-right: keep the full-height figure layout in print; the
-       generic grid-figure fallback above would otherwise force height auto
-       and a capped max-height. */
-    .slide.img-tall-right .colloquium-grid > .col:last-child > figure.colloquium-figure:first-child:last-child {
-        width: 55% !important;
-        max-width: 55% !important;
-    }
-    .slide.img-tall-right .colloquium-grid > .col:last-child > figure.colloquium-figure:first-child:last-child > img {
-        width: 100% !important;
-        height: calc(100% - 1.5em) !important;
-        max-width: none !important;
-        max-height: none !important;
+    /* img-tall-right: printed slides are forced to flex above, so restore
+       the slide-level grid that places the last column at full height. */
+    .slide.img-tall-right { display: grid !important; }
+    /* Its last column spans beside the title, so the figure may use the full
+       content height instead of the generic grid-figure print cap. */
+    .slide.img-tall-right:not(.img-overflow) .slide-content.colloquium-grid > .col:last-child > figure.colloquium-figure:first-child:last-child > img {
+        max-height: calc(720px - var(--colloquium-slide-padding) * 2 - 48px) !important;
     }
 
     .colloquium-progress,

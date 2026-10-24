@@ -50,3 +50,5 @@ Notes:
 - Going backward hides fragments in reverse, then shows the previous slide fully built.
 - Print and PDF export show all content (fragments forced visible).
 - `items` is an alias for `bullets`.
+
+With `animate: bullets` or `animate: items`, text before the first list is visible immediately, and any block after an animated list (a takeaway, a caption) appears after the last bullet, as if a `<!-- step -->` preceded it. Add explicit `<!-- step -->` markers only when you want several trailing blocks grouped into one click.

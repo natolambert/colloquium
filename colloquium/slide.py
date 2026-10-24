@@ -41,10 +41,12 @@ class Slide:
             parts.append(f"<!-- chapter-bar: {self.metadata['chapter_bar']} -->")
         if self.metadata.get("only"):
             parts.append(f"<!-- only: {self.metadata['only']} -->")
+        if "figure_title" in self.metadata:
+            parts.append(f"<!-- figure-title: {self.metadata['figure_title']} -->")
 
         if self.title:
             prefix = "# " if self.is_title_slide else "## "
-            parts.append(f"{prefix}{self.title}")
+            parts.append("\n".join(f"{prefix}{line}" for line in self.title.split("\n")))
 
         if self.content:
             parts.append(self.content)
