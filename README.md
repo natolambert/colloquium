@@ -808,6 +808,7 @@ colloquium export talk.md --template other-template.pptx # override the template
 - **Roles** map content onto that layout's placeholders by `idx` (the heading is `idx` 0 unless `heading:` is set). Title slides fill `eyebrow`/`name`/`affiliation`/`subtitle` from the `colloquium-title-*` components and `photo` from the first image; any slide fills `eyebrow` from `<!-- eyebrow: ... -->`. Placeholders left empty are removed.
 - **Body content** (paragraphs, bold/italic/links, bullet and numbered lists, `|||` columns, images as markdown or `<img>` tags with their captions, tables as text) is laid out natively under the heading, shrinking text uniformly when a slide is dense. Simple HTML blocks become small text, with empty color-styled `<span>`s rendered as colored swatches (handy for plot legends). Consecutive leading `##` lines become one multi-line title. `cite:` directives, a References slide, `{n}/{N}` footer text, and speaker notes carry over; animations, charts, and math do not.
 - SVG figures are rasterized at 2x with the same headless Chromium the PDF export uses (`figure-title: heading` is applied first); without a Chromium-based browser they are skipped with a warning.
+- **HTML diagrams** (HTML blocks with nested `<div>`s or an `<svg>`, such as boxes joined by lines) become editable native shapes. Headless Chromium lays out the deck with its custom CSS, finishes every animation, and reports each box (fill, border, rounded corners), text run, SVG line, polyline, rect, circle, and `<img>`; these are drawn as rectangles, text boxes, lines, and pictures. Theme colors, and tints and shades of them, follow the template's `colors`. Consecutive slides that show the same diagram (the same root tag and classes) share one scale and position and get PowerPoint's Morph transition, which animates boxes between steps much like the deck's CSS animations (Keynote imports it as Magic Move). Without a Chromium-based browser, diagrams fall back to text with a warning.
 - Unused template layouts are pruned, so the output doesn't carry the template's sample media. Fonts the template embeds stay embedded.
 
 Find placeholder `idx` values by opening the template with python-pptx (`[(ph.placeholder_format.idx, ph.name) for ph in prs.slides[3].placeholders]`).
@@ -840,7 +841,7 @@ Both PPTX exporters build slides natively from the markdown, so features that ne
 
 - **Skipped with a warning:** `box`, `conversation`, `iframe`, and `builtwith` blocks, and in template mode also `chart` blocks. The plain exporter draws charts as native PPTX charts.
 - **Converted:** a `toc` block becomes a native list of chapter titles, with the current chapter in bold.
-- **Ignored:** the [chapter bar](#chapter-bar), the slide picker, animations, custom CSS, and footer logos in template mode. Template mode puts footer text on content slides only, so `footer.section_break` has no effect there.
+- **Ignored:** the [chapter bar](#chapter-bar), the slide picker, animations, custom CSS (except in template-mode HTML diagrams, which keep its layout and get Morph between steps), and footer logos in template mode. Template mode puts footer text on content slides only, so `footer.section_break` has no effect there.
 
 Use `only: html` for slides built around a skipped feature, and `only: pptx` for their replacements.
 

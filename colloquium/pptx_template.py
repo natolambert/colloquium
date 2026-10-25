@@ -36,6 +36,14 @@ from pathlib import Path
 
 from colloquium.md import create_base_md
 from colloquium.elements import BLOCK_LANGUAGES
+from colloquium.pptx_diagram import (
+    Diagram,
+    add_diagram,
+    add_morph_transition,
+    fit_scale,
+    is_diagram_html,
+    snapshot_diagrams,
+)
 
 _ROLES = ("heading", "eyebrow", "subtitle", "name", "affiliation", "photo")
 
@@ -180,6 +188,15 @@ class ImageBlock:
     heading: str | None = None  # figure-title: heading swaps this into an SVG plot's title
 
 
+@dataclass
+class DiagramBlock:
+    """An HTML diagram, drawn as native shapes from the browser's layout (see pptx_diagram)."""
+
+    diagram: Diagram
+    max_scale: float  # inches per CSS px at the HTML's own size; diagrams are never enlarged past it
+    legend: TextBlock | None = None
+
+
 class _SwatchHTMLParser(HTMLParser):
     """Flatten an HTML block to runs. Empty elements carrying a color in their
     inline style (legend swatches, markers, lines) become colored glyphs."""
@@ -270,8 +287,15 @@ def _inline_runs(children) -> list[Run]:
     return runs
 
 
-def _parse_blocks(markdown: str, base_dir: Path, warnings: list[str]) -> list[TextBlock | ImageBlock]:
-    """Convert a slide region's markdown into text and image blocks."""
+def _parse_blocks(
+    markdown: str, base_dir: Path, warnings: list[str], next_diagram=None,
+) -> list[TextBlock | ImageBlock | DiagramBlock]:
+    """Convert a slide region's markdown into text, image, and diagram blocks.
+
+    ``next_diagram`` returns the slide's next laid-out diagram as a DiagramBlock
+    (or None when there is no layout for it), called once per diagram HTML
+    block in source order.
+    """
     tokens = create_base_md().parse(markdown)
     blocks: list[TextBlock | ImageBlock] = []
     current: list[Para] = []
@@ -318,6 +342,12 @@ def _parse_blocks(markdown: str, base_dir: Path, warnings: list[str]) -> list[Te
         elif t == "heading_open":
             current.append(Para(_inline_runs(tokens[i + 1].children), kind="h"))
             i += 2
+        elif t == "html_block" and next_diagram is not None and is_diagram_html(tok.content) and (
+            diagram_block := next_diagram()
+        ) is not None:
+            flush()
+            if diagram_block.diagram.items:
+                blocks.append(diagram_block)
         elif t == "html_block":
             html = _HTML_COMMENT_RE.sub("", tok.content).strip()
             # <img> tags are figures like markdown images; a <p class="…caption"> (or any
@@ -444,8 +474,8 @@ class _Metrics:
 
 @dataclass
 class _Placed:
-    kind: str  # text | image
-    block: TextBlock | ImageBlock
+    kind: str  # text | image | diagram
+    block: TextBlock | ImageBlock | DiagramBlock
     x: float
     y: float
     w: float
@@ -579,6 +609,13 @@ def _layout_region(blocks, x, y, w, h, metrics: _Metrics, scale: float, gap: flo
             bh = metrics.text_height(block, w, scale)
             placements.append(_Placed("text", block, x, cursor, w, bh))
             cursor += bh + gap
+        elif isinstance(block, DiagramBlock):
+            diagram = block.diagram
+            aspect = diagram.w / diagram.h
+            ih = min(img_budget, w / aspect, diagram.h * block.max_scale)
+            iw = ih * aspect
+            placements.append(_Placed("diagram", block, x + (w - iw) / 2, cursor, iw, ih))
+            cursor += ih + gap
         else:
             aspect = _image_aspect(block.path)
             ih = min(img_budget, w / aspect)
@@ -730,6 +767,38 @@ def _add_image(slide, placed: _Placed, cfg: TemplateConfig) -> bool:
                 source.seek(0)
     slide.shapes.add_picture(source, Inches(placed.x), Inches(placed.y), Inches(placed.w), Inches(placed.h))
     return True
+
+
+def _place_full_diagrams(entries, slide_w: float, cfg: TemplateConfig) -> None:
+    """Draw slides whose body is a single diagram.
+
+    Consecutive slides showing the same diagram (equal root tag and classes)
+    are steps of one build-up: they share the largest scale that fits every
+    step's body region and sit at the same spot, so nothing jumps between
+    them, and each step after the first gets a Morph transition.
+    """
+    groups: list[list] = []
+    for entry in entries:
+        index, _, block = entry[:3]
+        prev = groups[-1][-1] if groups else None
+        if prev and prev[0] == index - 1 and prev[2].diagram.signature == block.diagram.signature:
+            groups[-1].append(entry)
+        else:
+            groups.append([entry])
+    for group in groups:
+        top = max(e[4] for e in group)
+        bottom = min(e[4] + e[6] for e in group)
+        scale = min(
+            min(fit_scale(e[2].diagram, e[5], e[6], slide_w) for e in group),
+            (bottom - top) / max(e[2].diagram.h for e in group),
+        )
+        for step, (_, slide, block, margin_x, _, region_w, _) in enumerate(group):
+            diagram = block.diagram
+            x0 = margin_x + (region_w - diagram.w * scale) / 2
+            y0 = top + max(0.0, (bottom - top - diagram.h * scale) / 2)
+            add_diagram(slide, diagram, x0, y0, scale, cfg)
+            if step:
+                add_morph_transition(slide)
 
 
 def _placeholder_font_pt(ph, default: float) -> float:
@@ -941,6 +1010,10 @@ def export_pptx_with_template(deck, base_dir: Path, output_path: str, cfg: Templ
     # slides after the references are numbered past it.
     total = len(main) + len(ref_slides)
     used_layouts = set()
+    diagrams = snapshot_diagrams(deck, main + post, base_dir, warnings)
+    # Slides whose whole body is one diagram, placed after the loop so that
+    # consecutive steps of the same diagram share one scale and position.
+    full_diagrams: list[tuple[int, object, DiagramBlock, float, float, float, float]] = []
 
     for index, src in enumerate(ordered_slides):
         layout_name, spec = _layout_spec_for(src, cfg)
@@ -1050,7 +1123,17 @@ def export_pptx_with_template(deck, base_dir: Path, output_path: str, cfg: Templ
             fracs = fracs or [1 / len(columns)] * len(columns)
             col_gap = 0.4 if len(columns) > 1 else 0
             usable = region_w - col_gap * (len(columns) - 1)
-            col_blocks = [_parse_blocks(c, base_dir, warnings) if c else [] for c in columns]
+            diagram_numbers = iter(range(len(content)))
+
+            def next_diagram(src=src):
+                diagram = diagrams.get((id(src), next(diagram_numbers)))
+                return DiagramBlock(diagram, max_scale=slide_w / 1280) if diagram else None
+
+            col_blocks = [_parse_blocks(c, base_dir, warnings, next_diagram) if c else [] for c in columns]
+            all_blocks = [b for blocks in col_blocks for b in blocks]
+            if len(all_blocks) == 1 and isinstance(all_blocks[0], DiagramBlock):
+                full_diagrams.append((index, slide, all_blocks[0], margin_x, top, region_w, region_h))
+                col_blocks = []
             if src.metadata.get("figure_title") == "heading" and title_lines:
                 first_image = next((b for blocks in col_blocks for b in blocks if isinstance(b, ImageBlock)), None)
                 if first_image is not None and first_image.path.suffix.lower() == ".svg":
@@ -1076,7 +1159,10 @@ def export_pptx_with_template(deck, base_dir: Path, output_path: str, cfg: Templ
                 scale = max(_MIN_SCALE, scale * 0.94)
 
             for placed in plan:
-                if placed.kind == "image":
+                if placed.kind == "diagram":
+                    diagram = placed.block.diagram
+                    add_diagram(slide, diagram, placed.x, placed.y, placed.w / diagram.w, cfg)
+                elif placed.kind == "image":
                     if not _add_image(slide, placed, cfg):
                         warnings.append(
                             f"slide {index + 1}: {placed.block.path.name} needs a Chromium-based browser to rasterize SVG; skipped"
@@ -1106,6 +1192,8 @@ def export_pptx_with_template(deck, base_dir: Path, output_path: str, cfg: Templ
 
         if src.speaker_notes:
             slide.notes_slide.notes_text_frame.text = src.speaker_notes
+
+    _place_full_diagrams(full_diagrams, slide_w, cfg)
 
     # Prune layouts nothing uses so the template's sample backgrounds don't ship.
     for master in prs.slide_masters:
