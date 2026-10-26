@@ -1,6 +1,6 @@
 """Colloquium — agent-native slide creation tool for research talks."""
 
-__version__ = "0.2.4"
+__version__ = "0.3.0"
 
 from colloquium.slide import Slide
 from colloquium.deck import Deck
