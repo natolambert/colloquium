@@ -1471,6 +1471,38 @@ class TestCitationRendering:
             # No page numbers when single page
             assert "(1/" not in ref_slides[0]
 
+    def test_footnote_citations_count_toward_reference_pages(self):
+        """Citations that appear only in footnote directives size the References pages."""
+        bib_content = ""
+        for i in range(20):
+            authors = " and ".join(
+                f"Author{i}_{j}, FirstName{j}" for j in range(6)
+            )
+            bib_content += f"""@article{{ref{i},
+  author = {{{authors}}},
+  title = {{A Very Long Paper Title Number {i} About Something Interesting in Machine Learning Research}},
+  journal = {{Proceedings of the International Conference on Learning Representations}},
+  year = {{2024}},
+}}
+
+"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bib_path = Path(tmpdir) / "refs.bib"
+            bib_path.write_text(bib_content)
+            deck = Deck(title="Test", bibliography=str(bib_path), footer={"right": "{n}/{N}"})
+            footnote = "Sources: " + "; ".join(f"[@ref{i}]" for i in range(1, 20))
+            deck.slides.append(
+                Slide(title="Intro", content="See [@ref0].", metadata={"footnote_right": footnote})
+            )
+
+            html = build_deck(deck)
+
+            pages = len(re.findall(r"<h2>References \(\d+/\d+\)</h2>", html))
+            assert pages >= 2
+            total = 1 + pages
+            assert f"{total}/{total}" in html
+            assert f"{total}/{total - 1}" not in html
+
     def test_per_slide_cite_left(self):
         from colloquium.parse import parse_slide
 
