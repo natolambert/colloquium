@@ -25,6 +25,7 @@ import re
 import subprocess
 import tempfile
 from dataclasses import dataclass, field
+from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
@@ -35,7 +36,7 @@ _SLIDE_W_PX = 1280
 
 _COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 _STRUCTURE_RE = re.compile(r"<(div|svg)\b", re.IGNORECASE)
-_FIRST_TAG_RE = re.compile(r"<([a-zA-Z][\w:-]*)")
+_VOID_TAGS = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"}
 _LAYOUT_JSON_RE = re.compile(
     r'<script type="application/json" id="colloquium-diagram-layout">(.*?)</script>', re.DOTALL
 )
@@ -60,11 +61,45 @@ def is_diagram_html(html: str) -> bool:
     return "svg" in tags or tags.count("div") >= 2
 
 
-def _mark_diagrams(content: str, slide_key: int) -> tuple[str, int]:
-    """Tag the root element of each diagram HTML block in ``content``.
+class _TopLevelTags(HTMLParser):
+    """Offsets just past the tag name of each top-level element in an HTML block."""
 
-    Returns the new content and how many diagrams it holds. Diagrams are
-    numbered in source order, the same order the PPTX exporter meets them.
+    def __init__(self, text: str):
+        super().__init__(convert_charrefs=True)
+        self._line_starts = [0]
+        for line in text.split("\n")[:-1]:
+            self._line_starts.append(self._line_starts[-1] + len(line) + 1)
+        self.depth = 0
+        self.offsets: list[int] = []
+        self.feed(text)
+        self.close()
+
+    def _top(self, tag):
+        if self.depth == 0:
+            line, col = self.getpos()
+            self.offsets.append(self._line_starts[line - 1] + col + 1 + len(tag))
+
+    def handle_starttag(self, tag, attrs):
+        self._top(tag)
+        if tag not in _VOID_TAGS:
+            self.depth += 1
+
+    def handle_startendtag(self, tag, attrs):
+        self._top(tag)
+
+    def handle_endtag(self, tag):
+        if tag not in _VOID_TAGS:
+            self.depth = max(0, self.depth - 1)
+
+
+def _mark_diagrams(content: str, slide_key: int) -> tuple[str, int]:
+    """Tag the root elements of each diagram HTML block in ``content``.
+
+    A Markdown HTML block runs to the next blank line, so it can hold several
+    top-level elements (a diagram and its caption, two diagrams); all of them
+    get the block's id and are measured together as one diagram, so none is
+    dropped. Returns the new content and how many diagrams it holds, numbered
+    in source order, the same order the PPTX exporter meets them.
     """
     lines = content.split("\n")
     count = 0
@@ -74,11 +109,11 @@ def _mark_diagrams(content: str, slide_key: int) -> tuple[str, int]:
         start, end = tok.map
         block = "\n".join(lines[start:end])
         stripped = _COMMENT_RE.sub(lambda m: " " * len(m.group(0)), block)
-        m = _FIRST_TAG_RE.search(stripped)
-        if m is None:
+        offsets = _TopLevelTags(stripped).offsets
+        if not offsets:
             continue
-        at = m.end()
-        block = f'{block[:at]} {DIAGRAM_ATTR}="{slide_key}:{count}"{block[at:]}'
+        for at in reversed(offsets):
+            block = f'{block[:at]} {DIAGRAM_ATTR}="{slide_key}:{count}"{block[at:]}'
         lines[start:end] = block.split("\n")
         count += 1
     return "\n".join(lines), count
@@ -88,7 +123,7 @@ def _mark_diagrams(content: str, slide_key: int) -> tuple[str, int]:
 class Diagram:
     """A diagram's root box and its settled contents, in CSS px of the slide canvas."""
 
-    signature: str  # root tag and classes; equal on every step of one diagram
+    signature: str  # root tag and classes (joined by + for several roots); equal on every step of one diagram
     x: float
     y: float
     w: float
@@ -595,8 +630,8 @@ _MEASURE_JS = r"""
     if (last) last.text = last.text.replace(/ +$/, '');
     return runs.filter((r) => r.br || r.text);
   }
-  function measure(root, unsupported) {
-    const slide = root.closest('.slide');
+  function measure(roots, unsupported) {
+    const slide = roots[0].closest('.slide');
     document.querySelectorAll('.slide.active').forEach((s) => s.classList.remove('active'));
     slide.classList.add('active');
     void slide.offsetWidth;
@@ -613,7 +648,14 @@ _MEASURE_JS = r"""
     // Elements whose text an ancestor's text box already carries.
     const consumed = new Set();
     let order = 0;
-    for (const el of [root, ...root.querySelectorAll('*')]) {
+    // Several roots (sibling elements of one HTML block) form one diagram; their
+    // keys are prefixed so twins under different roots stay distinct.
+    const walk = [];
+    roots.forEach((root, i) => {
+      const prefix = roots.length > 1 ? signature(root) + ':' + i + '>' : '';
+      for (const el of [root, ...root.querySelectorAll('*')]) walk.push([el, root, prefix]);
+    });
+    for (const [el, root, prefix] of walk) {
       order++;
       const tag = el.tagName.toLowerCase();
       const inSvg = el.ownerSVGElement != null;
@@ -623,7 +665,7 @@ _MEASURE_JS = r"""
       if (cs.visibility === 'hidden') continue;
       const op = opacity(el, slide);
       if (op < 0.02) continue;
-      const base = {key: keyOf(el, root), order, z: zOf(el, root), opacity: Math.round(op * 1000) / 1000};
+      const base = {key: prefix + keyOf(el, root), order, z: zOf(el, root), opacity: Math.round(op * 1000) / 1000};
       if (inSvg) {
         if (el.closest('defs, marker, clipPath, mask, pattern, symbol')) continue;
         if (!SVG_SHAPES.has(tag)) {
@@ -734,16 +776,27 @@ _MEASURE_JS = r"""
       const c = color(scs.getPropertyValue(name).trim());
       if (c) theme[name] = c;
     }
-    const rr = rel(root.getBoundingClientRect());
-    return {signature: signature(root), ...rr, items, theme};
+    const rects = roots.map((r) => r.getBoundingClientRect());
+    const left = Math.min(...rects.map((r) => r.left));
+    const top = Math.min(...rects.map((r) => r.top));
+    const rr = rel({
+      left, top,
+      width: Math.max(...rects.map((r) => r.right)) - left,
+      height: Math.max(...rects.map((r) => r.bottom)) - top,
+    });
+    return {signature: roots.map(signature).join('+'), ...rr, items, theme};
   }
   function run() {
     const out = {diagrams: {}, unsupported: []};
     try {
       const unsupported = new Set();
-      for (const root of document.querySelectorAll('[' + ATTR + ']')) {
-        out.diagrams[root.getAttribute(ATTR)] = measure(root, unsupported);
+      const groups = new Map();
+      for (const el of document.querySelectorAll('[' + ATTR + ']')) {
+        const id = el.getAttribute(ATTR);
+        if (!groups.has(id)) groups.set(id, []);
+        groups.get(id).push(el);
       }
+      for (const [id, roots] of groups) out.diagrams[id] = measure(roots, unsupported);
       out.unsupported = [...unsupported];
     } catch (e) {
       out.error = String(e && e.message || e);

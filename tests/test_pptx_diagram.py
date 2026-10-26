@@ -71,6 +71,22 @@ def test_mark_diagrams_tags_each_root_in_source_order():
     assert '<p class="caption">' in marked
 
 
+def test_mark_diagrams_tags_every_sibling_root_of_a_block():
+    # No blank lines: one Markdown HTML block with a diagram, a caption, and a second diagram.
+    content = """<div class="d1">
+  <div>a</div><br>
+</div>
+<p class="caption">Source, 2026</p>
+<div class="d2"><img src="x.png"><div>b</div></div>
+"""
+    marked, count = _mark_diagrams(content, 3)
+    assert count == 1
+    assert f'<div {DIAGRAM_ATTR}="3:0" class="d1">' in marked
+    assert f'<p {DIAGRAM_ATTR}="3:0" class="caption">' in marked
+    assert f'<div {DIAGRAM_ATTR}="3:0" class="d2">' in marked
+    assert marked.count(DIAGRAM_ATTR) == 3
+
+
 def test_map_color_follows_template_palette():
     pairs = [((0x4A, 0xA6, 0x91), (0xFF, 0x00, 0x73)), ((0x0B, 0x1A, 0x14), (0x28, 0x00, 0x16))]
     # Exact theme colors swap, alpha is not part of the match.
@@ -232,3 +248,21 @@ def test_content_bounds_cover_what_is_drawn_not_the_root_box():
     assert content_bounds(diagram) == (450, 200, 380, 360)
     empty = Diagram(signature="div.canvas", x=60, y=180, w=1160, h=490, items=[], theme={})
     assert content_bounds(empty) == (60, 180, 1160, 490)
+
+
+@needs_chromium
+def test_sibling_elements_of_a_diagram_block_are_kept(tmp_path):
+    md = _write_deck(tmp_path, """## Diagram with a caption
+
+<div class="d">
+  <div class="node"><div class="label">Building</div></div>
+</div>
+<p class="caption">Source, 2026</p>
+<div class="d other"><div class="node"><div class="label">Serving</div></div></div>
+""")
+    prs = Presentation(export_pptx(str(md)))
+    texts = [s.text_frame.text for s in prs.slides[0].shapes if s.has_text_frame]
+    assert "Building" in texts and "Source, 2026" in texts and "Serving" in texts
+    # Twin elements under different roots keep distinct names, so Morph doesn't pair them.
+    names = [s.name for s in prs.slides[0].shapes if s.name.startswith("!!")]
+    assert len(names) == len(set(names))
