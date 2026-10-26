@@ -51,6 +51,7 @@ class Deck:
         citation_style: str = "author-year",
         citation_order: str = "auto",
         figure_captions: bool = False,
+        pptx: dict | None = None,
         chapters: bool = True,
         chapter_bar: bool | str | dict = False,
         url: str = "",
@@ -79,6 +80,7 @@ class Deck:
         self.citation_style = citation_style
         self.citation_order = citation_order
         self.figure_captions = figure_captions
+        self.pptx = pptx
         self.chapters = chapters
         self.chapter_bar = normalize_chapter_bar(chapter_bar)
         self.slides: list[Slide] = []

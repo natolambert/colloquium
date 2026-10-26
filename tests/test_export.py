@@ -99,3 +99,52 @@ class TestIframePrintSnapshots:
         )
         out = export_module._inject_iframe_snapshots(html, browser="chrome")
         assert out == html
+
+
+def test_plain_export_honors_only_and_expands_toc(tmp_path):
+    from pptx import Presentation
+
+    md_path = tmp_path / "talk.md"
+    md_path.write_text("""---
+title: Plain
+---
+
+## Outline
+
+```toc
+```
+
+---
+
+<!-- only: html -->
+<!-- layout: section-break -->
+
+## Web only
+
+---
+
+<!-- layout: section-break -->
+
+## Shared part
+
+---
+
+## Embeds
+
+```iframe
+src: https://example.com
+```
+
+```python
+print("kept")
+```
+""")
+    prs = Presentation(export_pptx(str(md_path)))
+    texts = [[s.text_frame.text for s in slide.shapes if s.has_text_frame] for slide in prs.slides]
+
+    assert [t[0] for t in texts] == ["Outline", "Shared part", "Embeds"]
+    assert any("Shared part" in t for t in texts[0][1:])
+    assert not any("Web only" in t for slide in texts for t in slide)
+    embeds = "\n".join(texts[2])
+    assert "example.com" not in embeds
+    assert 'print("kept")' in embeds

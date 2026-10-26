@@ -321,6 +321,24 @@ class TestAnimateDirective:
         assert "<!-- step -->" in slide.content
 
 
+class TestEyebrowDirective:
+    def test_eyebrow_is_parsed_into_metadata(self):
+        from colloquium.parse import parse_slide
+
+        slide = parse_slide("<!-- eyebrow: Part 1 -->\n\n## Section")
+        assert slide.metadata["eyebrow"] == "Part 1"
+        assert slide.title == "Section"
+        assert "eyebrow" not in slide.content
+        assert "<!-- eyebrow: Part 1 -->" in slide.to_markdown()
+
+
+class TestOnlyDirective:
+    def test_only_round_trips(self):
+        slide = parse_slide("<!-- only: PPTX -->\n\n## Static")
+        assert slide.metadata["only"] == "pptx"
+        assert "<!-- only: pptx -->" in slide.to_markdown()
+
+
 class TestChapterDirective:
     def test_chapter_stored_in_metadata(self):
         slide = parse_slide("<!-- chapter: Measuring progress -->\n\n## Downloads\n\nBody")
