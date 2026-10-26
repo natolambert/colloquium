@@ -262,9 +262,22 @@ class _Frame:
         return px * self.s * 72
 
 
-def fit_scale(diagram: Diagram, region_w: float, region_h: float, slide_w: float) -> float:
-    """Inches per CSS px: as large as the region allows, never above the HTML's own size."""
-    return min(region_w / diagram.w, region_h / diagram.h, slide_w / _SLIDE_W_PX)
+def content_bounds(diagram: Diagram) -> tuple[float, float, float, float]:
+    """(x, y, w, h) in CSS px of what the diagram draws, which can be much
+    smaller than its root box (an absolutely positioned canvas, say)."""
+    xs: list[float] = []
+    ys: list[float] = []
+    for item in diagram.items:
+        if "points" in item:
+            pad = item.get("stroke_width", 1) / 2
+            xs += [x + d for x, _ in item["points"] for d in (-pad, pad)]
+            ys += [y + d for _, y in item["points"] for d in (-pad, pad)]
+        elif "w" in item:
+            xs += [item["x"], item["x"] + item["w"]]
+            ys += [item["y"], item["y"] + item["h"]]
+    if not xs:
+        return diagram.x, diagram.y, diagram.w, diagram.h
+    return min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys)
 
 
 def shape_name(key: str) -> str:

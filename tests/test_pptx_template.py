@@ -319,7 +319,7 @@ def test_html_img_tags_become_pictures_with_centered_captions(tmp_path):
     md = _write_deck(tmp_path, """## Chart
 
 <img src="chart.png" alt="A chart">
-<p class="chart-caption"><a href="https://example.com">Source, 2026</a></p>
+<p class="chart-caption"><a href="https://example.com">Source, 2026</a>: what it shows</p>
 """)
     prs = Presentation(export_pptx(str(md)))
     slide = prs.slides[0]
@@ -328,6 +328,14 @@ def test_html_img_tags_become_pictures_with_centered_captions(tmp_path):
     from pptx.enum.text import PP_ALIGN
 
     assert caption.text_frame.paragraphs[0].alignment == PP_ALIGN.CENTER
+    # Source spacing and the link survive: no space before the colon.
+    assert caption.text_frame.text == "Source, 2026: what it shows"
+    runs = caption.text_frame.paragraphs[0].runs
+    assert runs[0].hyperlink.address == "https://example.com" and runs[-1].hyperlink.address is None
+    # The caption box is centered on the figure, so it shares the figure's center.
+    picture = next(sh for sh in slide.shapes if sh.shape_type == 13)
+    assert abs((caption.left + caption.width / 2) - (picture.left + picture.width / 2)) < 20000
+    assert caption.top > picture.top + picture.height
 
 
 def _svg_plot(path: Path, title: str = "Old title") -> None:
@@ -368,6 +376,8 @@ def test_svg_figures_are_rasterized_or_skipped_with_a_warning(tmp_path, capsys):
 """)
     prs = Presentation(export_pptx(str(md)))
     pictures = [sh for sh in prs.slides[0].shapes if sh.shape_type == 13]
+    # The plot carries the heading in its own title, so the slide doesn't repeat it.
+    assert not any("New heading" in t for t in _texts(prs.slides[0]))
     browser = _find_browser()
     if browser and _is_chromium_based(browser):
         assert len(pictures) == 1 and pictures[0].image.ext == "png"
@@ -375,3 +385,29 @@ def test_svg_figures_are_rasterized_or_skipped_with_a_warning(tmp_path, capsys):
     else:
         assert not pictures
         assert "rasterize SVG; skipped" in capsys.readouterr().err
+
+
+def test_headings_shrink_to_stay_on_one_line_or_fit_their_box():
+    from colloquium.pptx_template import (
+        _HEADING_CHAR_EM,
+        _HEADING_MIN_FRACTION,
+        _estimate_lines,
+        _fit_heading_size,
+    )
+
+    short = ["A short heading"]
+    assert _fit_heading_size(short, 31, 8.9) == 31
+    long = ["Open weights trail the frontier by a few months now"]
+    size = _fit_heading_size(long, 31, 8.9)
+    assert size < 31 and _estimate_lines(long[0], size, 8.9, _HEADING_CHAR_EM) == 1
+    # Too long for one line even at the floor: the largest size that wraps only once.
+    very_long = ["Revenue growth is key to continued training-scaling, and often captured elsewhere"]
+    size = _fit_heading_size(very_long, 31, 8.9)
+    assert size > 31 * _HEADING_MIN_FRACTION and _estimate_lines(very_long[0], size, 8.9, _HEADING_CHAR_EM) == 2
+    huge = ["x " * 200]
+    assert _fit_heading_size(huge, 31, 8.9) == pytest.approx(31 * _HEADING_MIN_FRACTION, abs=0.5)
+    # Full-bleed headings (section breaks) shrink until they fit the given height.
+    section = ["The task for open models -- build the cheapest, most adaptable, private intelligence"]
+    fitted = _fit_heading_size(section, 54, 8.44, max_h=1.6)
+    assert fitted < 54
+    assert _estimate_lines(section[0], fitted, 8.44, _HEADING_CHAR_EM) * fitted * 1.15 / 72 <= 1.6

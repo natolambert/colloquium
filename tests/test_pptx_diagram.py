@@ -17,6 +17,7 @@ from colloquium.pptx_diagram import (
     _mark_diagrams,
     add_diagram,
     add_morph_transition,
+    content_bounds,
     is_diagram_html,
     map_color,
 )
@@ -220,3 +221,14 @@ def test_diagram_steps_export_as_shapes_with_morph(tmp_path):
     assert any(s.shape_type == MSO_SHAPE_TYPE.LINE for s in first.shapes)
     # The snapshot page is cleaned up.
     assert not list(tmp_path.glob(".colloquium-pptx-*"))
+
+
+def test_content_bounds_cover_what_is_drawn_not_the_root_box():
+    diagram = Diagram(signature="div.canvas", x=60, y=180, w=1160, h=490, items=[
+        {"kind": "box", "key": "a", "x": 450, "y": 200, "w": 380, "h": 120},
+        {"kind": "line", "key": "l", "points": [[640, 320], [640, 520]], "stroke_width": 2},
+        {"kind": "text", "key": "t", "x": 470, "y": 520, "w": 340, "h": 40},
+    ], theme={})
+    assert content_bounds(diagram) == (450, 200, 380, 360)
+    empty = Diagram(signature="div.canvas", x=60, y=180, w=1160, h=490, items=[], theme={})
+    assert content_bounds(empty) == (60, 180, 1160, 490)

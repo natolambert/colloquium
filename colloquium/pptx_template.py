@@ -40,7 +40,7 @@ from colloquium.pptx_diagram import (
     Diagram,
     add_diagram,
     add_morph_transition,
-    fit_scale,
+    content_bounds,
     is_diagram_html,
     snapshot_diagrams,
 )
@@ -53,6 +53,13 @@ _BODY_CHAR_EM = 0.53
 _HEADING_CHAR_EM = 0.5
 _LINE_HEIGHT = 1.2
 _MIN_SCALE = 0.6
+# Content headings shrink this far below the template's size to stay on one line
+# per `##` (a figure under them gets the height back).
+_HEADING_MIN_FRACTION = 0.72
+# Padding of the card drawn behind figures when pptx.image_background is set.
+_CARD_PAD = 0.08
+# Full-slide diagrams may grow past their HTML size by this factor to fill the body.
+_DIAGRAM_MAX_ZOOM = 1.25
 
 _COLUMN_SPLIT_RE = re.compile(r"^\s*\|\|\|\s*$", re.MULTILINE)
 _HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
@@ -217,12 +224,12 @@ class _SwatchHTMLParser(HTMLParser):
             return
         match = _HEX_RE.search(attrs.get("style") or "")
         color = _hex(match.group(1)) if match else None
-        self._stack.append((tag, color, attrs.get("class") or "", len(self.runs)))
+        self._stack.append((tag, color, attrs.get("class") or "", len(self.runs), attrs.get("href")))
 
     def handle_endtag(self, tag):
         if not self._stack:
             return
-        open_tag, color, cls, start = self._stack.pop()
+        open_tag, color, cls, start, _ = self._stack.pop()
         if color and len(self.runs) == start:
             glyph = "━" if "line" in cls else "●" if "marker" in cls and "square" not in cls else "■"
             if self.runs and not self.runs[-1].text.endswith(" "):
@@ -232,11 +239,17 @@ class _SwatchHTMLParser(HTMLParser):
             self.runs.append(Run(" "))
 
     def handle_data(self, data):
+        # Keep the source's spacing: `<a>Link</a>: text` stays "Link: text".
         text = re.sub(r"\s+", " ", data)
+        if not text:
+            return
+        if text.startswith(" ") and self.runs and not self.runs[-1].text.endswith(" ") and not self.runs[-1].line_break:
+            self.runs.append(Run(" "))
         if text.strip():
-            if self.runs and not self.runs[-1].text.endswith(" ") and not self.runs[-1].line_break:
+            href = next((entry[4] for entry in reversed(self._stack) if entry[4]), None)
+            self.runs.append(Run(text.strip(), href=href))
+            if text.endswith(" "):
                 self.runs.append(Run(" "))
-            self.runs.append(Run(text.strip()))
 
 
 def _html_to_runs(html: str) -> list[Run]:
@@ -596,7 +609,7 @@ def _layout_region(blocks, x, y, w, h, metrics: _Metrics, scale: float, gap: flo
         else:
             n_images += 1
             if block.legend:
-                text_h += metrics.text_height(block.legend, w, scale) + gap * 0.4
+                text_h += metrics.text_height(block.legend, w, scale) + gap * 0.4 + _CARD_PAD
     gaps = gap * max(0, len(blocks) - 1)
     remaining = h - text_h - gaps
     fits = remaining >= (min_img_h * n_images if n_images else 0)
@@ -624,9 +637,11 @@ def _layout_region(blocks, x, y, w, h, metrics: _Metrics, scale: float, gap: flo
             cursor += ih
             if block.legend:
                 lh = metrics.text_height(block.legend, w, scale)
-                cursor += gap * 0.4
-                # Right-aligned under the figure: the box ends at the image's right edge.
-                placements.append(_Placed("text", block.legend, x, cursor, (w + iw) / 2, lh))
+                cursor += gap * 0.4 + _CARD_PAD
+                # Spans the column, which the figure is centered in, so a centered
+                # caption sits under the figure and a right-aligned legend at its edge.
+                right = block.legend.paras[0].align == "right"
+                placements.append(_Placed("text", block.legend, x, cursor, (w + iw) / 2 if right else w, lh))
                 cursor += lh
             cursor += gap
     return placements, fits
@@ -740,7 +755,7 @@ def _add_image(slide, placed: _Placed, cfg: TemplateConfig) -> bool:
     from pptx.util import Inches
 
     if cfg.image_background:
-        pad = 0.08
+        pad = _CARD_PAD
         card = slide.shapes.add_shape(
             MSO_SHAPE.ROUNDED_RECTANGLE,
             Inches(placed.x - pad), Inches(placed.y - pad),
@@ -775,7 +790,10 @@ def _place_full_diagrams(entries, slide_w: float, cfg: TemplateConfig) -> None:
     Consecutive slides showing the same diagram (equal root tag and classes)
     are steps of one build-up: they share the largest scale that fits every
     step's body region and sit at the same spot, so nothing jumps between
-    them, and each step after the first gets a Morph transition.
+    them, and each step after the first gets a Morph transition. The scale
+    fits what the steps draw together, not the root box, so a diagram on a
+    mostly empty canvas still fills the region, up to _DIAGRAM_MAX_ZOOM of
+    its HTML size.
     """
     groups: list[list] = []
     for entry in entries:
@@ -788,14 +806,17 @@ def _place_full_diagrams(entries, slide_w: float, cfg: TemplateConfig) -> None:
     for group in groups:
         top = max(e[4] for e in group)
         bottom = min(e[4] + e[6] for e in group)
-        scale = min(
-            min(fit_scale(e[2].diagram, e[5], e[6], slide_w) for e in group),
-            (bottom - top) / max(e[2].diagram.h for e in group),
-        )
-        for step, (_, slide, block, margin_x, _, region_w, _) in enumerate(group):
+        region_w = min(e[5] for e in group)
+        bounds = [content_bounds(e[2].diagram) for e in group]
+        bx = min(b[0] for b in bounds)
+        by = min(b[1] for b in bounds)
+        bw = max(b[0] + b[2] for b in bounds) - bx
+        bh = max(b[1] + b[3] for b in bounds) - by
+        scale = min(region_w / bw, (bottom - top) / bh, _DIAGRAM_MAX_ZOOM * slide_w / 1280)
+        for step, (_, slide, block, margin_x, _, _, _) in enumerate(group):
             diagram = block.diagram
-            x0 = margin_x + (region_w - diagram.w * scale) / 2
-            y0 = top + max(0.0, (bottom - top - diagram.h * scale) / 2)
+            x0 = margin_x + (region_w - bw * scale) / 2 - (bx - diagram.x) * scale
+            y0 = top + max(0.0, (bottom - top - bh * scale) / 2) - (by - diagram.y) * scale
             add_diagram(slide, diagram, x0, y0, scale, cfg)
             if step:
                 add_morph_transition(slide)
@@ -824,6 +845,17 @@ def _placeholder_font_pt(ph, default: float) -> float:
     return default
 
 
+def _template_body_pt(layout) -> float | None:
+    """Font size of the master's body placeholder, if the template sets one."""
+    from pptx.enum.shapes import PP_PLACEHOLDER
+
+    for ph in layout.slide_master.placeholders:
+        if ph.placeholder_format.type == PP_PLACEHOLDER.BODY:
+            size = _placeholder_font_pt(ph, 0)
+            return size or None
+    return None
+
+
 def _set_placeholder_runs(ph, runs: list[Run], cfg: TemplateConfig, all_caps: bool = False):
     tf = ph.text_frame
     tf.clear()
@@ -834,7 +866,7 @@ def _set_placeholder_runs(ph, runs: list[Run], cfg: TemplateConfig, all_caps: bo
             r.font._rPr.set("cap", "all")
 
 
-def _widen_to_fit(ph, runs: list[Run], slide_w: float, char_em: float = 0.58):
+def _widen_to_fit(ph, runs: list[Run], slide_w: float, char_em: float = 0.62):
     """Grow a short-text placeholder (speaker name, affiliation) rightward when
     the content is longer than the template's sample text, rather than letting
     it wrap into a cramped column."""
@@ -850,6 +882,34 @@ def _widen_to_fit(ph, runs: list[Run], slide_w: float, char_em: float = 0.58):
     max_width = slide_w - Emu(left).inches - 0.5
     _pin_geometry(ph, left, top, Emu(width), height)
     ph.width = Inches(max(Emu(width).inches, min(needed, max_width)))
+
+
+def _shrink_to_fit(ph, runs: list[Run], bottom: float):
+    """Shrink a placeholder's text (a multi-line subtitle on a closing slide,
+    say) so its lines don't wrap, when a modest shrink manages that, and so it
+    ends above ``bottom`` inches."""
+    from pptx.util import Emu, Pt
+
+    if ph.top is None or ph.width is None:
+        return
+    size = _placeholder_font_pt(ph, 18)
+    text = "".join("\n" if r.line_break else r.text for r in runs)
+    width_in = Emu(ph.width).inches
+    room = bottom - Emu(ph.top).inches
+    n_lines = text.count("\n") + 1
+
+    def fits(s, wraps):
+        lines = _estimate_lines(text, s, width_in, _BODY_CHAR_EM)
+        return lines <= n_lines + wraps and lines * s * 1.2 / 72 <= room
+
+    # Like headings: keep each source line on one line if a modest shrink does it.
+    fitted = next((s for s in range(int(size), int(size * 0.72) - 1, -1) if fits(s, 0)), None)
+    if fitted is None:
+        fitted = next((s for s in range(int(size), int(size * 0.5) - 1, -1) if fits(s, n_lines)), int(size * 0.5))
+    if fitted != size:
+        for p in ph.text_frame.paragraphs:
+            for r in p.runs:
+                r.font.size = Pt(fitted)
 
 
 def _pin_geometry(ph, left, top, width, height):
@@ -921,6 +981,33 @@ def _resolve_citations(text: str, bib_entries: dict, style: str, numbers: dict[s
     return _CITATION_RE.sub(_replace, text)
 
 
+def _fit_heading_size(title_lines: list[str], size: float, width_in: float, max_h: float | None = None) -> float:
+    """Font size for a heading placeholder.
+
+    Content headings (no ``max_h``) shrink, down to _HEADING_MIN_FRACTION of
+    the template size, until each `##` line fits on one line, or failing that
+    until the heading wraps at most once more. Full-bleed headings (title,
+    section break) shrink until they fit ``max_h`` inches.
+    """
+    text = "\n".join(title_lines)
+
+    def lines_at(s):
+        return _estimate_lines(text, s, width_in, _HEADING_CHAR_EM)
+
+    if max_h is not None:
+        s = size
+        while s > size * 0.4 and lines_at(s) * s * 1.15 / 72 > max_h:
+            s -= 1
+        return s
+    steps = int((1 - _HEADING_MIN_FRACTION) / 0.02)
+    candidates = [round(size * (1 - 0.02 * k) * 2) / 2 for k in range(steps + 1)]
+    for limit in (len(title_lines), len(title_lines) + 1):
+        for s in candidates:
+            if lines_at(s) <= limit:
+                return s
+    return candidates[-1]
+
+
 def _remove_shape(shape):
     el = shape._element
     el.getparent().remove(el)
@@ -944,7 +1031,7 @@ def _footer_text(value, n: int, total: int) -> str:
 def export_pptx_with_template(deck, base_dir: Path, output_path: str, cfg: TemplateConfig) -> str:
     """Build ``deck`` onto the template in ``cfg`` and write ``output_path``."""
     from pptx import Presentation
-    from pptx.util import Emu, Inches
+    from pptx.util import Emu, Inches, Pt
 
     from colloquium.build import (
         _format_reference,
@@ -971,7 +1058,10 @@ def export_pptx_with_template(deck, base_dir: Path, output_path: str, cfg: Templ
 
     slide_w = Emu(prs.slide_width).inches
     slide_h = Emu(prs.slide_height).inches
-    metrics = _Metrics(base_pt=24 * slide_w * 72 / 1280)
+    # Body text: the template's body size, kept within 1-1.2x the HTML's 24px.
+    html_pt = 24 * slide_w * 72 / 1280
+    body_pt = _template_body_pt(layout_of[cfg.layouts["content"].slide]) or html_pt
+    metrics = _Metrics(base_pt=min(max(body_pt, html_pt), html_pt * 1.2))
     warnings: list[str] = []
 
     bib_entries = _parse_bib_file(deck.bibliography) if deck.bibliography else {}
@@ -1055,7 +1145,17 @@ def export_pptx_with_template(deck, base_dir: Path, output_path: str, cfg: Templ
             content = ""
 
         heading_ph = placeholders.get(roles["heading"])
-        if heading_ph is not None and title_lines:
+        heading_box = None
+        if heading_ph is not None and heading_ph.left is not None:
+            heading_box = (Emu(heading_ph.left).inches, Emu(heading_ph.top).inches)
+        # figure-title: heading puts the heading into an SVG plot's own title, so the
+        # plot carries it (as in HTML) and takes the heading's space.
+        figure_owns_title = (
+            src.metadata.get("figure_title") == "heading"
+            and not src.is_title_slide
+            and re.search(r"\.svg[\"')\s]", _HTML_COMMENT_RE.sub("", content)) is not None
+        )
+        if heading_ph is not None and title_lines and not figure_owns_title:
             runs: list[Run] = []
             for line in title_lines:
                 if runs:
@@ -1063,7 +1163,7 @@ def export_pptx_with_template(deck, base_dir: Path, output_path: str, cfg: Templ
                 runs.extend(_plain_runs(line) if line else [])
             _set_placeholder_runs(heading_ph, runs, cfg)
             filled.add(roles["heading"])
-        elif title_lines:
+        elif title_lines and heading_ph is None:
             warnings.append(f"slide {index + 1}: layout '{layout_name}' has no heading placeholder idx {roles['heading']}")
 
         for role in ("eyebrow", "subtitle", "name", "affiliation"):
@@ -1077,7 +1177,17 @@ def export_pptx_with_template(deck, base_dir: Path, output_path: str, cfg: Templ
                 continue
             _set_placeholder_runs(ph, runs, cfg, all_caps=(role == "eyebrow"))
             _widen_to_fit(ph, runs, slide_w)
+            if role == "subtitle":
+                _shrink_to_fit(ph, runs, slide_h - 0.35)
             filled.add(roles[role])
+        photo_ph = placeholders.get(roles.get("photo", -1))
+        if photo is None and photo_ph is not None and photo_ph.left is not None:
+            # No headshot: the name and affiliation take the photo's spot instead of
+            # sitting indented beside an empty one.
+            for role in ("name", "affiliation"):
+                ph = placeholders.get(roles.get(role, -1))
+                if roles.get(role) in filled and ph.left is not None and ph.left > photo_ph.left:
+                    _pin_geometry(ph, photo_ph.left, ph.top, ph.width, ph.height)
         if photo is not None and hasattr(placeholders.get(roles.get("photo", -1)), "insert_picture"):
             # insert_picture swaps the placeholder element for a filled picture.
             placeholders[roles["photo"]].insert_picture(str(photo))
@@ -1089,9 +1199,9 @@ def export_pptx_with_template(deck, base_dir: Path, output_path: str, cfg: Templ
                 _remove_shape(ph)
 
         # ----- Body content region -----
-        margin_x = Emu(heading_ph.left).inches if heading_ph is not None and heading_ph.left is not None else 0.6
+        margin_x = heading_box[0] if heading_box else 0.6
         region_w = slide_w - 2 * margin_x
-        top = 0.6
+        top = heading_box[1] if heading_box and figure_owns_title else 0.6
         content = _HTML_COMMENT_RE.sub("", content).strip()
         is_full_bleed = src.is_title_slide or layout_name == "section-break"
         if heading_ph is not None and roles["heading"] in filled:
@@ -1099,8 +1209,19 @@ def export_pptx_with_template(deck, base_dir: Path, output_path: str, cfg: Templ
             if not is_full_bleed:
                 # Content headings span the slide.
                 _pin_geometry(heading_ph, heading_ph.left, heading_top, Inches(region_w), heading_ph.height)
-            size = _placeholder_font_pt(heading_ph, 30)
+            template_size = _placeholder_font_pt(heading_ph, 30)
             width_in = Emu(heading_ph.width).inches
+            max_h = None
+            if is_full_bleed:
+                max_h = Emu(heading_ph.height).inches
+                if layout_name == "section-break":
+                    # Nothing sits under a section title: it may use the slide down to the margin.
+                    max_h = max(max_h, slide_h - Emu(heading_top).inches - 0.4)
+            size = _fit_heading_size(title_lines, template_size, width_in, max_h)
+            if size != template_size:
+                for p in heading_ph.text_frame.paragraphs:
+                    for r in p.runs:
+                        r.font.size = Pt(size)
             text = "\n".join(title_lines)
             lines = _estimate_lines(text, size, width_in, _HEADING_CHAR_EM)
             title_h = lines * size * 1.15 / 72 + 0.08
