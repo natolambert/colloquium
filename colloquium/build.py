@@ -2105,6 +2105,10 @@ def build_deck(deck: Deck, output_stem: str | None = None) -> str:
                 _discover_citation_keys(rendered, bib_entries, cited_keys)
             if slide.title:
                 _discover_citation_keys(slide.title, bib_entries, cited_keys)
+            # Footnote directives render citations too
+            for side in ("footnote_left", "footnote_right"):
+                if slide.metadata.get(side):
+                    _discover_citation_keys(slide.metadata[side], bib_entries, cited_keys)
             # Also discover keys from per-slide cite directives
             for key in slide.metadata.get("cite_left", []) + slide.metadata.get("cite_right", []):
                 if key not in cited_keys and key in bib_entries:
