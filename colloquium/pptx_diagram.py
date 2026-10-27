@@ -334,7 +334,7 @@ def add_diagram(slide, diagram: Diagram, x0: float, y0: float, s: float, cfg) ->
         elif kind == "line":
             _add_line(slide, item, frame, pairs)
         elif kind == "image" and item.get("path") is not None:
-            _add_picture(slide, item, frame)
+            _add_picture(slide, item, frame, google_slides=cfg.google_slides)
 
 
 def _rgb(color, pairs):
@@ -494,10 +494,11 @@ def _add_line(slide, item, frame: _Frame, pairs):
             etree.SubElement(ln, qn(tag)).set("type", "triangle")
 
 
-def _add_picture(slide, item, frame: _Frame):
+def _add_picture(slide, item, frame: _Frame, *, google_slides=False):
     import io
 
     from pptx.util import Inches
+    from colloquium.pptx_images import add_picture
 
     source = item["path"]
     if isinstance(source, bytes):
@@ -507,9 +508,11 @@ def _add_picture(slide, item, frame: _Frame):
     if item.get("fit") == "contain" and nw and nh:
         k = min(w / nw, h / nh)
         x, y, w, h = x + (w - nw * k) / 2, y + (h - nh * k) / 2, nw * k, nh * k
-    pic = slide.shapes.add_picture(
+    pic = add_picture(
+        slide.shapes,
         source if not isinstance(source, Path) else str(source),
         Inches(frame.x(x)), Inches(frame.y(y)), Inches(w * frame.s), Inches(h * frame.s),
+        google_slides=google_slides,
     )
     pic.name = shape_name(item["key"])
 

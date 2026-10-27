@@ -783,6 +783,28 @@ colloquium export --pptx slides.md  # → slides.pptx
 
 This produces a reasonable starting point, but some colloquium features lose fidelity: citations are flattened, math renders as raw LaTeX, and custom themes/CSS aren't applied. Charts and tables become native editable PPTX objects.
 
+### Keeping images sharp in Google Slides
+
+```bash
+colloquium export talk.md --google-slides -o talk-google-slides.pptx
+```
+
+This exports a PPTX for import into Google Slides. It also works with an event
+template. To make it the deck's default PPTX behavior, set `google_slides: true`
+inside its `pptx:` frontmatter and use the usual `--pptx` command.
+
+Google Slides reduced images wider or taller than 2048 pixels during our October
+2026 import tests. Increasing the image resolution alone did not prevent that
+reduction. This option divides large figures into lossless PNG tiles no larger
+than 1600 pixels on either axis and groups them at the original image's exact
+position and size. The test import preserved the tiles byte-for-byte. Smaller
+images and native text remain unchanged.
+
+A tiled figure moves and resizes as a group; to replace or crop it, regenerate
+the export from its source. This preserves existing image detail but cannot add
+detail to a low-resolution source screenshot. Check the imported deck in
+slideshow mode and test copying slides into the conference's destination deck.
+
 ### Exporting onto an event's template
 
 When a conference hands you a `.pptx` speaker template, keep writing in markdown and build native, editable slides on the template's own layouts — backgrounds, logos, and heading styles come from the template:

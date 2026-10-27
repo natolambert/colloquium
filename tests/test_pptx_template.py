@@ -161,6 +161,18 @@ Left text
     assert str(swatch.font.color.rgb) == "2258C3"
 
 
+def test_google_slides_template_export_keeps_large_figure_as_group(tmp_path):
+    from PIL import Image
+
+    Image.new("RGB", (3200, 1680), "white").save(tmp_path / "plot.png")
+    md = _write_deck(tmp_path, "## Figure\n\n![plot](plot.png)\n")
+    md.write_text(md.read_text().replace("pptx:\n", "pptx:\n  google_slides: true\n"))
+    prs = Presentation(export_pptx(str(md)))
+    group = next(s for s in prs.slides[0].shapes if s.shape_type == 6)
+    assert len(group.shapes) == 4
+    assert all(max(s.image.size) <= 1600 for s in group.shapes)
+
+
 def test_cli_template_override_and_bad_config(tmp_path):
     md = _write_deck(tmp_path, "## Hi\n\ntext\n", pptx_block="")
     template = str(tmp_path / "template.pptx")
