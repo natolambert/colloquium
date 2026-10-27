@@ -11,6 +11,7 @@ One line per PR for easy copy into GitHub releases.
 
 ## [Unreleased]
 
+- Add opt-in Google Slides PPTX export (`--google-slides` / `pptx.google_slides`) that preserves large figure detail with lossless grouped image tiles; verified through native Slides import and copying between decks ([#71](https://github.com/natolambert/colloquium/pull/71))
 - Fixed: citations that appear only in `footnote`/`footnote-right` directives now count toward the References pages, so the footer total is right and decks with chapter bars no longer raise `IndexError` when those citations add a References page ([#70](https://github.com/natolambert/colloquium/pull/70))
 
 ## [0.3.0] - 2026-10-26
