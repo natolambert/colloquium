@@ -577,7 +577,7 @@ def _register_notes_master(prs) -> None:
 
 def export_pptx(
     input_path: str, output_path: str | None = None, template: str | None = None,
-    *, google_slides: bool | None = None,
+    *, google_slides: bool | str | None = None,
 ) -> str:
     """Export a presentation to PPTX.
 
@@ -604,9 +604,9 @@ def export_pptx(
     input_path = str(Path(input_path).resolve())
     base_dir = Path(input_path).parent
     deck = parse_file(input_path)
-    from colloquium.pptx_images import add_picture, google_slides_enabled
+    from colloquium.pptx_images import add_picture, google_slides_mode
 
-    google_slides = google_slides_enabled(deck.pptx or {}, google_slides)
+    google_slides = google_slides_mode(deck.pptx or {}, google_slides)
 
     if output_path is None:
         output_path = str(Path(input_path).with_suffix(".pptx"))

@@ -153,8 +153,8 @@ def main():
     export_parser.add_argument("file", help="Input markdown file")
     export_parser.add_argument("--pptx", action="store_true", help="Export as PPTX (requires: pip install colloquium[pptx])")
     export_parser.add_argument("--template", help="PPTX template to build slides on (overrides pptx.template)")
-    export_parser.add_argument("--google-slides", action="store_true", default=None,
-                               help="Export PPTX with large images split into lossless grouped tiles for Google Slides")
+    export_parser.add_argument("--google-slides", nargs="?", choices=("tile", "resize"), const="tile",
+                               help="Prepare PPTX images for Google Slides: tile (default) preserves pixels in groups; resize uses Lanczos to fit 2000px")
     export_parser.add_argument("-o", "--output", help="Output file path")
     export_parser.set_defaults(func=_export)
 

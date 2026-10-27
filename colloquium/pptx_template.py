@@ -36,7 +36,7 @@ from pathlib import Path
 
 from colloquium.md import create_base_md
 from colloquium.elements import BLOCK_LANGUAGES
-from colloquium.pptx_images import add_picture, google_slides_enabled
+from colloquium.pptx_images import add_picture, google_slides_mode
 from colloquium.pptx_diagram import (
     Diagram,
     add_diagram,
@@ -96,7 +96,7 @@ class TemplateConfig:
     font: str | None = None
     colors: dict[str, str] = field(default_factory=dict)
     image_background: str | None = None
-    google_slides: bool = False
+    google_slides: str | None = None
 
 
 def _hex(value, default: str | None = None) -> str | None:
@@ -154,7 +154,7 @@ def parse_template_config(raw: dict, base_dir: Path, template_override: str | No
         font=raw.get("font"),
         colors=colors,
         image_background=_hex(raw.get("image_background")),
-        google_slides=google_slides_enabled(raw),
+        google_slides=google_slides_mode(raw),
     )
 
 
