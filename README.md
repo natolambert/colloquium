@@ -783,7 +783,7 @@ colloquium export --pptx slides.md  # → slides.pptx
 
 This produces a reasonable starting point, but some colloquium features lose fidelity: citations are flattened, math renders as raw LaTeX, and custom themes/CSS aren't applied. Charts and tables become native editable PPTX objects.
 
-### Keeping images sharp in Google Slides
+### Preserving image data in Google Slides (experimental)
 
 ```bash
 colloquium export talk.md --google-slides -o talk-google-slides.pptx
@@ -799,6 +799,11 @@ reduction. This option divides large figures into lossless PNG tiles no larger
 than 1600 pixels on either axis and groups them at the original image's exact
 position and size. The test import preserved the tiles byte-for-byte. Smaller
 images and native text remain unchanged.
+
+This verifies preservation of the embedded image data, not a sharper display in
+Google Slides. The initial visual comparison did not establish a meaningful
+improvement at normal viewing size. Browser rendering, source image quality,
+label size, and the presentation display's resolution still affect legibility.
 
 A tiled figure moves and resizes as a group; to replace or crop it, regenerate
 the export from its source. This preserves existing image detail but cannot add
