@@ -783,6 +783,48 @@ colloquium export --pptx slides.md  # → slides.pptx
 
 This produces a reasonable starting point, but some colloquium features lose fidelity: citations are flattened, math renders as raw LaTeX, and custom themes/CSS aren't applied. Charts and tables become native editable PPTX objects.
 
+### Preparing images for Google Slides (experimental)
+
+```bash
+colloquium export talk.md --google-slides resize -o talk-google-slides.pptx
+```
+
+This exports a PPTX for import into Google Slides. It also works with an event
+template. To make it the deck's default PPTX behavior, use the following
+frontmatter and the usual `--pptx` command:
+
+```yaml
+pptx:
+  google_slides: resize
+```
+
+`resize` fits large images within 2000×2000 pixels using Lanczos resampling,
+preserves transparency, and embeds the result as a lossless PNG. It keeps each
+figure as a single editable picture, never enlarges smaller images, and leaves
+source files and slide placement unchanged. This is intended to control the
+downsampling ourselves, with a little margin below Google's observed limit.
+
+Google Slides reduced images wider or taller than 2048 pixels during our October
+2026 import tests. Increasing the image resolution alone did not prevent that
+reduction. An alternative, `--google-slides tile`, divides large figures into lossless PNG tiles no larger
+than 1600 pixels on either axis and groups them at the original image's exact
+position and size. The test import preserved the tiles byte-for-byte. Smaller
+images and native text remain unchanged. Bare `--google-slides` and frontmatter
+`google_slides: true` select `tile`; `false` disables preparation. An explicit
+CLI mode overrides frontmatter.
+
+In a six-slide comparison, both resized images (2000×786 and 2000×1050) and all
+tiles survived native Google Slides import byte-for-byte; the unprepared images
+were resampled by Google. The resized inference chart showed smoother lines and
+cleaner text than Google's conversion at the same viewing size. This is a
+limited comparison, not a guarantee for every image or display. Source image
+quality, label size, and the display's resolution still affect legibility.
+
+A tiled figure moves and resizes as a group; to replace or crop it, regenerate
+the export from its source. This preserves existing image detail but cannot add
+detail to a low-resolution source screenshot. Check the imported deck in
+slideshow mode and test copying slides into the conference's destination deck.
+
 ### Exporting onto an event's template
 
 When a conference hands you a `.pptx` speaker template, keep writing in markdown and build native, editable slides on the template's own layouts — backgrounds, logos, and heading styles come from the template:

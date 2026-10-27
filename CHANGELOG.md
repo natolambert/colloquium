@@ -11,6 +11,7 @@ One line per PR for easy copy into GitHub releases.
 
 ## [Unreleased]
 
+- Add experimental Google Slides PPTX image modes (`--google-slides resize|tile` / `pptx.google_slides`) for controlled Lanczos downsampling or lossless grouped tiles, with native import and copy-between-decks checks ([#71](https://github.com/natolambert/colloquium/pull/71))
 - Fixed: citations that appear only in `footnote`/`footnote-right` directives now count toward the References pages, so the footer total is right and decks with chapter bars no longer raise `IndexError` when those citations add a References page ([#70](https://github.com/natolambert/colloquium/pull/70))
 
 ## [0.3.0] - 2026-10-26

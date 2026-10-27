@@ -52,11 +52,11 @@ def _export(args):
 
     output_path = args.output
 
-    if args.pptx or args.template:
+    if args.pptx or args.template or args.google_slides:
         from colloquium.export import export_pptx
 
         try:
-            result = export_pptx(input_path, output_path, template=args.template)
+            result = export_pptx(input_path, output_path, template=args.template, google_slides=args.google_slides)
             print(f"Exported: {result}")
         except (ImportError, ValueError, FileNotFoundError) as e:
             print(f"Error: {e}", file=sys.stderr)
@@ -153,6 +153,8 @@ def main():
     export_parser.add_argument("file", help="Input markdown file")
     export_parser.add_argument("--pptx", action="store_true", help="Export as PPTX (requires: pip install colloquium[pptx])")
     export_parser.add_argument("--template", help="PPTX template to build slides on (overrides pptx.template)")
+    export_parser.add_argument("--google-slides", nargs="?", choices=("tile", "resize"), const="tile",
+                               help="Prepare PPTX images for Google Slides: tile (default) preserves pixels in groups; resize uses Lanczos to fit 2000px")
     export_parser.add_argument("-o", "--output", help="Output file path")
     export_parser.set_defaults(func=_export)
 

@@ -577,6 +577,7 @@ def _register_notes_master(prs) -> None:
 
 def export_pptx(
     input_path: str, output_path: str | None = None, template: str | None = None,
+    *, google_slides: bool | str | None = None,
 ) -> str:
     """Export a presentation to PPTX.
 
@@ -603,6 +604,9 @@ def export_pptx(
     input_path = str(Path(input_path).resolve())
     base_dir = Path(input_path).parent
     deck = parse_file(input_path)
+    from colloquium.pptx_images import add_picture, google_slides_mode
+
+    google_slides = google_slides_mode(deck.pptx or {}, google_slides)
 
     if output_path is None:
         output_path = str(Path(input_path).with_suffix(".pptx"))
@@ -611,6 +615,7 @@ def export_pptx(
         from colloquium.pptx_template import export_pptx_with_template, parse_template_config
 
         cfg = parse_template_config(deck.pptx or {}, base_dir, template_override=template)
+        cfg.google_slides = google_slides
         return export_pptx_with_template(deck, base_dir, output_path, cfg)
 
     prs = Presentation()
@@ -677,7 +682,7 @@ def export_pptx(
         x = left + (max_w - w) // 2
         y = top + (max_h - h) // 2
 
-        slide.shapes.add_picture(img_file, x, y, w, h)
+        add_picture(slide.shapes, img_file, x, y, w, h, google_slides=google_slides)
 
     def _add_chart(slide, spec, left, top, width, height):
         """Add a native PPTX chart from a chart YAML spec."""
