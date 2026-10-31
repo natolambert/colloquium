@@ -342,7 +342,7 @@ To add appendix or backup slides after the automatically generated references, p
 Extra material
 ```
 
-These post-reference slides render after the references section, but they do not contribute to the footer `{N}` total. If the main talk plus generated references totals 30 slides, the first post-reference slide is numbered `31/30`.
+These post-reference slides render after the references section, but they do not contribute to the footer `{N}` total. If the main talk plus generated references totals 30 slides, the first post-reference slide is numbered `31/30`. The progress bar at the bottom of the window fills on slide 30 and stays full through the post-reference slides.
 
 ### Chapters
 
