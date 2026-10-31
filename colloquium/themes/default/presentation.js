@@ -38,6 +38,10 @@ class ColloquiumPresentation {
 
         this.deck.setAttribute('tabindex', '-1');
         this.progressBar = document.querySelector('.colloquium-progress-bar');
+        // The bar fills on the last main slide (generated references included);
+        // `after: references` slides past it keep it full.
+        const mainSlides = parseInt(this.progressBar && this.progressBar.parentElement.dataset.mainSlides, 10);
+        this.mainSlides = mainSlides >= 1 ? Math.min(mainSlides, this.totalSlides) : this.totalSlides;
         this.pickerTrigger = document.querySelector('.colloquium-picker-trigger');
         this.pickerTriggerCount = this.pickerTrigger
             ? this.pickerTrigger.querySelector('.colloquium-picker-trigger-count')
@@ -154,8 +158,8 @@ class ColloquiumPresentation {
 
         // Update progress bar
         if (this.progressBar) {
-            const progress = this.totalSlides > 1
-                ? (this.currentIndex / (this.totalSlides - 1)) * 100
+            const progress = this.mainSlides > 1
+                ? Math.min(this.currentIndex / (this.mainSlides - 1), 1) * 100
                 : 100;
             this.progressBar.style.width = progress + '%';
         }

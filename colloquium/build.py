@@ -1764,7 +1764,7 @@ $slides_html
     <span class="colloquium-picker-trigger-count">1 / $total_slides</span>
 </button>
 
-<div class="colloquium-progress">
+<div class="colloquium-progress" data-main-slides="$total_slides">
     <div class="colloquium-progress-bar" style="width: 0%"></div>
 </div>
 

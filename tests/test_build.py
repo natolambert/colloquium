@@ -1555,6 +1555,8 @@ class TestCitationRendering:
             assert html.index("<h2>References</h2>") < html.index("<h2>Appendix</h2>")
             assert 'data-index="2"' in html[html.index("<h2>Appendix</h2>") - 80:html.index("<h2>Appendix</h2>")]
             assert "3 / 2" in html
+            # The progress bar fills at the end of the references, before the appendix.
+            assert '<div class="colloquium-progress" data-main-slides="2">' in html
 
     def test_references_form_their_own_chapter_when_deck_has_chapters(self):
         with tempfile.TemporaryDirectory() as tmpdir:
