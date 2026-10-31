@@ -1170,6 +1170,12 @@ html, body {
     max-height: none;
 }
 
+.colloquium-footer-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
 .colloquium-counter {
     cursor: pointer;
     font-variant-numeric: tabular-nums;

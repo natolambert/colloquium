@@ -387,6 +387,14 @@ class TestChapterDirective:
         assert slide.metadata["chapter_bar"] == "bars chapters"
         assert "<!-- chapter-bar: bars chapters -->" in slide.to_markdown()
 
+    def test_footer_logo_list_round_trips(self):
+        deck = parse_markdown(
+            '---\ntitle: Talk\nfooter:\n  left: ["logo.png", "partner.svg"]\n'
+            '  section_break:\n    left: ["logo-white.png", "partner-white.svg"]\n---\n\n## S1'
+        )
+        assert deck.footer["left"] == ["logo.png", "partner.svg"]
+        assert parse_markdown(deck.to_markdown()).footer == deck.footer
+
     def test_footer_section_break_round_trips(self):
         deck = parse_markdown(
             '---\ntitle: Talk\nfooter:\n  left: "logo.png"\n'

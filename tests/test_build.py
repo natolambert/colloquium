@@ -2487,6 +2487,27 @@ class TestSectionBreakFooter:
         assert 'src="logo.png"' in sections[1]
         assert "1 / 2" in sections[0]
 
+    def test_footer_zones_accept_lists_of_logos(self):
+        deck = Deck(
+            title="Test",
+            footer={
+                "left": ["logo.png", "partner.svg"],
+                "right": "auto",
+                "section_break": {"left": ["logo-white.png", "partner-white.svg"]},
+            },
+        )
+        deck.add_slide(title="Part 1", layout="section-break")
+        deck.add_slide(title="A", content="a")
+
+        sections = _slide_sections(build_deck(deck))
+
+        content_group = re.search(r'<span class="colloquium-footer-group">(.*?)</span>', sections[1]).group(1)
+        assert content_group.index('src="logo.png"') < content_group.index('src="partner.svg"')
+        assert content_group.count('class="colloquium-footer-logo"') == 2
+        assert 'src="partner-white.svg"' in sections[0]
+        assert 'src="partner.svg"' not in sections[0]
+        assert "2 / 2" in sections[1]
+
 
 class TestOnlyDirective:
     def test_pptx_only_slides_are_left_out_of_html(self):

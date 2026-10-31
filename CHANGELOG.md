@@ -11,6 +11,7 @@ One line per PR for easy copy into GitHub releases.
 
 ## [Unreleased]
 
+- Footer zones accept a list (e.g. `left: ["logo.png", "partner.svg"]`), rendered side by side, including in `footer.section_break`; PPTX template export keeps only a list's text items ([#73](https://github.com/natolambert/colloquium/pull/73))
 - Fixed: the window progress bar now fills on the last main slide (generated references included) and stays full on `after: references` slides, instead of counting them toward the end of the deck ([#72](https://github.com/natolambert/colloquium/pull/72))
 - Add experimental Google Slides PPTX image modes (`--google-slides resize|tile` / `pptx.google_slides`) for controlled Lanczos downsampling or lossless grouped tiles, with native import and copy-between-decks checks ([#71](https://github.com/natolambert/colloquium/pull/71))
 - Fixed: citations that appear only in `footnote`/`footnote-right` directives now count toward the References pages, so the footer total is right and decks with chapter bars no longer raise `IndexError` when those citations add a References page ([#70](https://github.com/natolambert/colloquium/pull/70))

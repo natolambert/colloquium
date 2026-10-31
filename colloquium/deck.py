@@ -33,6 +33,13 @@ def normalize_chapter_bar(value) -> dict | None:
     return options
 
 
+def _yaml_footer_value(value) -> str:
+    """Quote a footer zone for frontmatter; a list becomes a flow sequence."""
+    if isinstance(value, list):
+        return "[" + ", ".join(f'"{item}"' for item in value) + "]"
+    return f'"{value}"'
+
+
 class Deck:
     """A presentation deck composed of slides."""
 
@@ -190,13 +197,13 @@ class Deck:
             lines.append("footer:")
             for key in ("left", "center", "right"):
                 if key in self.footer:
-                    lines.append(f"  {key}: \"{self.footer[key]}\"")
+                    lines.append(f"  {key}: {_yaml_footer_value(self.footer[key])}")
             section_break = self.footer.get("section_break")
             if isinstance(section_break, dict):
                 lines.append("  section_break:")
                 for key in ("left", "center", "right"):
                     if key in section_break:
-                        lines.append(f"    {key}: \"{section_break[key]}\"")
+                        lines.append(f"    {key}: {_yaml_footer_value(section_break[key])}")
         if self.fonts:
             lines.append("fonts:")
             for key in ("heading", "body"):
