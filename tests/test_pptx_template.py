@@ -428,3 +428,16 @@ def test_headings_shrink_to_stay_on_one_line_or_fit_their_box():
     fitted = _fit_heading_size(section, 54, 8.44, max_h=1.6)
     assert fitted < 54
     assert _estimate_lines(section[0], fitted, 8.44, _HEADING_CHAR_EM) * fitted * 1.15 / 72 <= 1.6
+
+
+def test_footer_logo_lists_keep_only_their_text(tmp_path):
+    md = _write_deck(tmp_path, "## Content\n\nBody")
+    md.write_text(md.read_text().replace(
+        'footer:\n  right: "Me {n}/{N}"',
+        'footer:\n  left: ["logo.png", "partner.svg"]\n  center: ["logo.png", "My Talk"]\n  right: "Me {n}/{N}"',
+    ))
+    prs = Presentation(export_pptx(str(md)))
+    texts = _texts(prs.slides[0])
+    assert "My Talk" in texts
+    assert "Me 1/1" in texts
+    assert not any("logo.png" in t or "partner.svg" in t for t in texts)

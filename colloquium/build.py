@@ -1216,24 +1216,25 @@ def _build_footer_html(footer: dict | None, index: int, total: int) -> str:
     logo_scale = footer.get("logo_scale", 1)
     logo_height = int(24 * float(logo_scale))
 
+    def render(value) -> str:
+        if value == "auto":
+            return counter_html
+        if value and ("{n}" in value or "{N}" in value):
+            text = value.replace("{n}", str(index + 1)).replace("{N}", str(total))
+            return f'<span class="colloquium-counter">{text}</span>'
+        if value and _IMAGE_URL_RE.search(value):
+            return f'<img class="colloquium-footer-logo" src="{value}" alt="" style="height: {logo_height}px">'
+        return value or ""
+
     zones = []
     for zone in ("left", "center", "right"):
         value = footer.get(zone, "")
-        inner = ""
-        if value == "auto":
-            inner = counter_html
-        elif value and ("{n}" in value or "{N}" in value):
-            text = value.replace("{n}", str(index + 1)).replace("{N}", str(total))
-            inner = f'<span class="colloquium-counter">{text}</span>'
-        elif value and _IMAGE_URL_RE.search(value):
-            inner = f'<img class="colloquium-footer-logo" src="{value}" alt="" style="height: {logo_height}px">'
-        elif value:
-            # Substitute {n} (slide number) and {N} (total slides)
-            rendered = value.replace("{n}", str(index + 1)).replace("{N}", str(total))
-            if "{n}" in value or "{N}" in value:
-                inner = f'<span class="colloquium-counter">{rendered}</span>'
-            else:
-                inner = rendered
+        if isinstance(value, list):
+            # A list renders its items side by side, e.g. several logos.
+            items = "".join(render(str(item)) for item in value if item)
+            inner = f'<span class="colloquium-footer-group">{items}</span>' if items else ""
+        else:
+            inner = render(value)
         zone_classes = [f"colloquium-footer-{zone}"]
         if zone == "right":
             zone_classes.append("colloquium-footer-nav")

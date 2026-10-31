@@ -111,7 +111,7 @@ custom_css: ".slide h2 { color: red; }"   # inline CSS overrides, or a .css file
 | `aspect_ratio` | `"16:9"` | Slide aspect ratio |
 | `fonts.heading` | Inter | Google Font for headings |
 | `fonts.body` | Inter | Google Font for body text |
-| `footer.left` | `""` | Left footer zone (text, image URL, or `"auto"`) |
+| `footer.left` | `""` | Left footer zone (text, image URL, or `"auto"`), or a list of them shown side by side |
 | `footer.center` | `""` | Center footer zone |
 | `footer.right` | `"auto"` | Right footer zone (`"auto"` = slide numbers) |
 | `custom_css` | `""` | Additional CSS injected into the page: inline CSS, or the path of a `.css` file next to the deck (see [Custom CSS from a file](#custom-css-from-a-file)) |
@@ -420,6 +420,16 @@ footer:
   right: "auto"
   section_break:
     left: "assets/logo-white.png"
+```
+
+Any zone can take a list, rendered side by side, e.g. two organizations' logos (give each a white version for section breaks):
+
+```yaml
+footer:
+  left: ["assets/logo.png", "assets/partner.svg"]
+  right: "auto"
+  section_break:
+    left: ["assets/logo-white.png", "assets/partner-white.svg"]
 ```
 
 #### Table of contents

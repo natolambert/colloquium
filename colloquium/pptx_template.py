@@ -1307,9 +1307,14 @@ def export_pptx_with_template(deck, base_dir: Path, output_path: str, cfg: Templ
         if deck.footer and not is_full_bleed:
             for zone, align in (("left", "left"), ("center", "center"), ("right", "right")):
                 value = deck.footer.get(zone)
-                if not value or re.search(r"\.(png|jpe?g|gif|svg|webp)$", str(value), re.IGNORECASE):
+                # Footer logos are left to the template; a list keeps only its text items.
+                items = [
+                    item for item in (value if isinstance(value, list) else [value])
+                    if item and not re.search(r"\.(png|jpe?g|gif|svg|webp)$", str(item), re.IGNORECASE)
+                ]
+                if not items:
                     continue
-                text = _footer_text(value, index + 1, total)
+                text = " ".join(_footer_text(item, index + 1, total) for item in items)
                 para = Para([Run(text)], kind="small", align="right" if align == "right" else "left")
                 box = _add_text_block(slide, TextBlock([para]), margin_x, slide_h - 0.4, region_w, 0.2, metrics, 1.0, cfg)
                 if align == "center":
