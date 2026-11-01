@@ -285,6 +285,33 @@ class TestBuildDeck:
 
         assert "\u2013 why models need \u201ctools\u201d" in html
 
+    def test_box_element_renders_math(self):
+        deck = Deck(title="Test")
+        deck.add_slide(
+            title="Box",
+            content=(
+                "```box\n"
+                "title: Key idea $\\sigma(z/T)$\n"
+                "content: |\n"
+                "  Temperature scaling $x_i$\n"
+                "\n"
+                "  $$\\hat p = \\max_k \\operatorname{softmax}(z/T)_k$$\n"
+                "```"
+            ),
+        )
+        html = build_deck(deck)
+
+        assert (
+            '<div class="colloquium-box-title">Key idea '
+            '<span class="math inline">\\sigma(z/T)</span></div>'
+        ) in html
+        assert '<span class="math inline">x_i</span>' in html
+        assert (
+            '<div class="math block">\n'
+            "\\hat p = \\max_k \\operatorname{softmax}(z/T)_k\n"
+            "</div>"
+        ) in html
+
     def test_conversation_element_applies_smart_typography(self):
         deck = Deck(title="Test")
         deck.add_slide(
@@ -852,6 +879,43 @@ class TestConversationRendering:
 
         assert "Line one\nLine two" in html
         assert "white-space: pre-line;" in html
+
+    def test_conversation_renders_math(self):
+        deck = Deck(title="Test")
+        deck.add_slide(
+            title="Chat",
+            content=(
+                "```conversation\n"
+                "messages:\n"
+                "  - role: user\n"
+                '    content: "What is $\\\\sigma(z/T)$?"\n'
+                "  - role: assistant\n"
+                "    content: |\n"
+                "      $$\\hat p = \\max_k p_k$$\n"
+                "```"
+            ),
+        )
+        html = build_deck(deck)
+
+        assert '<span class="math inline">\\sigma(z/T)</span>' in html
+        assert '<div class="math block">\n\\hat p = \\max_k p_k\n</div>' in html
+
+    def test_conversation_line_break_escape_skips_math(self):
+        deck = Deck(title="Test")
+        deck.add_slide(
+            title="Chat",
+            content=(
+                "```conversation\n"
+                "messages:\n"
+                "  - role: assistant\n"
+                "    content: 'So $a \\neq b$\\nand $$\\nabla f$$'\n"
+                "```"
+            ),
+        )
+        html = build_deck(deck)
+
+        assert '<span class="math inline">a \\neq b</span>\nand' in html
+        assert '<div class="math inline">\\nabla f</div>' in html
 
     def test_invalid_yaml(self):
         deck = Deck(title="Test")
