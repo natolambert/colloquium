@@ -5,14 +5,14 @@ import re
 
 import yaml
 
-from colloquium.md import create_base_md
+from colloquium.md import create_math_md
 
 PATTERN = re.compile(
     r'<pre><code class="language-box">(.*?)</code></pre>',
     re.DOTALL,
 )
 
-_block_md = create_base_md()
+_block_md = create_math_md()
 _SIMPLE_SCALAR_RE = re.compile(r"^(title|tone|align|size|compact):\s*(.+?)\s*$")
 
 

@@ -13,9 +13,8 @@ from string import Template
 
 import yaml
 from markdown_it import MarkdownIt
-from mdit_py_plugins.dollarmath import dollarmath_plugin
 
-from colloquium.md import create_base_md
+from colloquium.md import create_math_md
 
 from colloquium import elements
 from colloquium.deck import CHAPTER_BAR_DEFAULTS, Deck
@@ -41,15 +40,8 @@ def _read_presentation_js(theme: str = "default") -> str:
 
 
 def _create_md_renderer() -> MarkdownIt:
-    """Create a markdown-it renderer with math and table support.
-
-    The dollarmath plugin protects $...$ and $$...$$ from markdown
-    processing (e.g. _ becoming <em>). KaTeX renders the resulting
-    .math elements client-side.
-    """
-    md = create_base_md()
-    dollarmath_plugin(md, double_inline=True)
-    return md
+    """Create a markdown-it renderer with math and table support."""
+    return create_math_md()
 
 
 def _render_markdown(text: str, md: MarkdownIt) -> str:

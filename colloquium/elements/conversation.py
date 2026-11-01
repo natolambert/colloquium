@@ -5,7 +5,7 @@ import re
 
 import yaml
 
-from colloquium.md import create_base_md
+from colloquium.md import create_math_md
 
 PATTERN = re.compile(
     r'<pre><code class="language-conversation">(.*?)</code></pre>',
@@ -13,7 +13,12 @@ PATTERN = re.compile(
 )
 
 _conversation_counter = 0
-_inline_md = create_base_md()
+_inline_md = create_math_md()
+# Math spans (as dollarmath reads them) or a literal \n escape outside them.
+_LITERAL_NEWLINE_RE = re.compile(
+    r"((?<!\\)\$\$.+?(?<!\\)\$\$|(?<!\\)\$.+?(?<!\\)\$)|\\n",
+    re.DOTALL,
+)
 
 
 def reset() -> None:
@@ -65,7 +70,9 @@ def process(yaml_str: str) -> str:
         content = msg.get("content", "")
         if not isinstance(content, str):
             content = str(content)
-        content = content.replace("\\n", "\n")
+        # Turn literal \n escapes into newlines, but not inside math, where
+        # they start commands like \neq or \nabla.
+        content = _LITERAL_NEWLINE_RE.sub(lambda m: m.group(1) or "\n", content)
         # Render content through markdown for bold/italic/code
         rendered = _inline_md.render(content).strip()
         role_html = (
