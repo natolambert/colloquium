@@ -293,6 +293,11 @@ Some math: $E = mc^2$
         deck = parse_markdown(text)
         assert deck.figure_captions is True
 
+    def test_show_animations_frontmatter_parsed(self):
+        text = "---\ntitle: Talk\nshow_animations: false\n---\n\n## S1\n\nContent"
+        assert parse_markdown(text).show_animations is False
+        assert parse_markdown("---\ntitle: Talk\n---\n\n## S1\n\nContent").show_animations is True
+
 
 class TestAnimateDirective:
     def test_animate_stored_in_metadata(self):

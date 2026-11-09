@@ -499,6 +499,12 @@ If you only want captions on selected slides, use `figure-captions` as a slide c
 
 If the deck enables `figure_captions: true`, add `no-figure-captions` to a slide to opt that slide out.
 
+To show every `<!-- step -->` and `<!-- animate: ... -->` reveal at once while editing, add this to frontmatter. Set it back to `true` (the default) before presenting:
+
+```yaml
+show_animations: false
+```
+
 ### Text Sizes
 
 Control font size on any element or block using HTML class attributes:

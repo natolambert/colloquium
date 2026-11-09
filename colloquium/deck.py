@@ -58,6 +58,7 @@ class Deck:
         citation_style: str = "author-year",
         citation_order: str = "auto",
         figure_captions: bool = False,
+        show_animations: bool = True,
         pptx: dict | None = None,
         chapters: bool = True,
         chapter_bar: bool | str | dict = False,
@@ -87,6 +88,8 @@ class Deck:
         self.citation_style = citation_style
         self.citation_order = citation_order
         self.figure_captions = figure_captions
+        # False renders every step/animate reveal at once (faster while editing).
+        self.show_animations = show_animations
         self.pptx = pptx
         self.chapters = chapters
         self.chapter_bar = normalize_chapter_bar(chapter_bar)
@@ -217,6 +220,8 @@ class Deck:
             lines.append(f"citation_order: {self.citation_order}")
         if self.figure_captions:
             lines.append("figure_captions: true")
+        if not self.show_animations:
+            lines.append("show_animations: false")
         if self.url:
             lines.append(f'url: "{self.url}"')
         if self.share_image:

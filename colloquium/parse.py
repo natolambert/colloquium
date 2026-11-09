@@ -208,6 +208,7 @@ def parse_markdown(text: str) -> Deck:
         citation_style=metadata.get("citation_style", "author-year"),
         citation_order=metadata.get("citation_order", "auto"),
         figure_captions=bool(metadata.get("figure_captions", False)),
+        show_animations=bool(metadata.get("show_animations", True)),
         pptx=metadata.get("pptx") if isinstance(metadata.get("pptx"), dict) else None,
         chapters=metadata.get("chapters", True) is not False,
         chapter_bar=metadata.get("chapter_bar", False),
