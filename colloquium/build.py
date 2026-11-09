@@ -1573,7 +1573,7 @@ def _build_slide_html(
     citation_style: str = "author-year", cited_keys: list | None = None,
     citation_order: str = "auto", citation_numbers: dict[str, int] | None = None,
     deck_figure_captions: bool = False, chapter_attr: str = "",
-    chapter_bar_html: str = "",
+    chapter_bar_html: str = "", show_animations: bool = True,
 ) -> str:
     """Build the HTML for a single slide."""
     if bib_entries is None:
@@ -1622,6 +1622,11 @@ def _build_slide_html(
         )
 
     animate_type = slide.metadata.get("animate")
+    if not show_animations:
+        # Render every reveal up front: drop step markers and auto-animation.
+        animate_type = None
+        if slide_content:
+            slide_content = _STEP_MARKER_RE.sub("\n\n", slide_content)
     # blocks wrapping runs before column/row splitting (it targets raw
     # block-level elements which get obscured by wrapper divs); bullets
     # and step markers run after splitting, inside each layout container.
@@ -2176,6 +2181,7 @@ def build_deck(deck: Deck, output_stem: str | None = None) -> str:
             citation_order=citation_order,
             citation_numbers=citation_numbers,
             deck_figure_captions=deck.figure_captions,
+            show_animations=deck.show_animations,
             chapter_attr=chapter_attr_at(index),
             chapter_bar_html=chapter_bar_at(index, slide),
         )

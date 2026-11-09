@@ -2752,3 +2752,28 @@ class TestFigureTitle:
         assert svg is None and 'src="plot.svg"' in html
         html, svg = self._build(tmp_path, "<!-- figure-title: heading -->\n## Heading\n\n![Missing](missing.svg)")
         assert svg is None and 'src="missing.svg"' in html
+
+
+class TestShowAnimations:
+    def _deck(self, show_animations):
+        deck = Deck(title="T", show_animations=show_animations)
+        deck.add_slide(title="Steps", content="A\n\n<!-- step -->\n\nB")
+        deck.add_slide(title="Bullets", content="- one\n- two", animate="bullets")
+        deck.add_slide(title="Blocks", content="First.\n\nSecond.", animate="blocks")
+        return deck
+
+    def test_default_keeps_fragments(self):
+        html = build_deck(self._deck(True))
+        assert 'data-fragment-count="1"' in html
+        assert 'data-fragment-count="2"' in html
+
+    def test_false_renders_everything_at_once(self):
+        html = build_deck(self._deck(False))
+        assert 'data-fragment-count="' not in html
+        assert 'data-fragment-index="' not in html
+        for text in ("<p>A</p>", "<p>B</p>", "one", "two", "First.", "Second."):
+            assert text in html
+
+    def test_round_trips_through_markdown(self):
+        assert "show_animations: false" in self._deck(False).to_markdown()
+        assert "show_animations" not in self._deck(True).to_markdown()
