@@ -187,6 +187,14 @@ class TestServePortBinding:
             ):
                 _create_http_server(port, http.server.SimpleHTTPRequestHandler)
 
+    @pytest.mark.parametrize("port", [99999, -1])
+    def test_create_http_server_rejects_out_of_range_port(self, port):
+        with pytest.raises(
+            PortUnavailableError,
+            match=rf"Port {port} is unavailable",
+        ):
+            _create_http_server(port, http.server.SimpleHTTPRequestHandler)
+
 
 class TestServeLiveReload:
     @staticmethod

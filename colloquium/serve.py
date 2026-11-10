@@ -133,8 +133,8 @@ _DEFAULT_HOST = "127.0.0.1"
 class PortUnavailableError(RuntimeError):
     """Raised when the dev server cannot bind to the requested port."""
 
-    def __init__(self, port: int, cause: OSError):
-        detail = cause.strerror or str(cause)
+    def __init__(self, port: int, cause: Exception):
+        detail = getattr(cause, "strerror", None) or str(cause)
         super().__init__(f"Port {port} is unavailable: {detail}")
 
 
@@ -319,7 +319,7 @@ def _create_http_server(port: int, handler):
 
     try:
         return PresentationTCPServer((_DEFAULT_HOST, port), handler)
-    except OSError as exc:
+    except (OSError, OverflowError) as exc:
         raise PortUnavailableError(port, exc) from exc
 
 
