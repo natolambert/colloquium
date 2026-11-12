@@ -187,6 +187,46 @@ def is_stylesheet_path(value) -> bool:
     )
 
 
+_FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*?)\s*$")
+_SEPARATOR_RE = re.compile(r"---\s*")
+
+
+def _split_slides(body: str) -> list[str]:
+    """Split a deck body into slide texts at ``---`` lines.
+
+    A ``---`` on its own line (possibly with trailing whitespace) between two
+    other lines separates slides, except inside a fenced code block, where it
+    is code (e.g. a YAML or Markdown sample). If the fences look unbalanced
+    (one is never closed, or a new opener appears inside an open fence), fall
+    back to splitting at every ``---`` line so one typo cannot merge slides.
+    """
+    legacy = re.split(r"\n---\s*\n", body)
+    slides: list[str] = []
+    current: list[str] = []
+    fence = ""
+    lines = body.split("\n")
+    for i, line in enumerate(lines):
+        match = _FENCE_RE.match(line)
+        if match and match.group(1)[0] == "`" and "`" in match.group(2):
+            match = None  # a backtick fence's info string has no backticks
+        if fence:
+            if match and match.group(1)[0] == fence[0] and len(match.group(1)) >= len(fence):
+                if match.group(2):
+                    return legacy  # an opener where a closer belongs
+                fence = ""
+        elif match:
+            fence = match.group(1)
+        elif 0 < i < len(lines) - 1 and _SEPARATOR_RE.fullmatch(line):
+            slides.append("\n".join(current))
+            current = []
+            continue
+        current.append(line)
+    if fence:
+        return legacy
+    slides.append("\n".join(current))
+    return slides
+
+
 def parse_markdown(text: str) -> Deck:
     """Parse a full markdown file into a Deck."""
     metadata, body = parse_frontmatter(text)
@@ -219,9 +259,7 @@ def parse_markdown(text: str) -> Deck:
         share_image=metadata.get("share_image", False),
     )
 
-    # Split on --- slide separators (horizontal rules)
-    # A --- on its own line (possibly with whitespace) separates slides
-    slide_texts = re.split(r"\n---\s*\n", body)
+    slide_texts = _split_slides(body)
 
     for slide_text in slide_texts:
         slide_text = slide_text.strip()

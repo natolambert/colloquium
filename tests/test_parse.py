@@ -238,6 +238,50 @@ class TestParseMarkdown:
         assert deck.author == "Jane"
         assert [s.title for s in deck.slides] == ["Intro", "Next"]
 
+    def test_separator_inside_fenced_code_is_code(self):
+        md = (
+            "---\ntitle: T\n---\n\n## Frontmatter\n\n```yaml\n---\ntitle: x\n---\n```\n"
+            "\n---\n\n## Next\n\n~~~~markdown\n---\n~~~~\n"
+        )
+        deck = parse_markdown(md)
+        assert [s.title for s in deck.slides] == ["Frontmatter", "Next"]
+        assert deck.slides[0].content == "```yaml\n---\ntitle: x\n---\n```"
+        assert deck.slides[1].content == "~~~~markdown\n---\n~~~~"
+
+    def test_unclosed_fence_still_splits_slides(self):
+        deck = parse_markdown("## A\n\n```python\nx = 1\n\n---\n\n## B\n")
+        assert [s.title for s in deck.slides] == ["A", "B"]
+
+    def test_unclosed_fence_before_a_later_code_block_still_splits_slides(self):
+        md = "## A\n\n```python\nx = 1\n\n---\n\n## B\n\n```yaml\nk: v\n```\n\n---\n\n## C\n"
+        deck = parse_markdown(md)
+        assert [s.title for s in deck.slides] == ["A", "B", "C"]
+
+    def test_opener_inside_open_fence_falls_back_to_splitting(self):
+        md = "## A\n\n```\nx\n\n---\n\n## B\n\n```python\ny\n```\n"
+        deck = parse_markdown(md)
+        assert [s.title for s in deck.slides] == ["A", "B"]
+
+    def test_crlf_deck_keeps_fenced_separator_as_code(self):
+        md = "## A\n\n```yaml\n---\nk: v\n```\n\n---\n\n## B\n".replace("\n", "\r\n")
+        deck = parse_markdown(md)
+        assert [s.title for s in deck.slides] == ["A", "B"]
+        assert "---" in deck.slides[0].content
+
+    def test_inline_triple_backticks_do_not_open_a_fence(self):
+        md = "## A\n\n```x``` is inline code\n\n---\n\n## B\n\n```\ncode\n```\n"
+        deck = parse_markdown(md)
+        assert [s.title for s in deck.slides] == ["A", "B"]
+
+    def test_fence_closers_follow_commonmark(self):
+        # Shorter or indented backtick lines and ``` inside ~~~ do not close the fence.
+        md = (
+            "## A\n\n````markdown\n```\n    ````\n---\n````\n"
+            "\n---\n\n## B\n\n~~~\n```\n---\n~~~\r\n\n---\n\n## C\n"
+        )
+        deck = parse_markdown(md)
+        assert [s.title for s in deck.slides] == ["A", "B", "C"]
+
     def test_full_document(self):
         text = """---
 title: Test Talk

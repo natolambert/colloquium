@@ -11,6 +11,7 @@ One line per PR for easy copy into GitHub releases.
 
 ## [Unreleased]
 
+- Fixed: a `---` line inside a fenced code block (e.g. a YAML or Markdown sample) no longer splits the slide in two; it stays in the code block ([#79](https://github.com/natolambert/colloquium/pull/79))
 - Fixed: a `---` inside a frontmatter value (e.g. `title: "RLHF --- a primer"`) no longer ends the frontmatter early; only a `---` on its own line closes it, so the title and later keys are no longer dropped ([#78](https://github.com/natolambert/colloquium/pull/78))
 - Fixed: `colloquium serve --port` with a port outside 0-65535 now prints the clean `Port N is unavailable` error and exits 1 instead of crashing with an `OverflowError` traceback ([#77](https://github.com/natolambert/colloquium/pull/77))
 - Add `show_animations: false` frontmatter to render every `<!-- step -->` and `animate:` reveal at once while editing; the default `true` keeps reveals ([#76](https://github.com/natolambert/colloquium/pull/76))
