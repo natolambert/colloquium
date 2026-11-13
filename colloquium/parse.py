@@ -31,6 +31,8 @@ _DIRECTIVE_CLASS_MAP = {
 
 _GRID_SPEC_RE = re.compile(r"^\d+(?:/\d+)*$")
 
+_FRONTMATTER_END_RE = re.compile(r"^---[ \t]*\r?$", re.MULTILINE)
+
 
 def _normalize_grid_spec(value: str) -> str | None:
     """Return a normalized class suffix for valid grid specs only."""
@@ -49,13 +51,14 @@ def parse_frontmatter(text: str) -> tuple[dict, str]:
     if not text.startswith("---"):
         return {}, text
 
-    # Find closing ---
-    end = text.find("---", 3)
-    if end == -1:
+    # Find the closing --- on its own line, so a "---" inside a value
+    # (e.g. title: "RLHF --- a primer") does not end the frontmatter early.
+    end = _FRONTMATTER_END_RE.search(text, 3)
+    if end is None:
         return {}, text
 
-    yaml_str = text[3:end].strip()
-    remaining = text[end + 3 :].strip()
+    yaml_str = text[3 : end.start()].strip()
+    remaining = text[end.end() :].strip()
 
     try:
         metadata = yaml.safe_load(yaml_str) or {}

@@ -23,6 +23,18 @@ class TestParseFrontmatter:
         assert meta == {}
         assert body == "Body"
 
+    def test_dashes_inside_a_value(self):
+        text = '---\ntitle: "RLHF --- a primer"\nauthor: Jane\n---\n\n# Hi'
+        meta, body = parse_frontmatter(text)
+        assert meta == {"title": "RLHF --- a primer", "author": "Jane"}
+        assert body == "# Hi"
+
+    def test_closing_delimiter_with_trailing_whitespace_and_crlf(self):
+        text = "---\r\ntitle: Hello\r\n--- \r\n\r\nBody"
+        meta, body = parse_frontmatter(text)
+        assert meta == {"title": "Hello"}
+        assert body == "Body"
+
     def test_all_fields(self):
         text = "---\ntitle: Talk\nauthor: Me\ndate: 2026-01-01\ntheme: dark\naspect_ratio: '4:3'\n---\nBody"
         meta, body = parse_frontmatter(text)
@@ -219,6 +231,13 @@ class TestParseSlide:
 
 
 class TestParseMarkdown:
+    def test_dashes_in_frontmatter_title_keep_title_and_slides(self):
+        md = '---\ntitle: "RLHF --- a primer"\nauthor: Jane\n---\n\n# Intro\n\n---\n\n## Next\n'
+        deck = parse_markdown(md)
+        assert deck.title == "RLHF --- a primer"
+        assert deck.author == "Jane"
+        assert [s.title for s in deck.slides] == ["Intro", "Next"]
+
     def test_full_document(self):
         text = """---
 title: Test Talk
