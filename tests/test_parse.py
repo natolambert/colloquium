@@ -238,6 +238,90 @@ class TestParseMarkdown:
         assert deck.author == "Jane"
         assert [s.title for s in deck.slides] == ["Intro", "Next"]
 
+    def test_separator_inside_fenced_code_is_code(self):
+        md = (
+            "---\ntitle: T\n---\n\n## Frontmatter\n\n```yaml\n---\ntitle: x\n---\n```\n"
+            "\n---\n\n## Next\n\n~~~~markdown\n---\n~~~~\n"
+        )
+        deck = parse_markdown(md)
+        assert [s.title for s in deck.slides] == ["Frontmatter", "Next"]
+        assert deck.slides[0].content == "```yaml\n---\ntitle: x\n---\n```"
+        assert deck.slides[1].content == "~~~~markdown\n---\n~~~~"
+
+    def test_unclosed_fence_still_splits_slides(self):
+        deck = parse_markdown("## A\n\n```python\nx = 1\n\n---\n\n## B\n")
+        assert [s.title for s in deck.slides] == ["A", "B"]
+
+    def test_unclosed_fence_before_a_later_code_block_still_splits_slides(self):
+        md = "## A\n\n```python\nx = 1\n\n---\n\n## B\n\n```yaml\nk: v\n```\n\n---\n\n## C\n"
+        deck = parse_markdown(md)
+        assert [s.title for s in deck.slides] == ["A", "B", "C"]
+
+    def test_opener_inside_open_fence_falls_back_to_splitting(self):
+        md = "## A\n\n```\nx\n\n---\n\n## B\n\n```python\ny\n```\n"
+        deck = parse_markdown(md)
+        assert [s.title for s in deck.slides] == ["A", "B"]
+
+    def test_crlf_deck_keeps_fenced_separator_as_code(self):
+        md = "## A\n\n```yaml\n---\nk: v\n```\n\n---\n\n## B\n".replace("\n", "\r\n")
+        deck = parse_markdown(md)
+        assert [s.title for s in deck.slides] == ["A", "B"]
+        assert "---" in deck.slides[0].content
+
+    def test_inline_triple_backticks_do_not_open_a_fence(self):
+        md = "## A\n\n```x``` is inline code\n\n---\n\n## B\n\n```\ncode\n```\n"
+        deck = parse_markdown(md)
+        assert [s.title for s in deck.slides] == ["A", "B"]
+
+    def test_fence_closers_follow_commonmark(self):
+        # Shorter or indented backtick lines and ``` inside ~~~ do not close the fence.
+        md = (
+            "## A\n\n````markdown\n```\n    ````\n---\n````\n"
+            "\n---\n\n## B\n\n~~~\n```\n---\n~~~\r\n\n---\n\n## C\n"
+        )
+        deck = parse_markdown(md)
+        assert [s.title for s in deck.slides] == ["A", "B", "C"]
+
+    def test_fence_markers_inside_raw_html_do_not_open_a_fence(self):
+        # CommonMark treats these ``` lines as HTML text, not code fences.
+        md = (
+            "## A\n\n<pre>\n```\n</pre>\n\n---\n\n## B\n\n<!--\n```\n-->\n"
+            "\n---\n\n## C\n\n<PRE>\n```\n</PRE>\n\n```yaml\n---\n```\n"
+        )
+        deck = parse_markdown(md)
+        assert [s.title for s in deck.slides] == ["A", "B", "C"]
+        assert deck.slides[2].content.endswith("```yaml\n---\n```")
+
+    def test_unclosed_html_block_does_not_leak_into_the_next_slide(self):
+        md = (
+            "## A\n\n<!-- TODO: rewrite\n\n---\n\n## B\n\n<!-- step -->\n"
+            "<pre class=\"x\">y</pre>\n\n```yaml\n---\n```\n"
+        )
+        deck = parse_markdown(md)
+        assert [s.title for s in deck.slides] == ["A", "B"]
+        assert deck.slides[1].content.endswith("```yaml\n---\n```")
+
+    def test_unclosed_fence_warns_with_its_source_line(self, capsys):
+        md = "---\ntitle: T\n---\n\n## A\n\n```python\nx = 1\n\n---\n\n## B\n"
+        deck = parse_markdown(md)
+        assert [s.title for s in deck.slides] == ["A", "B"]
+        err = capsys.readouterr().err
+        assert "Warning: code fence opened on line 7 is never closed" in err
+        assert "splitting slides at every --- line" in err
+
+    def test_opener_inside_open_fence_warns_with_both_lines(self, capsys):
+        md = "\n\n## A\n\n```\nx\n\n---\n\n## B\n\n```python\ny\n```\n"
+        deck = parse_markdown(md)
+        assert [s.title for s in deck.slides] == ["A", "B"]
+        err = capsys.readouterr().err
+        assert "code fence opened on line 5 is still open where line 12 opens another" in err
+
+    def test_balanced_fences_do_not_warn(self, capsys):
+        md = "---\ntitle: T\n---\n\n## A\n\n```yaml\n---\nk: v\n```\n\n---\n\n## B\n\n<pre>\n```\n</pre>\n"
+        deck = parse_markdown(md)
+        assert [s.title for s in deck.slides] == ["A", "B"]
+        assert capsys.readouterr().err == ""
+
     def test_full_document(self):
         text = """---
 title: Test Talk
