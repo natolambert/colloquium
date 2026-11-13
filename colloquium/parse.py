@@ -189,6 +189,11 @@ def is_stylesheet_path(value) -> bool:
 
 _FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*?)\s*$")
 _SEPARATOR_RE = re.compile(r"---\s*")
+# CommonMark HTML blocks of types 1 and 2: their content is raw HTML, so a
+# fence-looking line inside them is text, not a code fence.
+_HTML_BLOCK_START_RE = re.compile(r"^ {0,3}<(?:(pre|script|style|textarea)(?:\s|>|$)|!--)", re.IGNORECASE)
+_HTML_BLOCK_END_RE = re.compile(r"</(?:pre|script|style|textarea)>", re.IGNORECASE)
+_HTML_COMMENT_END_RE = re.compile(r"-->")
 
 
 def _split_slides(body: str) -> list[str]:
@@ -204,9 +209,19 @@ def _split_slides(body: str) -> list[str]:
     slides: list[str] = []
     current: list[str] = []
     fence = ""
+    html_end = None  # end pattern of the raw HTML block we are in, if any
     lines = body.split("\n")
     for i, line in enumerate(lines):
-        match = _FENCE_RE.match(line)
+        if not fence and html_end is None:
+            html = _HTML_BLOCK_START_RE.match(line)
+            if html:
+                html_end = _HTML_BLOCK_END_RE if html.group(1) else _HTML_COMMENT_END_RE
+        if html_end is not None:
+            if html_end.search(line):
+                html_end = None
+            match = None
+        else:
+            match = _FENCE_RE.match(line)
         if match and match.group(1)[0] == "`" and "`" in match.group(2):
             match = None  # a backtick fence's info string has no backticks
         if fence:
@@ -219,6 +234,7 @@ def _split_slides(body: str) -> list[str]:
         elif 0 < i < len(lines) - 1 and _SEPARATOR_RE.fullmatch(line):
             slides.append("\n".join(current))
             current = []
+            html_end = None  # each slide renders on its own, so an open HTML block ends here
             continue
         current.append(line)
     if fence:

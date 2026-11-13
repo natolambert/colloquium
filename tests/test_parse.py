@@ -282,6 +282,25 @@ class TestParseMarkdown:
         deck = parse_markdown(md)
         assert [s.title for s in deck.slides] == ["A", "B", "C"]
 
+    def test_fence_markers_inside_raw_html_do_not_open_a_fence(self):
+        # CommonMark treats these ``` lines as HTML text, not code fences.
+        md = (
+            "## A\n\n<pre>\n```\n</pre>\n\n---\n\n## B\n\n<!--\n```\n-->\n"
+            "\n---\n\n## C\n\n<PRE>\n```\n</PRE>\n\n```yaml\n---\n```\n"
+        )
+        deck = parse_markdown(md)
+        assert [s.title for s in deck.slides] == ["A", "B", "C"]
+        assert deck.slides[2].content.endswith("```yaml\n---\n```")
+
+    def test_unclosed_html_block_does_not_leak_into_the_next_slide(self):
+        md = (
+            "## A\n\n<!-- TODO: rewrite\n\n---\n\n## B\n\n<!-- step -->\n"
+            "<pre class=\"x\">y</pre>\n\n```yaml\n---\n```\n"
+        )
+        deck = parse_markdown(md)
+        assert [s.title for s in deck.slides] == ["A", "B"]
+        assert deck.slides[1].content.endswith("```yaml\n---\n```")
+
     def test_full_document(self):
         text = """---
 title: Test Talk
