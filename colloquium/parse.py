@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import sys
 
 import yaml
 
@@ -196,19 +197,37 @@ _HTML_BLOCK_END_RE = re.compile(r"</(?:pre|script|style|textarea)>", re.IGNORECA
 _HTML_COMMENT_END_RE = re.compile(r"-->")
 
 
-def _split_slides(body: str) -> list[str]:
+def _warn_unbalanced_fence(opened: int, reopened: int | None = None) -> None:
+    """Say on stderr that the fence opened on line ``opened`` made the splitter fall back."""
+    if reopened is None:
+        problem = f"code fence opened on line {opened} is never closed"
+    else:
+        problem = (
+            f"code fence opened on line {opened} is still open where line {reopened} "
+            "opens another (to show a fence inside a code block, wrap it in a longer fence)"
+        )
+    print(
+        f"Warning: {problem}; splitting slides at every --- line, including inside code blocks.",
+        file=sys.stderr,
+    )
+
+
+def _split_slides(body: str, first_line: int = 1) -> list[str]:
     """Split a deck body into slide texts at ``---`` lines.
 
     A ``---`` on its own line (possibly with trailing whitespace) between two
     other lines separates slides, except inside a fenced code block, where it
     is code (e.g. a YAML or Markdown sample). If the fences look unbalanced
-    (one is never closed, or a new opener appears inside an open fence), fall
-    back to splitting at every ``---`` line so one typo cannot merge slides.
+    (one is never closed, or a new opener appears inside an open fence), warn
+    and fall back to splitting at every ``---`` line so one typo cannot merge
+    slides. ``first_line`` is the source line number of the body's first line,
+    so the warning points at the right line of the file.
     """
     legacy = re.split(r"\n---\s*\n", body)
     slides: list[str] = []
     current: list[str] = []
     fence = ""
+    fence_line = 0  # source line number of the open fence's opener
     html_end = None  # end pattern of the raw HTML block we are in, if any
     lines = body.split("\n")
     for i, line in enumerate(lines):
@@ -227,10 +246,12 @@ def _split_slides(body: str) -> list[str]:
         if fence:
             if match and match.group(1)[0] == fence[0] and len(match.group(1)) >= len(fence):
                 if match.group(2):
+                    _warn_unbalanced_fence(fence_line, first_line + i)
                     return legacy  # an opener where a closer belongs
                 fence = ""
         elif match:
             fence = match.group(1)
+            fence_line = first_line + i
         elif 0 < i < len(lines) - 1 and _SEPARATOR_RE.fullmatch(line):
             slides.append("\n".join(current))
             current = []
@@ -238,6 +259,7 @@ def _split_slides(body: str) -> list[str]:
             continue
         current.append(line)
     if fence:
+        _warn_unbalanced_fence(fence_line)
         return legacy
     slides.append("\n".join(current))
     return slides
@@ -275,7 +297,10 @@ def parse_markdown(text: str) -> Deck:
         share_image=metadata.get("share_image", False),
     )
 
-    slide_texts = _split_slides(body)
+    # The body is the tail of the source, so the lines before it are the
+    # frontmatter (and any leading blank lines).
+    body_start = len(text.rstrip()) - len(body.rstrip())
+    slide_texts = _split_slides(body, first_line=text.count("\n", 0, body_start) + 1)
 
     for slide_text in slide_texts:
         slide_text = slide_text.strip()

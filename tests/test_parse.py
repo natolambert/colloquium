@@ -301,6 +301,27 @@ class TestParseMarkdown:
         assert [s.title for s in deck.slides] == ["A", "B"]
         assert deck.slides[1].content.endswith("```yaml\n---\n```")
 
+    def test_unclosed_fence_warns_with_its_source_line(self, capsys):
+        md = "---\ntitle: T\n---\n\n## A\n\n```python\nx = 1\n\n---\n\n## B\n"
+        deck = parse_markdown(md)
+        assert [s.title for s in deck.slides] == ["A", "B"]
+        err = capsys.readouterr().err
+        assert "Warning: code fence opened on line 7 is never closed" in err
+        assert "splitting slides at every --- line" in err
+
+    def test_opener_inside_open_fence_warns_with_both_lines(self, capsys):
+        md = "\n\n## A\n\n```\nx\n\n---\n\n## B\n\n```python\ny\n```\n"
+        deck = parse_markdown(md)
+        assert [s.title for s in deck.slides] == ["A", "B"]
+        err = capsys.readouterr().err
+        assert "code fence opened on line 5 is still open where line 12 opens another" in err
+
+    def test_balanced_fences_do_not_warn(self, capsys):
+        md = "---\ntitle: T\n---\n\n## A\n\n```yaml\n---\nk: v\n```\n\n---\n\n## B\n\n<pre>\n```\n</pre>\n"
+        deck = parse_markdown(md)
+        assert [s.title for s in deck.slides] == ["A", "B"]
+        assert capsys.readouterr().err == ""
+
     def test_full_document(self):
         text = """---
 title: Test Talk
