@@ -2112,8 +2112,14 @@ body:hover .colloquium-present {
     .colloquium-picker-overlay,
     .colloquium-present,
     .colloquium-picker-trigger,
-    .colloquium-overflow-warn {
+    .colloquium-overflow-warn,
+    .colloquium-zoom-overlay,
+    .colloquium-zoom-image {
         display: none !important;
+    }
+
+    .colloquium-zoom-source {
+        visibility: visible !important;
     }
 
     .colloquium-counter {
@@ -2248,4 +2254,45 @@ body:hover .colloquium-present {
     opacity: 1 !important;
     pointer-events: auto !important;
     transition: none !important;
+}
+
+/* Image zoom (frontmatter `image_zoom: true`) */
+.colloquium-image-zoom .slide img.colloquium-zoom-hover {
+    cursor: zoom-in;
+}
+
+.colloquium-zoom-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    background: var(--colloquium-bg);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    cursor: zoom-out;
+}
+
+.colloquium-zoom-overlay.open {
+    opacity: 0.97;
+}
+
+.colloquium-zoom-image {
+    position: fixed;
+    z-index: 1101;
+    margin: 0;
+    max-width: none;
+    max-height: none;
+    transform-origin: center center;
+    transition: transform 0.3s cubic-bezier(0.2, 0, 0.2, 1);
+    cursor: zoom-out;
+}
+
+.colloquium-zoom-source {
+    visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .colloquium-zoom-overlay,
+    .colloquium-zoom-image {
+        transition: none;
+    }
 }

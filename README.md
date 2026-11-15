@@ -505,6 +505,12 @@ To show every `<!-- step -->` and `<!-- animate: ... -->` reveal at once while e
 show_animations: false
 ```
 
+To let the audience see a figure up close, turn on image zoom. A click on an image enlarges it to fill the window, and a second click or any key closes it. Because this replaces click-to-advance on images, it is off by default. Images in links and the footer do not zoom; add `class="no-zoom"` to an image or its wrapper to opt one out:
+
+```yaml
+image_zoom: true
+```
+
 ### Text Sizes
 
 Control font size on any element or block using HTML class attributes:
