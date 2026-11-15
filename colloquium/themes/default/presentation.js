@@ -696,7 +696,7 @@ class ColloquiumPresentation {
             const selection = window.getSelection();
             if (selection && !selection.isCollapsed && selection.toString().trim()) return;
 
-            const img = this._zoomableImage(e.target);
+            const img = this._zoomableImage(e);
             if (img) {
                 this._openImageZoom(img);
                 return;
@@ -719,13 +719,31 @@ class ColloquiumPresentation {
         if (!this.imageZoom) return;
         // The target rectangle depends on the viewport, so it is stale after a resize.
         window.addEventListener('resize', () => this._closeImageZoom(true));
+
+        // The zoom-in cursor follows the picture, not the <img> box, so it is
+        // set from the pointer position instead of a CSS rule on the image.
+        let hovered = null;
+        document.addEventListener('mousemove', (e) => {
+            const img = this.zoomed ? null : this._zoomableImage(e);
+            if (img === hovered) return;
+            if (hovered) hovered.classList.remove('colloquium-zoom-hover');
+            if (img) img.classList.add('colloquium-zoom-hover');
+            hovered = img;
+        });
     }
 
-    _zoomableImage(target) {
+    // The image under a mouse event, if a click there should zoom it. The
+    // pointer must be on the picture itself: an <img> box can be much larger
+    // than its picture, and the empty part still advances the slide.
+    _zoomableImage(e) {
         if (!this.imageZoom) return null;
-        const img = target.closest('img');
-        if (!img || img.closest('.no-zoom')) return null;
-        return img.closest('.slide') === this.slides[this.currentIndex] ? img : null;
+        const img = e.target.closest('img');
+        if (!img || img.closest('a, .colloquium-footer, .no-zoom')) return null;
+        if (img.closest('.slide') !== this.slides[this.currentIndex]) return null;
+        const rect = this._imageContentRect(img, getComputedStyle(img));
+        const onPicture = e.clientX >= rect.left && e.clientX <= rect.left + rect.width
+            && e.clientY >= rect.top && e.clientY <= rect.top + rect.height;
+        return onPicture ? img : null;
     }
 
     // With object-fit: contain (as in figure columns), the picture is smaller

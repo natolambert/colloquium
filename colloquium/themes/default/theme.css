@@ -2257,7 +2257,7 @@ body:hover .colloquium-present {
 }
 
 /* Image zoom (frontmatter `image_zoom: true`) */
-.colloquium-image-zoom .slide img:not(a img, .colloquium-footer img, .no-zoom, .no-zoom img) {
+.colloquium-image-zoom .slide img.colloquium-zoom-hover {
     cursor: zoom-in;
 }
 
