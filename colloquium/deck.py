@@ -59,6 +59,7 @@ class Deck:
         citation_order: str = "auto",
         figure_captions: bool = False,
         show_animations: bool = True,
+        image_zoom: bool = False,
         pptx: dict | None = None,
         chapters: bool = True,
         chapter_bar: bool | str | dict = False,
@@ -90,6 +91,7 @@ class Deck:
         self.figure_captions = figure_captions
         # False renders every step/animate reveal at once (faster while editing).
         self.show_animations = show_animations
+        self.image_zoom = image_zoom
         self.pptx = pptx
         self.chapters = chapters
         self.chapter_bar = normalize_chapter_bar(chapter_bar)
@@ -222,6 +224,8 @@ class Deck:
             lines.append("figure_captions: true")
         if not self.show_animations:
             lines.append("show_animations: false")
+        if self.image_zoom:
+            lines.append("image_zoom: true")
         if self.url:
             lines.append(f'url: "{self.url}"')
         if self.share_image:

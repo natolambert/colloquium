@@ -57,6 +57,7 @@ class ColloquiumPresentation {
         this._bindPresent();
         this._bindKeyboard();
         this._bindIframes();
+        this._bindImageZoom();
         this._bindClick();
         this._bindTouch();
         this._bindHashChange();
@@ -123,6 +124,7 @@ class ColloquiumPresentation {
 
     goTo(index, showAllFragments = false) {
         if (index < 0 || index >= this.totalSlides) return;
+        this._closeImageZoom(true);
 
         // Cancel any pending numeric jump. The numeric commit path clears the
         // buffer before calling goTo, so this is a no-op there; every other
@@ -537,6 +539,12 @@ class ColloquiumPresentation {
     }
 
     _handleNavigationKey(e) {
+        if (this.zoomed) {
+            if (e.metaKey || e.ctrlKey || e.altKey) return;
+            e.preventDefault();
+            this._closeImageZoom();
+            return;
+        }
         if (this._handleSlideNumberKey(e)) return;
 
         switch (e.key) {
@@ -648,6 +656,11 @@ class ColloquiumPresentation {
         });
 
         document.addEventListener('click', (e) => {
+            if (this.zoomed) {
+                this._closeImageZoom();
+                return;
+            }
+
             // Handle citation links — navigate to the slide containing the target ref
             const citeLink = e.target.closest('a.colloquium-cite');
             if (citeLink) {
@@ -683,6 +696,12 @@ class ColloquiumPresentation {
             const selection = window.getSelection();
             if (selection && !selection.isCollapsed && selection.toString().trim()) return;
 
+            const img = this._zoomableImage(e.target);
+            if (img) {
+                this._openImageZoom(img);
+                return;
+            }
+
             const x = e.clientX / window.innerWidth;
             if (x < 0.33) {
                 this.prev();
@@ -690,6 +709,107 @@ class ColloquiumPresentation {
                 this.next();
             }
         });
+    }
+
+    // --- Image zoom (frontmatter `image_zoom: true`) ---
+
+    _bindImageZoom() {
+        this.zoomed = null;
+        this.imageZoom = document.body.classList.contains('colloquium-image-zoom');
+        if (!this.imageZoom) return;
+        // The target rectangle depends on the viewport, so it is stale after a resize.
+        window.addEventListener('resize', () => this._closeImageZoom(true));
+    }
+
+    _zoomableImage(target) {
+        if (!this.imageZoom) return null;
+        const img = target.closest('img');
+        if (!img || img.closest('.no-zoom')) return null;
+        return img.closest('.slide') === this.slides[this.currentIndex] ? img : null;
+    }
+
+    // With object-fit: contain (as in figure columns), the picture is smaller
+    // than the <img> box and placed by object-position. Zoom from the picture.
+    _imageContentRect(img, style) {
+        const box = img.getBoundingClientRect();
+        if (style.objectFit !== 'contain' || !img.naturalWidth) return box;
+        const fit = Math.min(box.width / img.naturalWidth, box.height / img.naturalHeight);
+        const width = img.naturalWidth * fit;
+        const height = img.naturalHeight * fit;
+        const [x, y] = style.objectPosition.split(' ');
+        const offset = (pos, free) => pos.endsWith('%')
+            ? free * parseFloat(pos) / 100
+            : parseFloat(pos) * box.width / img.offsetWidth;
+        return {
+            left: box.left + offset(x, box.width - width),
+            top: box.top + offset(y, box.height - height),
+            width,
+            height,
+        };
+    }
+
+    _openImageZoom(img) {
+        const style = getComputedStyle(img);
+        const rect = this._imageContentRect(img, style);
+        if (!rect.width || !rect.height) return;
+
+        const overlay = document.createElement('div');
+        overlay.className = 'colloquium-zoom-overlay';
+
+        const clone = document.createElement('img');
+        clone.className = 'colloquium-zoom-image';
+        clone.src = img.currentSrc || img.src;
+        clone.alt = img.alt;
+        Object.assign(clone.style, {
+            objectFit: style.objectFit,
+            objectPosition: style.objectPosition,
+            top: `${rect.top}px`,
+            left: `${rect.left}px`,
+            width: `${rect.width}px`,
+            height: `${rect.height}px`,
+        });
+
+        document.body.append(overlay, clone);
+        img.classList.add('colloquium-zoom-source');
+        this.zoomed = { img, overlay, clone };
+
+        const margin = Math.min(window.innerWidth, window.innerHeight) * 0.04;
+        const scale = Math.max(1, Math.min(
+            (window.innerWidth - 2 * margin) / rect.width,
+            (window.innerHeight - 2 * margin) / rect.height
+        ));
+        const dx = window.innerWidth / 2 - (rect.left + rect.width / 2);
+        const dy = window.innerHeight / 2 - (rect.top + rect.height / 2);
+
+        // Read layout once so the browser starts the transition from the
+        // image's position on the slide, not from the final position.
+        clone.getBoundingClientRect();
+        overlay.classList.add('open');
+        clone.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+    }
+
+    _closeImageZoom(immediate = false) {
+        if (!this.zoomed) return;
+        const { img, overlay, clone } = this.zoomed;
+        this.zoomed = null;
+
+        let timer;
+        const remove = () => {
+            clearTimeout(timer);
+            overlay.remove();
+            clone.remove();
+            img.classList.remove('colloquium-zoom-source');
+        };
+        if (immediate) {
+            remove();
+            return;
+        }
+        overlay.classList.remove('open');
+        clone.style.transform = '';
+        clone.addEventListener('transitionend', remove, { once: true });
+        // transitionend does not fire if there is no transition (reduced motion)
+        // or if it is interrupted.
+        timer = setTimeout(remove, 400);
     }
 
     _bindTouch() {
@@ -702,6 +822,7 @@ class ColloquiumPresentation {
         }, { passive: true });
 
         document.addEventListener('touchend', (e) => {
+            if (this.zoomed) return;
             const dx = e.changedTouches[0].clientX - startX;
             const dy = e.changedTouches[0].clientY - startY;
 

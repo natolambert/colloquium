@@ -2777,3 +2777,24 @@ class TestShowAnimations:
     def test_round_trips_through_markdown(self):
         assert "show_animations: false" in self._deck(False).to_markdown()
         assert "show_animations" not in self._deck(True).to_markdown()
+
+
+class TestImageZoom:
+    def _deck(self, image_zoom):
+        deck = Deck(title="T", image_zoom=image_zoom)
+        deck.add_slide(title="Figure", content="![Plot](plot.png)")
+        return deck
+
+    def test_off_by_default(self):
+        assert "<body>" in build_deck(self._deck(False))
+
+    def test_adds_body_class_next_to_chapter_bar_class(self):
+        deck = Deck(title="T", image_zoom=True, chapter_bar=True)
+        deck.add_slide(title="Intro", content="A", chapter="One")
+        deck.add_slide(title="Next", content="B", chapter="Two")
+        html = build_deck(deck)
+        assert '<body class="colloquium-has-chapter-bar colloquium-image-zoom">' in html
+
+    def test_round_trips_through_markdown(self):
+        assert "image_zoom: true" in self._deck(True).to_markdown()
+        assert "image_zoom" not in self._deck(False).to_markdown()

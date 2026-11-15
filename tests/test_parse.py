@@ -401,6 +401,11 @@ Some math: $E = mc^2$
         assert parse_markdown(text).show_animations is False
         assert parse_markdown("---\ntitle: Talk\n---\n\n## S1\n\nContent").show_animations is True
 
+    def test_image_zoom_frontmatter_parsed(self):
+        text = "---\ntitle: Talk\nimage_zoom: true\n---\n\n## S1\n\nContent"
+        assert parse_markdown(text).image_zoom is True
+        assert parse_markdown("---\ntitle: Talk\n---\n\n## S1\n\nContent").image_zoom is False
+
 
 class TestAnimateDirective:
     def test_animate_stored_in_metadata(self):

@@ -2213,9 +2213,12 @@ def build_deck(deck: Deck, output_stem: str | None = None) -> str:
     slides_html = "\n\n".join(slides_html_parts)
 
     # The window-edge progress line is redundant only when every slide has a bar.
-    body_attr = ""
+    body_classes = []
     if bar and chapters and bar["slides"] == "all":
-        body_attr = ' class="colloquium-has-chapter-bar"'
+        body_classes.append("colloquium-has-chapter-bar")
+    if deck.image_zoom:
+        body_classes.append("colloquium-image-zoom")
+    body_attr = f' class="{" ".join(body_classes)}"' if body_classes else ""
 
     return _HTML_TEMPLATE.substitute(
         title=deck.title,
