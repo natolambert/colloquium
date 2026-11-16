@@ -2370,6 +2370,38 @@ class TestChapters:
 
         assert 'data-chapter-title="Part 1"' in tags[0]
 
+    def test_chapter_none_keeps_a_section_break_inside_its_chapter(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="Part 1", layout="section-break")
+        deck.add_slide(title="A", content="a")
+        deck.add_slide(title="One big claim", layout="section-break", chapter="none")
+        deck.add_slide(title="B", content="b")
+        deck.add_slide(title="Part 2", layout="section-break")
+        deck.add_slide(title="Agenda", content="```toc\n```")
+
+        html = build_deck(deck)
+        tags = _section_tags(html)
+
+        assert "slide--section-break" in tags[2]
+        assert 'data-chapter="0"' in tags[2]
+        assert "data-chapter-start" not in tags[2]
+        assert "data-chapter-title" not in tags[2]
+        assert 'data-chapter="0"' in tags[3]
+        assert 'data-chapter="1" data-chapter-start' in tags[4]
+        # The table of contents lists the two real chapters only.
+        assert html.count('class="colloquium-toc-item') == 2
+        assert ">One big claim</a>" not in html
+
+    def test_chapter_none_alone_does_not_turn_chapters_on(self):
+        deck = Deck(title="Test")
+        deck.add_slide(title="Statement", layout="section-break", chapter="None")
+        deck.add_slide(title="A", content="a")
+        deck.add_slide(title="Closing", layout="section-break", chapter="false")
+
+        tags = _section_tags(build_deck(deck))
+
+        assert not any("data-chapter" in tag for tag in tags)
+
     def test_deck_without_chapter_openers_has_no_chapter_attributes(self):
         deck = Deck(title="Test")
         deck.add_slide(title="A", content="a")
@@ -2502,6 +2534,21 @@ class TestChapterBar:
         assert 'item current" href="#5" title="Part 2" style="--chapter-progress: 100%"' in sections[4]
         # Other slides keep the window-edge progress line.
         assert "<body>" in html
+
+    def test_section_breaks_scope_skips_chapter_none_slides(self):
+        deck = Deck(title="Test", chapter_bar={"slides": "section-breaks"})
+        deck.add_slide(title="Part 1", layout="section-break")
+        deck.add_slide(title="One big claim", layout="section-break", chapter="none")
+        deck.add_slide(
+            title="Forced", layout="section-break", chapter="none", chapter_bar="bars",
+        )
+
+        sections = _slide_sections(build_deck(deck))
+
+        assert "colloquium-chapter-bar" in sections[0]
+        assert "colloquium-chapter-bar" not in sections[1]
+        # A chapter-bar directive still shows the bar on request.
+        assert "colloquium-chapter-bar" in sections[2]
 
     def test_slide_directive_restyles_shows_and_hides(self):
         deck = Deck(title="Test")

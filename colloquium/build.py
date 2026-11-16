@@ -973,14 +973,23 @@ def _build_references_slides_html(
     return slides
 
 
+# ``<!-- chapter: none -->`` (or ``false``) opts a slide out of opening a chapter.
+_NO_CHAPTER_VALUES = ("none", "false")
+
+
 def _chapter_start_title(slide: Slide) -> str | None:
     """Return the chapter title a slide opens, or None if it opens no chapter.
 
     An explicit ``<!-- chapter: ... -->`` directive opens a chapter; section-break
     slides open one implicitly. An empty title means "use the slide's heading".
+    ``<!-- chapter: none -->`` opens no chapter, so a section-break slide used
+    for emphasis stays inside the chapter it sits in.
     """
     if "chapter" in slide.metadata:
-        return slide.metadata["chapter"]
+        title = slide.metadata["chapter"]
+        if str(title).strip().lower() in _NO_CHAPTER_VALUES:
+            return None
+        return title
     if slide.layout == "section-break":
         return ""
     return None
@@ -2164,7 +2173,10 @@ def build_deck(deck: Deck, output_stem: str | None = None) -> str:
         else:
             if not bar or (slide is not None and slide.is_title_slide):
                 return ""
-            if bar["slides"] == "section-breaks" and (slide is None or slide.layout != "section-break"):
+            if bar["slides"] == "section-breaks" and (
+                slide is None or slide.layout != "section-break" or openers[index][1] is None
+            ):
+                # Only section breaks that open a chapter; `chapter: none` ones are left alone.
                 return ""
             options = bar
         return _build_chapter_bar_html(

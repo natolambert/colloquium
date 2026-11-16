@@ -27,6 +27,7 @@ footer:
 | Directive or block | Effect |
 |--------------------|--------|
 | `<!-- chapter: Title -->` | Start a chapter on any slide, or rename a section break's chapter everywhere |
+| `<!-- chapter: none -->` | A section-break slide that starts no chapter and stays in the one it sits in |
 | `<!-- chapter-short: Label -->` | Shorter label for the chapter in the bar only |
 | `<!-- chapter-bar: bars chapters -->` | Restyle this slide's bar (`labels`/`bars`, `slides`/`chapters`), or show it when the deck setting leaves it out |
 | `<!-- chapter-bar: hide -->` | Hide the bar on this slide (the `no-chapter-bar` class does the same) |

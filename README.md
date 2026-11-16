@@ -304,6 +304,7 @@ At the slide root, use either `columns:` or `rows:`. For nested layouts, use `ro
 | `<!-- after: references -->` | Move this slide after generated bibliography slides; it is excluded from the footer `{N}` total |
 | `<!-- figure-title: heading -->` | The `##` heading replaces the title inside the slide's first SVG figure (see [Plot titles from the heading](#plot-titles-from-the-heading)) |
 | `<!-- chapter: Title -->` | Start a new chapter at this slide (see [Chapters](#chapters)) |
+| `<!-- chapter: none -->` | Keep a section-break slide from starting a chapter |
 | `<!-- chapter-short: Label -->` | Shorter label for this slide's chapter in the [chapter bar](#chapter-bar) |
 | `<!-- chapter-bar: bars chapters -->` | Restyle, show, or `hide` the [chapter bar](#chapter-bar) on this slide |
 | `<!-- class: figure-captions -->` | Turn standalone markdown images on that slide into numbered figures with captions taken from `![alt](...)` |
@@ -355,6 +356,17 @@ Long decks can be split into chapters, which group slides in the slide picker. E
 ## Part 2: Measuring the open model ecosystem
 ```
 
+A section-break slide used for emphasis, such as a single statement or a closing "Questions?" slide, should not become a chapter. Add `<!-- chapter: none -->` and it keeps the section-break look but starts no chapter: it stays in the chapter it sits in, and the picker, the chapter bar, and tables of contents do not list it (`chapter: false` works too).
+
+```markdown
+<!-- layout: section-break -->
+<!-- chapter: none -->
+
+## One claim worth a whole slide
+```
+
+![A section-break slide marked chapter: none, next to a table of contents that lists only the real chapters](docs/chapter-none.png)
+
 A chapter runs until the next one starts. Slides before the first chapter (title, outline) stay ungrouped at the top of the picker. Generated references form their own "References" chapter, and `after: references` slides join it unless they start a chapter of their own.
 
 When the picker opens, only the current chapter is expanded. Click any chapter to show or hide its slides. Each slide's `<section>` carries `data-chapter="N"`, the first slide of each chapter also has `data-chapter-start`, and `window.colloquium.chapters` lists `{title, start, end}` for every chapter. Custom CSS and scripts can use these.
@@ -384,7 +396,7 @@ chapter_bar:
                           # chapters: whole-chapter states (done dimmed, current solid, upcoming empty)
 ```
 
-`slides: section-breaks` with `progress: chapters` gives a quiet "where are we" indicator on each section break and leaves every other slide alone.
+`slides: section-breaks` with `progress: chapters` gives a quiet "where are we" indicator on each section break that opens a chapter and leaves every other slide alone, including `chapter: none` section breaks.
 
 Restyle the bar on one slide with a `chapter-bar` directive, whose tokens override the deck settings for that slide. A directive also shows the bar on its slide when the deck has no `chapter_bar` setting, or when `slides: section-breaks` would leave it out:
 

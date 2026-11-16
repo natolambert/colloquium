@@ -47,6 +47,7 @@ Slides before the first chapter stay ungrouped. The `toc` block above lists the 
 | On a slide | Effect |
 |------------|--------|
 | <code>&lt;!&#45;&#45; chapter: Title &#45;&#45;&gt;</code> | Start a chapter here, or rename a section break's chapter |
+| <code>&lt;!&#45;&#45; chapter: none &#45;&#45;&gt;</code> | A section break that starts no chapter |
 | <code>&lt;!&#45;&#45; chapter-short: Label &#45;&#45;&gt;</code> | Shorter label in the chapter bar only |
 | <code>&lt;!&#45;&#45; chapter-bar: bars chapters &#45;&#45;&gt;</code> | Restyle this slide's bar: `labels`/`bars`, `slides`/`chapters` |
 | <code>&lt;!&#45;&#45; chapter-bar: hide &#45;&#45;&gt;</code> | Hide the bar here (also the `no-chapter-bar` class) |
@@ -76,6 +77,15 @@ Only the chapter you are in starts open; click another to see its slides.
 Any slide with the `section-break` layout starts a chapter named after its heading. The chapter runs until the next one starts.
 
 This chapter's section break also adds <code>&lt;!&#45;&#45; chapter-short: Picker &#45;&#45;&gt;</code>, so the bar below reads "Picker" while the picker and table of contents keep "Part 1: The slide picker".
+
+---
+
+<!-- layout: section-break -->
+<!-- chapter: none -->
+
+## A section break that starts no chapter
+
+This slide is marked chapter: none, so it stays inside Part 1. The picker, the bar, and the table of contents do not list it.
 
 ---
 
