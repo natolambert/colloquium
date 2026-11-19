@@ -458,6 +458,20 @@ class TestChapterDirective:
         assert slide.metadata["chapter"] == "Measuring progress"
         assert "<!--" not in slide.content
 
+    def test_chapter_none_on_a_section_break_opens_no_chapter(self):
+        deck = parse_markdown(
+            "---\ntitle: Talk\n---\n\n"
+            "<!-- layout: section-break -->\n\n## Part 1\n\n---\n\n"
+            "<!-- layout: section-break -->\n<!-- chapter: none -->\n\n## One claim\n"
+        )
+        from colloquium.build import build_deck
+
+        html = build_deck(deck)
+
+        assert deck.slides[1].metadata["chapter"] == "none"
+        assert "<!-- chapter: none -->" in deck.slides[1].to_markdown()
+        assert html.count("data-chapter-start") == 1
+
     def test_chapter_round_trips_through_markdown(self):
         slide = parse_slide("<!-- chapter: Measuring progress -->\n\n## Downloads")
         assert "<!-- chapter: Measuring progress -->" in slide.to_markdown()
