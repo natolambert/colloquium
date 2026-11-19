@@ -791,6 +791,18 @@ html, body {
 .valign-center.active { justify-content: center; }
 .valign-bottom.active { justify-content: flex-end; }
 
+/* justify-content can only move things when the slide has free space, and
+   the content block normally grows to fill it. With valign: center or
+   bottom, and on section breaks (centered by their layout), the block takes
+   its natural height instead, so the heading and content move as one group.
+   Two cases keep filling the slide: rows, whose tracks divide its full
+   height, and a lone captioned figure, which img-valign positions. */
+.slide.valign-center > .slide-content:not(.colloquium-rows):not(:has(> figure.colloquium-figure:first-child:last-child)),
+.slide.valign-bottom > .slide-content:not(.colloquium-rows):not(:has(> figure.colloquium-figure:first-child:last-child)),
+.slide--section-break > .slide-content:not(.colloquium-rows):not(:has(> figure.colloquium-figure:first-child:last-child)) {
+    flex: 0 1 auto;
+}
+
 /* ===== Utility: Columns ===== */
 .colloquium-grid {
     display: grid;

@@ -11,6 +11,7 @@ One line per PR for easy copy into GitHub releases.
 
 ## [Unreleased]
 
+- Fixed: `<!-- valign: center -->` and `<!-- valign: bottom -->` now move the heading and content on ordinary content and columns slides, where they previously did nothing because the content block filled the slide; a section break with body text is now centered as well. Rows slides and lone captioned figures keep their layout ([#81](https://github.com/natolambert/colloquium/pull/81))
 - Add `image_zoom: true` frontmatter: a click on a slide image enlarges it to fill the window instead of advancing the slide; a click or any key closes it ([#80](https://github.com/natolambert/colloquium/pull/80))
 - Fixed: a `---` line inside a fenced code block (e.g. a YAML or Markdown sample) no longer splits the slide in two; it stays in the code block. A code fence that is never closed prints a warning with its line number and the deck is split at every `---` as before ([#79](https://github.com/natolambert/colloquium/pull/79))
 - Fixed: a `---` inside a frontmatter value (e.g. `title: "RLHF --- a primer"`) no longer ends the frontmatter early; only a `---` on its own line closes it, so the title and later keys are no longer dropped ([#78](https://github.com/natolambert/colloquium/pull/78))

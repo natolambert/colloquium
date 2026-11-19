@@ -292,6 +292,10 @@ At the slide root, use either `columns:` or `rows:`. For nested layouts, use `ro
 | `<!-- padding: ... -->` | `compact` (30px), `normal` (60px), `wide` (90px) |
 | `<!-- title: ... -->` | `top`, `center`, `hidden` |
 
+`valign` moves the heading and the content together as one group. Slides laid out with `rows:` keep filling the slide height, and a slide that is only a captioned figure is positioned with `img-valign` instead.
+
+![Three slides with valign top, center, and bottom](docs/valign.png)
+
 ### Other
 
 | Directive | Description |
